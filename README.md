@@ -105,7 +105,7 @@ Each monorepo package might have its own scripts and tasks. You can find the pac
 
    > This package targets `hyperledger/iroha` at current `iroha2-lts` branch, which has a hash `b783f10fa7de26ed1fdd4c526bd162f8636f1a65`.
 
-   Put here a new Iroha 2 reference commit information.
+   Put here new Iroha 2 reference commit information.
 
 ### SDK Compatibility Matrix Tests
 

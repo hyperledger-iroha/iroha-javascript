@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@iroha2/i64-fixnum": "workspace:^0.4.2",
+    "@scale-codec/core": "^2.0.1",
     "@scale-codec/definition-runtime": "^4.0.1"
   },
   "devDependencies": {

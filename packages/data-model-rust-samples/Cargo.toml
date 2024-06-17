@@ -7,4 +7,4 @@ edition = "2021"
 iroha_data_model = { path = "../iroha-source/.iroha/data_model" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-parity-scale-codec = "3.2.1"
+parity-scale-codec = "3.2"

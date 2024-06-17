@@ -50,7 +50,7 @@ export function resolveBinaryPath(bin: string): string {
 }
 
 export async function runCargoBuild(crate: string): Promise<void> {
-  const process = execa('cargo', ['build', '-Zlints', '--release', '--package', crate], {
+  const process = execa('cargo', ['build', '--release', '--package', crate], {
     stdio: 'inherit',
     cwd: IROHA_DIR,
     env: {
@@ -100,4 +100,5 @@ export async function syncIrohaSymlink(config: ResolvedConfig) {
 
 export async function syncSourceRepo(config: ResolvedConfig) {
   if (config.t === 'git-clone' && !(await isCloneUpToDate(config))) await clone(config)
+    await syncIrohaSymlink(config);
 }

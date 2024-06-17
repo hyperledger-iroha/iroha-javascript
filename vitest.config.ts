@@ -17,6 +17,10 @@ export default defineConfig({
   test: {
     include: ['**/*.spec.ts'],
     exclude: ['**/test/integration', '**/node_modules', '**/dist', '**/dist-tsc'],
-    includeSource: ['packages/i64-fixnum/src/**/*.ts', 'packages/client/src/**/*.ts'],
+    includeSource: [
+      'packages/i64-fixnum/src/**/*.ts',
+      'packages/client/src/**/*.ts',
+      'packages/data-model/etc/**/*.ts',
+    ],
   },
 })

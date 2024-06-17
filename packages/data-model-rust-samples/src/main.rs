@@ -1,3 +1,4 @@
+use iroha_data_model::metadata::MetadataValueBox;
 use iroha_data_model::prelude::*;
 use parity_scale_codec::Encode;
 use serde::Serialize;
@@ -6,6 +7,9 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use std::time::Duration;
 
+const SAMPLE_SIGNATORY: &str =
+    "ed01207233BFC89DCBD68C19FDE6CE6158225298EC1131B6A130D1AEB454C1AB5183C0";
+
 fn main() {
     println!(
         "{}",
@@ -13,21 +17,15 @@ fn main() {
             .add("DomainId", &DomainId::from_str("Hey").unwrap())
             .add(
                 "AssetDefinitionId",
-                &AssetDefinitionId::from_str("rose#wonderland").unwrap(),
+                &AssetDefinitionId::from_str(&format!("{SAMPLE_SIGNATORY}#wonderland")).unwrap(),
             )
             .add(
                 "AccountId",
-                &AccountId::from_str("alice@wonderland").unwrap(),
+                &AccountId::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap(),
             )
-            .add(
-                "Time-based Trigger ISI",
-                &create_some_time_based_trigger_isi(),
-            )
-            .add(
-                "Event-based Trigger ISI",
-                &create_some_event_based_trigger_isi(),
-            )
-            .add("Metadata", &create_metadata())
+            .add("Time-based Trigger ISI", &sample_register_time_trigger(),)
+            .add("Data-based Trigger ISI", &sample_register_data_trigger(),)
+            .add("Metadata", &sample_metadata())
             .to_json()
     );
 }
@@ -78,57 +76,59 @@ fn to_hex(val: &Vec<u8>) -> String {
     parts.join(" ")
 }
 
-fn create_some_time_based_trigger_isi() -> RegisterExpr {
+fn sample_register_time_trigger() -> InstructionBox {
     let asset_id = AssetId::new(
-        AssetDefinitionId::from_str("rose#wonderland").unwrap(),
-        AccountId::from_str("alice@wonderland").unwrap(),
+        AssetDefinitionId::from_str(&format!("{SAMPLE_SIGNATORY}#wonderland")).unwrap(),
+        AccountId::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap(),
     );
 
-    let mint: InstructionExpr = MintExpr::new(1_u32, asset_id.clone()).into();
-
-    RegisterExpr::new(Trigger::new(
+    Register::trigger(Trigger::new(
         "mint_rose".parse().expect("valid"),
         Action::new(
-            vec![mint],
+            [Mint::asset_numeric(1u32, asset_id.clone())],
             Repeats::Indefinitely,
-            asset_id.account_id().clone(),
-            TriggeringFilterBox::Time(TimeEventFilter::new(ExecutionTime::Schedule(
-                TimeSchedule::starting_at(Duration::from_secs(4141203402341234))
+            asset_id.account().clone(),
+            TimeEventFilter::new(ExecutionTime::Schedule(
+                TimeSchedule::starting_at(Duration::from_secs(500))
                     .with_period(Duration::from_millis(3_000)),
-            ))),
+            )),
         ),
     ))
+    .into()
 }
 
-fn create_some_event_based_trigger_isi() -> RegisterExpr {
-    let asset_definition_id = "rose#wonderland".parse().unwrap();
-    let account_id = <Account as Identifiable>::Id::from_str("alice@wonderland").unwrap();
-    let asset_id = AssetId::new(asset_definition_id, account_id.clone());
-    let mint: InstructionExpr = MintExpr::new(1_u32, asset_id.clone()).into();
+fn sample_register_data_trigger() -> InstructionBox {
+    let asset_definition_id: AssetDefinitionId =
+        format!("{SAMPLE_SIGNATORY}#wonderland").parse().unwrap();
+    let account_id =
+        <Account as Identifiable>::Id::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap();
+    let asset_id = AssetId::new(asset_definition_id.clone(), account_id.clone());
 
-    RegisterExpr::new(Trigger::new(
+    Register::trigger(Trigger::new(
         "mint_rose".parse().expect("valid"),
         Action::new(
-            vec![mint],
+            [Mint::asset_numeric(1u32, asset_id)],
             Repeats::Indefinitely,
             account_id,
-            TriggeringFilterBox::Data(BySome(DataEntityFilter::ByAssetDefinition(BySome(
-                AssetDefinitionFilter::new(
-                    AcceptAll,
-                    BySome(AssetDefinitionEventFilter::ByCreated),
-                ),
-            )))),
+            DataEventFilter::AssetDefinition(
+                AssetDefinitionEventFilter::new()
+                    .for_asset_definition(asset_definition_id)
+                    .for_events(
+                        AssetDefinitionEventSet::Created | AssetDefinitionEventSet::OwnerChanged,
+                    ),
+            ),
         ),
     ))
+    .into()
 }
 
-fn create_metadata() -> Metadata {
+fn sample_metadata() -> Metadata {
     trait LocalSet {
-        fn set(self, name: &str, value: Value) -> Self;
+        fn set(self, name: &str, value: impl Into<MetadataValueBox>) -> Self;
     }
 
     impl LocalSet for Metadata {
-        fn set(mut self, name: &str, value: Value) -> Self {
+        fn set(mut self, name: &str, value: impl Into<MetadataValueBox>) -> Self {
             match self
                 .insert_with_limits(
                     Name::from_str(name).unwrap(),
@@ -145,14 +145,9 @@ fn create_metadata() -> Metadata {
     }
 
     Metadata::new()
-        .set(
-            "authentication",
-            Value::String(
-                "80252ad79c68c01ec8946983411ce3b7cbea21d25f68c8546c687b2a7e2505cc".to_owned(),
-            ),
-        )
-        .set("email", Value::String("user123@mail.com".to_owned()))
-        .set("salt", Value::String("ABCDEFG".to_owned()))
+        .set("authentication", "80252ad8c8546c687b2a7e2505cc".to_owned())
+        .set("email", "user123@mail.com".to_owned())
+        .set("salt", "ABCDEFG".to_owned())
 }
 
 #[cfg(test)]
@@ -161,7 +156,7 @@ mod tests {
 
     #[test]
     fn dbg_trigger_isi() {
-        let value = create_some_time_based_trigger_isi();
+        let value = sample_register_time_trigger();
 
         dbg!(&value);
     }
