@@ -13,17 +13,17 @@ export const Algorithm = {
   toDataModel: (algorithm: Algorithm): datamodel.Algorithm => {
     switch (algorithm) {
       case 'ed25519':
-        return datamodel.Algorithm('Ed25519')
+        return datamodel.Algorithm.Ed25519
       case 'secp256k1':
-        return datamodel.Algorithm('Secp256k1')
+        return datamodel.Algorithm.Secp256k1
       case 'bls_small':
-        return datamodel.Algorithm('BlsSmall')
+        return datamodel.Algorithm.BlsSmall
       case 'bls_normal':
-        return datamodel.Algorithm('BlsNormal')
+        return datamodel.Algorithm.BlsNormal
     }
   },
   fromDataModel: (algorithm: datamodel.Algorithm): Algorithm => {
-    switch (algorithm.enum.tag) {
+    switch (algorithm.tag) {
       case 'Ed25519':
         return 'ed25519'
       case 'Secp256k1':
@@ -162,7 +162,7 @@ export class PublicKey
   }
 
   public static fromDataModel(publicKey: datamodel.PublicKey): PublicKey {
-    return PublicKey.fromRaw(Algorithm.fromDataModel(publicKey.digest_function), Bytes.array(publicKey.payload))
+    return PublicKey.fromRaw(Algorithm.fromDataModel(publicKey.algorithm), Bytes.array(publicKey.payload))
   }
 
   public toMultihash(): string {
@@ -187,10 +187,10 @@ export class PublicKey
   }
 
   public toDataModel(): datamodel.PublicKey {
-    return datamodel.PublicKey({
-      digest_function: Algorithm.toDataModel(this.algorithm),
+    return {
+      algorithm: Algorithm.toDataModel(this.algorithm),
       payload: this.payload(),
-    })
+    }
   }
 }
 
@@ -264,6 +264,7 @@ export class Signature
 
   public static fromDataModel(signature: datamodel.Signature): Signature {
     return freeScope((scope) => {
+      // TODO patch wasm first
       const publicKey = PublicKey.fromDataModel(signature.public_key)
       const result = Signature.fromBytes(publicKey, Bytes.array(signature.payload))
       scope.forget(result)
@@ -294,12 +295,9 @@ export class Signature
   }
 
   public toDataModel(): datamodel.Signature {
-    return freeScope(() =>
-      datamodel.Signature({
-        public_key: this.publicKey().toDataModel(),
-        payload: this.payload(),
-      }),
-    )
+    return {
+      payload: this.payload(),
+    }
   }
 
   public toJSON(): wasmPkg.SignatureJson {

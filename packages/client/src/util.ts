@@ -1,7 +1,6 @@
 import { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types'
 import { Debugger } from 'debug'
 import Emittery from 'emittery'
-import JsonBigIntParseFactory from 'json-bigint/lib/parse.js'
 import { getCryptoAnyway } from './crypto-singleton'
 import { Bytes, freeScope } from '@iroha2/crypto-core'
 
@@ -79,32 +78,4 @@ export function setupWebSocket<EmitMap extends SocketEmitMapBase>(params: {
   }
 
   return { isClosed, send, close: closeAsync, ee, accepted }
-}
-
-const jsonBigIntParse = JsonBigIntParseFactory({ useNativeBigInt: true })
-
-export function parseJsonWithBigInts(raw: string): any {
-  return jsonBigIntParse(raw)
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-
-  test('When plain JSON is passed, it parses numbers as plain numbers', () => {
-    const raw = `{"num":123}`
-    const parsed = { num: 123 }
-
-    const actual = parseJsonWithBigInts(raw)
-
-    expect(actual).toEqual(parsed)
-  })
-
-  test('When JSON with too big ints is passed, it parses numbers as BigInts', () => {
-    const raw = `{"num":123456789123456789123456789123456789}`
-    const parsed = { num: 123456789123456789123456789123456789n }
-
-    const actual = parseJsonWithBigInts(raw)
-
-    expect(actual).toEqual(parsed)
-  })
 }

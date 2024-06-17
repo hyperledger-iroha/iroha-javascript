@@ -1,7 +1,6 @@
 // #region pre
 import { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
-import { sugar } from '@iroha2/data-model'
-import { pipe } from 'fp-ts/function'
+import { datamodel } from '@iroha2/data-model'
 
 // --snip--
 declare const client: Client
@@ -11,11 +10,17 @@ declare const toriiRequirements: ToriiRequirementsForApiHttp
 // #region do-reg
 await client.submitExecutable(
   toriiRequirements,
-  pipe(
-    sugar.identifiable.newDomain('looking_glass'),
-    sugar.instruction.register,
-    sugar.executable.instructions,
-  ),
+  datamodel.Executable.Instructions([
+    datamodel.InstructionBox.Register(
+      datamodel.RegisterBox.Domain({
+        object: {
+          id: { name: 'looking_glass' },
+          logo: datamodel.Option.None(),
+          metadata: new Map(),
+        },
+      }),
+    ),
+  ]),
 )
 // #endregion do-reg
 
@@ -24,7 +29,7 @@ async function ensureDomainExistence(domainName: string) {
   // Query all domains
   const result = await client.requestWithQueryBox(
     toriiRequirements,
-    sugar.find.allDomains(),
+    datamodel.QueryBox.FindAllDomains,
   )
 
   // Display the request status
@@ -33,7 +38,7 @@ async function ensureDomainExistence(domainName: string) {
   // Obtain the domain
   const domain = result
     .as('Ok')
-    .batch.enum.as('Vec')
+    .batch.as('Vec')
     .map((x) => x.enum.as('Identifiable').enum.as('Domain'))
     .find((x) => x.id.name === domainName) // [!code hl]
 

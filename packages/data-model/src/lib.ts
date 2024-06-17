@@ -6,6 +6,7 @@
 
 export * as datamodel from './datamodel'
 export * from './core'
-export { variant } from '@scale-codec/core'
+export { type Enumerate, variant, type RustResult as Result } from '@scale-codec/core'
+
 // export * as sugar from './sugar/index'
 // export * from '@scale-codec/definition-runtime'

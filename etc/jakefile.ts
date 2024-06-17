@@ -18,18 +18,13 @@ namespace('prepare', () => {
     await $`pnpm --filter data-model-schema compile-with-kagami`
   })
 
-  desc('Generate data-model codecs according to the compiled schema')
-  task('data-model-codegen', ['clean', 'data-model-schema'], async () => {
-    await $`pnpm --filter data-model codegen`
-  })
-
   desc('Produce Rust SCALE samples for data-model tests')
   task('data-model-rust-samples', ['clean'], async () => {
     await $`pnpm --filter data-model-rust-samples produce-samples`
   })
 
   desc('Compile all necessary artifacts')
-  task('all', ['data-model-schema', 'data-model-rust-samples', 'data-model-codegen'])
+  task('all', ['data-model-schema', 'data-model-rust-samples'])
 })
 
 namespace('crypto-wasm', () => {

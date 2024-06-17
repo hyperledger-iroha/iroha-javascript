@@ -1,4 +1,4 @@
-import { datamodel } from '@iroha2/data-model'
+import { datamodel, toCodec } from '@iroha2/data-model'
 import Emittery from 'emittery'
 import Debug from 'debug'
 import { SocketEmitMapBase, setupWebSocket } from './util'
@@ -8,12 +8,12 @@ import { IsomorphicWebSocketAdapter } from './web-socket/types'
 const debug = Debug('@iroha2/client:events')
 
 export interface EventsEmitteryMap extends SocketEmitMapBase {
-  event: datamodel.Event
+  event: datamodel.EventBox
 }
 
 export interface SetupEventsParams {
   toriiApiURL: string
-  filter: datamodel.FilterBox
+  filters?: datamodel.EventFilterBox[]
   adapter: IsomorphicWebSocketAdapter
 }
 
@@ -41,11 +41,11 @@ export async function setupEvents(params: SetupEventsParams): Promise<SetupEvent
   })
 
   ee.on('open', () => {
-    sendRaw(datamodel.EventSubscriptionRequest.toBuffer(params.filter))
+    sendRaw(toCodec(datamodel.EventSubscriptionRequest).encode({ filters: params.filters ?? [] }))
   })
 
   ee.on('message', (raw) => {
-    const event = datamodel.EventMessage.fromBuffer(raw)
+    const event = toCodec(datamodel.EventBox).decode(raw)
     ee.emit('event', event)
   })
 

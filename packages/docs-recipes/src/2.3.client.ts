@@ -9,4 +9,4 @@ const client = new Client({ signer })
 
 // `Client` will sign & wrap `Executable` into `VersionedSignedTransaction`
 declare const exec: datamodel.Executable
-await client.submitExecutable(toriiRequirements, exec)
+await client.submitExecutable(toriiRequirements, exec, { chain: '000-000' })

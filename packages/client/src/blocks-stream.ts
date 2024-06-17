@@ -1,6 +1,6 @@
 import Emittery from 'emittery'
 import Debug from 'debug'
-import { datamodel } from '@iroha2/data-model'
+import { datamodel, toCodec } from '@iroha2/data-model'
 import { ENDPOINT_BLOCKS_STREAM } from './const'
 import { SocketEmitMapBase, setupWebSocket } from './util'
 import { IsomorphicWebSocketAdapter } from './web-socket/types'
@@ -9,12 +9,12 @@ const debug = Debug('@iroha2/client:blocks-stream')
 
 export interface SetupBlocksStreamParams {
   toriiApiURL: string
-  height: datamodel.NonZeroU64
+  fromBlockHeight?: datamodel.NonZero<datamodel.U64>
   adapter: IsomorphicWebSocketAdapter
 }
 
 export interface BlocksStreamEmitteryMap extends SocketEmitMapBase {
-  block: datamodel.SignedBlockV1
+  block: datamodel.SignedBlock
 }
 
 export interface SetupBlocksStreamReturn {
@@ -38,11 +38,15 @@ export async function setupBlocksStream(params: SetupBlocksStreamParams): Promis
   })
 
   ee.on('open', () => {
-    sendRaw(datamodel.BlockSubscriptionRequest.toBuffer(params.height))
+    sendRaw(
+      toCodec(datamodel.BlockSubscriptionRequest).encode({
+        fromBlockHeight: params.fromBlockHeight ?? datamodel.NonZero.define(1n),
+      }),
+    )
   })
 
   ee.on('message', (raw) => {
-    const block = datamodel.BlockMessage.fromBuffer(raw).enum.content
+    const block = toCodec(datamodel.SignedBlock).decode(raw)
     ee.emit('block', block)
   })
 

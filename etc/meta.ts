@@ -76,6 +76,5 @@ export function artifactsToClean(): string[] {
     // compilation artifacts
     'packages/data-model-schema/src/__schema__.json',
     'packages/data-model-rust-samples/samples.json',
-    'packages/data-model/src/__generated__.ts',
   ]
 }

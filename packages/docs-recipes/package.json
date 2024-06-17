@@ -9,7 +9,6 @@
     "@iroha2/crypto-target-node": "workspace:^1.1.1",
     "@iroha2/crypto-target-web": "workspace:^1.1.1",
     "@iroha2/data-model": "workspace:^7.0.0",
-    "fp-ts": "^2.13.1",
     "node-fetch": "^3.3.0",
     "undici": "^5.20.0"
   }

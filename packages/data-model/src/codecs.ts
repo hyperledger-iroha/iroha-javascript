@@ -35,12 +35,16 @@ export const Compact: core.CodecWrap<Compact> = core.wrapCodec(
 
 export type NonZero<T extends number | bigint> = Opaque<T, 'non-zero'>
 export const NonZero = {
+  define: <T extends number | bigint>(int: T): NonZero<T> => {
+    if (int === 0) throw new Error(`zero integer is not allowed`)
+    return int as NonZero<T>
+  },
   with: <T extends number | bigint>(int: core.CodecOrWrap<T>): core.Codec<NonZero<T>> => {
     const intCodec = core.toCodec(int)
     return new core.CodecImpl(
       scale.encodeFactory(
         (value, walker) => {
-          if (value === 0) throw new Error('Got a zero value at `NonZero` codec')
+          if (value === 0) throw new Error('Got zero at `NonZero` codec')
           intCodec.encodeRaw(value, walker)
         },
         (value) => {

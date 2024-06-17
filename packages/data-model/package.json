@@ -16,9 +16,6 @@
     "CHANGELOG.md"
   ],
   "license": "Apache 2.0",
-  "scripts": {
-    "codegen": "tsx etc/codegen"
-  },
   "dependencies": {
     "@iroha2/i64-fixnum": "workspace:^0.4.2",
     "@scale-codec/core": "^2.0.1",

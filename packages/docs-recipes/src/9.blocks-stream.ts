@@ -4,7 +4,7 @@ import { datamodel } from '@iroha2/data-model'
 declare const requirements: ToriiRequirementsForApiWebSocket
 
 const stream = await Torii.listenForBlocksStream(requirements, {
-  height: datamodel.NonZeroU64(1n),
+  fromBlockHeight: datamodel.NonZeroU64(1n),
 })
 
 stream.ee.on('block', (block) => {

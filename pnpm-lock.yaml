@@ -128,9 +128,6 @@ importers:
       emittery:
         specifier: ^0.10.1
         version: 0.10.2
-      json-bigint:
-        specifier: ^1.0.0
-        version: 1.0.0
       type-fest:
         specifier: ^3.6.1
         version: 3.9.0
@@ -407,9 +404,6 @@ importers:
       '@iroha2/data-model':
         specifier: workspace:^7.0.0
         version: link:../data-model
-      fp-ts:
-        specifier: ^2.13.1
-        version: 2.14.0
       node-fetch:
         specifier: ^3.3.0
         version: 3.3.0
@@ -1799,9 +1793,6 @@ packages:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
     engines: {node: '>=4'}
 
-  bignumber.js@9.0.2:
-    resolution: {integrity: sha512-GAcQvbpsM0pUb0zw1EI0KhQEZ+lRwR5fYaAp3vPOYuP7aDvGy6cVN6XHLauvF8SOga2y0dcLcjt3iQDTSEliyw==}
-
   binary-extensions@2.2.0:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
@@ -3001,9 +2992,6 @@ packages:
 
   jsbn@0.1.1:
     resolution: {integrity: sha512-UVU9dibq2JcFWxQPA6KCqj5O42VOmAY3zQUfEKxU0KpTGXwNoCjkX1e13eHNvw/xPynt6pU0rZ1htjWTNTSXsg==}
-
-  json-bigint@1.0.0:
-    resolution: {integrity: sha512-SiPv/8VpZuWbvLSMtTDU8hEfrZWg/mH/nV/b4o0CYbSxu1UIQPLdwKOCIyLQX+VIPO5vrLX3i8qtqFyhdPSUSQ==}
 
   json-buffer@3.0.1:
     resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
@@ -5680,8 +5668,6 @@ snapshots:
     dependencies:
       is-windows: 1.0.2
 
-  bignumber.js@9.0.2: {}
-
   binary-extensions@2.2.0: {}
 
   blob-util@2.0.2: {}
@@ -7159,10 +7145,6 @@ snapshots:
       argparse: 2.0.1
 
   jsbn@0.1.1: {}
-
-  json-bigint@1.0.0:
-    dependencies:
-      bignumber.js: 9.0.2
 
   json-buffer@3.0.1: {}
 

@@ -1,6 +1,7 @@
 dist
 dist-tsc
 node_modules
+**/data-model/src/__generated__.ts
 **/data-model-schema/src/__schema__.json
 etc/api/**/*
 packages/crypto/crypto-rs/wasm-pkg-*
