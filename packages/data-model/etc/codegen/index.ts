@@ -1,9 +1,7 @@
 import { Schema } from '@iroha2/data-model-schema'
 import { P, match } from 'ts-pattern'
-import Debug from 'debug'
 import invariant from 'tiny-invariant'
-
-const debugCodegen = Debug('@iroha2/data-model').extend('codegen')
+import { camelCase } from 'change-case'
 
 export function generate(schema: Schema): string {
   const transformed = transform(schema)
@@ -29,8 +27,6 @@ export function generate(schema: Schema): string {
  * - Fix `Compact<T>` to just `Compact`
  */
 function transform(schema: Schema): ActualCodegenSchema {
-  const debug = debugCodegen.extend('transform')
-
   const items: ActualCodegenSchema = [
     ...['Register', 'Unregister'].map(
       (id): CodegenEntry => ({
@@ -94,7 +90,12 @@ function transform(schema: Schema): ActualCodegenSchema {
     {
       t: 'struct',
       id: 'BlockSubscriptionRequest',
-      fields: [{ name: 'from_block_height', type: { t: 'non-zero', int: 'codecs.U64' } }],
+      fields: [
+        {
+          name: 'from_block_height',
+          type: transformIdent('NonZero<u64>'),
+        },
+      ],
     },
     {
       t: 'struct',
@@ -114,7 +115,7 @@ function transform(schema: Schema): ActualCodegenSchema {
     {
       t: 'struct',
       id: 'EventSubscriptionRequest',
-      fields: [{ name: 'filters', type: { t: 'vec', item: { t: 'ref', id: 'EventFilterBox' } } }],
+      fields: [{ name: 'filters', type: transformIdent('Vec<EventFilterBox>') }],
     },
     {
       t: 'struct',
@@ -136,14 +137,7 @@ function transform(schema: Schema): ActualCodegenSchema {
     {
       t: 'alias',
       id: 'Metadata',
-      to: {
-        t: 'lib',
-        id: 'codecs.Map',
-        generics: [
-          { t: 'lib', id: 'codecs.String' },
-          { t: 'ref', id: 'MetadataValueBox' },
-        ],
-      },
+      to: transformIdent('Map<Name, MetadataValueBox>'),
     },
   ]
 
@@ -172,7 +166,6 @@ function transform(schema: Schema): ActualCodegenSchema {
     'EventMessage',
     'EventSubscriptionRequest',
     'SortedVec',
-    'NonTrivial',
     'HashOf',
     'SignatureOf',
     'Name',
@@ -200,7 +193,14 @@ function transform(schema: Schema): ActualCodegenSchema {
 
     match([keyParsed, value])
       .with([{ id: P.when((x) => IGNORE.has(x)) }, P._], () => {
-        debug('ignore %o', key)
+        // ignoring
+      })
+      .with([{ id: 'NonTrivial', items: [P._] }, 'Vec<GenericPredicateBox<QueryOutputPredicate>>'], () => {
+        items.push({
+          t: 'alias',
+          id: 'NonTrivial',
+          to: transformIdent('Vec<PredicateBox>'),
+        })
       })
       .with([{ id: 'WasmSmartContract', items: [] }, 'Vec<u8>'], ([{ id }]) => {
         items.push({ t: 'struct', id, fields: [{ name: 'blob', type: { t: 'lib', id: 'codecs.BytesVec' } }] })
@@ -245,18 +245,10 @@ function transform(schema: Schema): ActualCodegenSchema {
         ([{ id: idRaw }, { Enum: variants }]) => {
           const { id, box } = match(idRaw)
             .with('GenericPredicateBox', () => ({ id: 'PredicateBox', box: true }))
-            .with(
-              P.union(
-                'QueryOutputPredicate',
-                'QueryOutputBox',
-                'MetadataValueBox',
-
-                // SetKeyValueBox -> Trigger -> Action -> Instruction -> SetKeyValueBox
-                'SetKeyValueBox',
-                'RemoveKeyValueBox',
-              ),
-              (id) => ({ id, box: true }),
-            )
+            .with(P.union('QueryOutputPredicate', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox'), (id) => ({
+              id,
+              box: true,
+            }))
             .otherwise((id) => ({ id, box: false }))
 
           items.push({
@@ -338,25 +330,29 @@ function transformIdent(id: string | Ident): TypeIdent {
         id: 'Signature',
       }),
     )
-    .with({ id: 'NonTrivial' }, () => ({ t: 'vec', item: { t: 'ref', id: 'PredicateBox' } }))
-    .with({ id: 'MerkleTree', items: [{ id: 'SignedTransaction', items: [] }] }, () => ({
-      t: 'vec',
-      item: { t: 'ref', id: 'Hash' },
-    }))
+    .with({ id: 'NonTrivial', items: [P._] }, () => ({ t: 'ref', id: 'NonTrivial' }))
+    .with({ id: 'MerkleTree', items: [{ id: 'SignedTransaction', items: [] }] }, () => transformIdent('Vec<Hash>'))
     .with({ id: 'BlockMessage', items: [] }, () => ({ t: 'ref', id: 'SignedBlock' }))
-    .with({ id: 'SortedMap', items: [P._, P._] }, ({ items: [key, value] }) => ({
-      t: 'map',
-      key: transformIdent(key),
-      value: transformIdent(value),
+    .with({ id: P.union('SortedMap', 'Map'), items: [P._, P._] }, ({ items: [key, value] }) => ({
+      t: 'lib',
+      id: 'codecs.Map',
+      generics: [transformIdent(key), transformIdent(value)],
     }))
     .with({ id: 'NonZero', items: [{ id: P.union('u32', 'u64').select() }] }, (kind) => ({
-      t: 'non-zero',
-      int: `codecs.${kind.toUpperCase() as Uppercase<typeof kind>}`,
+      t: 'lib',
+      id: 'codecs.NonZero',
+      generics: [{ t: 'lib', id: `codecs.${upcase(kind)}` }],
     }))
-    .with({ id: 'SortedVec', items: [P.select()] }, (item) => ({ t: 'vec', item: transformIdent(item) }))
+    .with({ id: 'Vec', items: [{ id: 'u8', items: [] }] }, () => ({ t: 'lib', id: 'codecs.BytesVec' }))
+    .with({ id: P.union('SortedVec', 'Vec'), items: [P.select()] }, (item) => ({
+      t: 'lib',
+      id: 'codecs.Vec',
+      generics: [transformIdent(item)],
+    }))
     .with({ id: 'Option', items: [P.select()] }, (some) => ({
-      t: 'option',
-      some: transformIdent(some),
+      t: 'lib',
+      id: 'codecs.Option',
+      generics: [transformIdent(some)],
     }))
     .with({ id: 'TimeEventFilter', items: [] }, () => ({ t: 'ref', id: 'ExecutionTime' }))
     .with({ id: 'Mismatch', items: [{ id: 'AssetValueType' }] }, () => ({ t: 'ref', id: 'AssetValueTypeMismatch' }))
@@ -400,7 +396,14 @@ function transformIdent(id: string | Ident): TypeIdent {
       ({ isi, id }) => ({
         t: 'ref',
         id: isi,
-        generics: [{ t: 'ref', id: `${id}Id` }],
+        generics: [
+          {
+            t: 'ref',
+            id: match(isi)
+              .with('Unregister', () => `${id}Id`)
+              .otherwise(() => id),
+          },
+        ],
       }),
     )
     .with({ id: 'SemiInterval', items: [P._] }, ({ items: [item] }) => ({
@@ -416,13 +419,11 @@ function transformIdent(id: string | Ident): TypeIdent {
     .with({ id: 'Compact' }, () => ({ t: 'lib', id: 'codecs.Compact' }))
     .with({ id: 'bool' }, () => ({ t: 'lib', id: 'codecs.Bool' }))
     .with({ id: P.union('Name', 'ChainId', 'String'), items: [] }, () => ({ t: 'lib', id: 'codecs.String' }))
-    .with({ id: 'Vec', items: [{ id: 'u8', items: [] }] }, () => ({ t: 'lib', id: 'codecs.BytesVec' }))
     .with({ id: P.union('u8', 'u16', 'u32', 'u64', 'u128') }, ({ id }) => ({
       t: 'lib',
       id: `codecs.${id.toUpperCase() as Uppercase<typeof id>}`,
     }))
     .with({ id: 'JsonString', items: [] }, () => ({ t: 'lib', id: 'codecs.Json' }))
-    .with({ id: 'Vec', items: [P._] }, ({ items: [single] }) => ({ t: 'vec', item: transformIdent(single) }))
     .with({ id: P.select(), items: [] }, (id) => ({ t: 'ref', id }))
     .otherwise(() => {
       throw new Error(`unexpected type identifier: ${id}`)
@@ -452,14 +453,10 @@ type CodegenEnumVariant =
   | { t: 'unit'; tag: string; discriminant: number }
   | { t: 'with-type'; tag: string; discriminant: number; type: TypeIdent }
 
-type TypeIdent =
-  | { t: 'ref'; id: string; generics?: TypeIdent[] }
-  | { t: 'lib'; id: LibCodec; generics?: TypeIdent[] }
-  | { t: 'option'; some: TypeIdent }
-  | { t: 'vec'; item: TypeIdent }
-  | { t: 'array'; item: TypeIdent; len: number }
-  | { t: 'map'; key: TypeIdent; value: TypeIdent }
-  | { t: 'non-zero'; int: LibCodec }
+/**
+ * Identifier of a type, either a local one or from the "library"
+ */
+type TypeIdent = { t: 'ref'; id: string; generics?: TypeIdent[] } | { t: 'lib'; id: LibCodec; generics?: TypeIdent[] }
 
 type GenericTypeIdent = TypeIdent | { t: 'gen'; genericIndex: number }
 
@@ -487,38 +484,9 @@ function generateType(ident: TypeIdent): {
         codec: libItem(id) + `.with(${generics.map((x) => generateType(x).codec).join(', ')})`,
       }
     })
-    .with({ t: 'lib' }, ({ id }) => ({ type: libItem(id), codec: libItem('toCodec') + `(${libItem(id)})` }))
-    .with({ t: 'vec' }, ({ item }) =>
-      generateType({
-        t: 'lib',
-        id: 'codecs.Vec',
-        generics: [item],
-      }),
-    )
-    .with({ t: 'non-zero' }, ({ int }) =>
-      generateType({
-        t: 'lib',
-        id: 'codecs.NonZero',
-        generics: [{ t: 'lib', id: int }],
-      }),
-    )
-    .with({ t: 'map' }, ({ key, value }) =>
-      generateType({
-        t: 'lib',
-        id: 'codecs.Map',
-        generics: [key, value],
-      }),
-    )
-    .with({ t: 'option' }, ({ some }) =>
-      generateType({
-        t: 'lib',
-        id: 'codecs.Option',
-        generics: [some],
-      }),
-    )
-    .with({ t: 'array' }, ({ item, len }) => ({
-      type: generateType(item).type + `[]`,
-      codec: libItem('codecs.Array') + `.with(${generateType(item).codec}, ${len})`,
+    .with({ t: 'lib' }, ({ id }) => ({
+      type: libItem(id),
+      codec: libItem('toCodec') + `(${libItem(id)})`,
     }))
     .exhaustive()
 }
@@ -568,8 +536,8 @@ function generateSingleEntry(item: CodegenEntry): string {
       ]
     })
     .with({ t: 'struct' }, ({ fields }) => {
-      const typeFields = fields.map((x) => `${x.name}: ${generateType(x.type).type};`).join(' ')
-      const codecFieldsSeparate = fields.map((x) => `['${x.name}', ${generateType(x.type).codec}]`)
+      const typeFields = fields.map((x) => `${camelCase(x.name)}: ${generateType(x.type).type};`).join(' ')
+      const codecFieldsSeparate = fields.map((x) => `['${camelCase(x.name)}', ${generateType(x.type).codec}]`)
       const codecFields = `[${codecFieldsSeparate.join(', ')}]`
 
       return [
@@ -603,7 +571,7 @@ function generateSingleEntry(item: CodegenEntry): string {
       const typeFields = fields
         .map(({ name, type }) => {
           return (
-            `${name}: ` +
+            `${camelCase(name)}: ` +
             match(type)
               .with({ t: 'gen' }, ({ genericIndex }) => `T${genericIndex}`)
               .otherwise((type) => generateType(type).type)
@@ -615,7 +583,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         const codec = match(type)
           .with({ t: 'gen' }, ({ genericIndex: i }) => `codec${i}`)
           .otherwise((x) => generateType(x).codec)
-        return `['${name}', ${codec}]`
+        return `['${camelCase(name)}', ${codec}]`
       })
       const withFnBody = `return ${libItem('structCodec')}([${schemaItems.join(', ')}])`
 
@@ -664,6 +632,10 @@ type LibCodec = LibItem & `codecs.${string}`
 
 function libItem<T extends LibItem>(item: T): string {
   return `lib.${item}`
+}
+
+function upcase<S extends string>(s: S): Uppercase<S> {
+  return s.toUpperCase() as Uppercase<S>
 }
 
 /**

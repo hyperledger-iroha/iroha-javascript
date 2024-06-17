@@ -1,214 +1,116 @@
 import { describe, expect, test } from 'vitest'
 import SAMPLES from '../../../data-model-rust-samples/samples.json'
-import { type Codec, datamodel } from '../lib'
+import { type CodecOrWrap, toCodec, datamodel, variant } from '../lib'
 import { fromHex, toHex } from '@scale-codec/util'
 
+const SAMPLE_SIGNATORY: datamodel.PublicKey = {
+  algorithm: datamodel.Algorithm.Ed25519,
+  payload: fromHex('72 33 BF C8 9D CB D6 8C 19 FD E6 CE 61 58 22 52 98 EC 11 31 B6 A1 30 D1 AE B4 54 C1 AB 51 83 C0'),
+}
+
+const SAMPLE_ACCOUNT_ID = { signatory: SAMPLE_SIGNATORY, domain: { name: 'wonderland' } } satisfies datamodel.AccountId
+
 // eslint-disable-next-line max-params
-function defineCase<T>(label: keyof typeof SAMPLES, codec: Codec<T>, value: T) {
+function defineCase<T>(label: keyof typeof SAMPLES, codec: CodecOrWrap<T>, value: T) {
   const sample = SAMPLES[label]
 
   describe(label, () => {
     test('encode', () => {
-      expect(toHex(codec.toBuffer(value))).toEqual(sample.encoded)
+      expect(toHex(toCodec(codec).encode(value))).toEqual(sample.encoded)
     })
 
     test('decode', () => {
-      expect(codec.fromBuffer(fromHex(sample.encoded))).toEqual(value)
+      expect(toCodec(codec).decode(fromHex(sample.encoded))).toEqual(value)
     })
   })
 }
 
-defineCase(
-  'AccountId',
-  datamodel.AccountId,
-  datamodel.AccountId({
-    name: 'alice',
-    domain_id: datamodel.DomainId({
-      name: 'wonderland',
-    }),
-  }),
-)
+defineCase('AccountId', datamodel.AccountId, SAMPLE_ACCOUNT_ID)
+
+defineCase('DomainId', datamodel.DomainId, { name: 'Hey' })
+
+defineCase('AssetDefinitionId', datamodel.AssetDefinitionId, {
+  name: 'rose',
+  domain: { name: 'wonderland' },
+})
 
 defineCase(
-  'DomainId',
-  datamodel.DomainId,
-  datamodel.DomainId({
-    name: 'Hey',
-  }),
-)
-
-defineCase(
-  'AssetDefinitionId',
-  datamodel.AssetDefinitionId,
-  datamodel.AssetDefinitionId({
-    name: 'rose',
-    domain_id: datamodel.DomainId({
-      name: 'wonderland',
-    }),
-  }),
-)
-
-{
-  const assetId = datamodel.AssetId({
-    account_id: datamodel.AccountId({
-      name: 'alice',
-      domain_id: datamodel.DomainId({
-        name: 'wonderland',
-      }),
-    }),
-    definition_id: datamodel.AssetDefinitionId({
-      name: 'rose',
-      domain_id: datamodel.DomainId({
-        name: 'wonderland',
-      }),
-    }),
-  })
-
-  defineCase(
-    'Time-based Trigger ISI',
-    datamodel.RegisterExpr,
-    datamodel.RegisterExpr({
-      object: datamodel.Expression(
-        'Raw',
-        datamodel.Value(
-          'Identifiable',
-          datamodel.IdentifiableBox(
-            'Trigger',
-            datamodel.Trigger({
-              id: datamodel.TriggerId({ name: 'mint_rose', domain_id: datamodel.OptionDomainId('None') }),
-              action: datamodel.Action({
-                executable: datamodel.Executable(
-                  'Instructions',
-                  datamodel.VecInstructionExpr([
-                    datamodel.InstructionExpr(
-                      'Mint',
-                      datamodel.MintExpr({
-                        object: datamodel.Expression(
-                          'Raw',
-                          datamodel.Value('Numeric', datamodel.NumericValue('U32', 1)),
-                        ),
-                        destination_id: datamodel.Expression(
-                          'Raw',
-                          datamodel.Value('Id', datamodel.IdBox('AssetId', assetId)),
-                        ),
-                      }),
-                    ),
-                  ]),
-                ),
-                repeats: datamodel.Repeats('Indefinitely'),
-                filter: datamodel.TriggeringFilterBox(
-                  'Time',
-                  datamodel.ExecutionTime(
-                    'Schedule',
-                    datamodel.Schedule({
-                      start: datamodel.Duration([4141203402341234n, 0]),
-                      period: datamodel.OptionDuration('Some', datamodel.Duration([3n, 0])),
-                    }),
-                  ),
-                ),
-                authority: assetId.account_id,
-                metadata: datamodel.Metadata({ map: datamodel.SortedMapNameValue(new Map()) }),
+  'Register time trigger',
+  datamodel.InstructionBox,
+  datamodel.InstructionBox.Register(
+    datamodel.RegisterBox.Trigger({
+      object: {
+        id: { name: 'mint_rose' },
+        action: {
+          authority: SAMPLE_ACCOUNT_ID,
+          repeats: datamodel.Repeats.Indefinitely,
+          executable: datamodel.Executable.Instructions([
+            datamodel.InstructionBox.Mint(
+              datamodel.MintBox.Asset({
+                object: { scale: 0n, mantissa: 1123n },
+                destination: {
+                  account: SAMPLE_ACCOUNT_ID,
+                  definition: { name: 'rose', domain: { name: 'wonderland' } },
+                },
               }),
+            ),
+          ]),
+          filter: datamodel.TriggeringEventFilterBox.Time(
+            datamodel.ExecutionTime.Schedule({
+              start: { secs: 500n, nanos: 0 },
+              period: datamodel.Option.Some({ secs: 3n, nanos: 0 }),
             }),
           ),
-        ),
-      ),
+          metadata: new Map(),
+        },
+      },
     }),
-  )
-}
+  ),
+)
 
-{
-  const assetId = datamodel.AssetId({
-    account_id: datamodel.AccountId({
-      name: 'alice',
-      domain_id: datamodel.DomainId({
-        name: 'wonderland',
-      }),
-    }),
-    definition_id: datamodel.AssetDefinitionId({
-      name: 'rose',
-      domain_id: datamodel.DomainId({
-        name: 'wonderland',
-      }),
-    }),
-  })
-
-  defineCase(
-    'Event-based Trigger ISI',
-    datamodel.RegisterExpr,
-    datamodel.RegisterExpr({
-      object: datamodel.Expression(
-        'Raw',
-        datamodel.Value(
-          'Identifiable',
-          datamodel.IdentifiableBox(
-            'Trigger',
-            datamodel.Trigger({
-              id: datamodel.TriggerId({ name: 'mint_rose', domain_id: datamodel.OptionDomainId('None') }),
-              action: datamodel.Action({
-                executable: datamodel.Executable(
-                  'Instructions',
-                  datamodel.VecInstructionExpr([
-                    datamodel.InstructionExpr(
-                      'Mint',
-                      datamodel.MintExpr({
-                        object: datamodel.Expression(
-                          'Raw',
-                          datamodel.Value('Numeric', datamodel.NumericValue('U32', 1)),
-                        ),
-                        destination_id: datamodel.Expression(
-                          'Raw',
-                          datamodel.Value('Id', datamodel.IdBox('AssetId', assetId)),
-                        ),
-                      }),
-                    ),
-                  ]),
-                ),
-                repeats: datamodel.Repeats('Indefinitely'),
-                filter: datamodel.TriggeringFilterBox(
-                  'Data',
-                  datamodel.FilterOptDataEntityFilter(
-                    'BySome',
-                    datamodel.DataEntityFilter(
-                      'ByAssetDefinition',
-                      datamodel.FilterOptAssetDefinitionFilter(
-                        'BySome',
-                        datamodel.AssetDefinitionFilter({
-                          origin_filter: datamodel.FilterOptOriginFilterAssetDefinitionEvent('AcceptAll'),
-                          event_filter: datamodel.FilterOptAssetDefinitionEventFilter(
-                            'BySome',
-                            datamodel.AssetDefinitionEventFilter('ByCreated'),
-                          ),
-                        }),
-                      ),
-                    ),
-                  ),
-                ),
-                authority: assetId.account_id,
-                metadata: datamodel.Metadata({ map: datamodel.SortedMapNameValue(new Map()) }),
+defineCase(
+  'Register data trigger',
+  datamodel.InstructionBox,
+  datamodel.InstructionBox.Register(
+    datamodel.RegisterBox.Trigger({
+      object: {
+        id: { name: 'mint_rose' },
+        action: {
+          authority: SAMPLE_ACCOUNT_ID,
+          repeats: datamodel.Repeats.Indefinitely,
+          executable: datamodel.Executable.Instructions([
+            datamodel.InstructionBox.Mint(
+              datamodel.MintBox.Asset({
+                object: { scale: 2n, mantissa: 1_441_234n },
+                destination: {
+                  account: SAMPLE_ACCOUNT_ID,
+                  definition: { name: 'rose', domain: { name: 'wonderland' } },
+                },
               }),
+            ),
+          ]),
+          filter: datamodel.TriggeringEventFilterBox.Data(
+            datamodel.DataEventFilter.AssetDefinition({
+              idMatcher: datamodel.Option.Some({ name: 'rose', domain: { name: 'wonderland' } }),
+              eventSet: datamodel.AssetDefinitionEventSet.Created | datamodel.AssetDefinitionEventSet.OwnerChanged,
             }),
           ),
-        ),
-      ),
+          metadata: new Map(),
+        },
+      },
     }),
-  )
-}
+  ),
+)
 
 defineCase(
   'Metadata',
   datamodel.Metadata,
-  datamodel.Metadata({
-    map: datamodel.SortedMapNameValue(
-      new Map([
-        // Test will fail if order is violated
-        [
-          'authentication',
-          datamodel.Value('String', '80252ad79c68c01ec8946983411ce3b7cbea21d25f68c8546c687b2a7e2505cc'),
-        ],
-        ['email', datamodel.Value('String', 'user123@mail.com')],
-        ['salt', datamodel.Value('String', 'ABCDEFG')],
-      ]),
-    ),
-  }),
+  new Map([
+    // Test will fail if order is violated
+    ['authentication', datamodel.MetadataValueBox.String('80252ad8c8546c687b2a7e2505cc')],
+    ['email', datamodel.MetadataValueBox.String('user123@mail.com')],
+    ['salt', datamodel.MetadataValueBox.String('ABCDEFG')],
+  ]),
 )
+
+// TODO: add more tests, cover manually edited/added schema structs

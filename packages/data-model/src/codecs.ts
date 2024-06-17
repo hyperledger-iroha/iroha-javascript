@@ -35,56 +35,110 @@ export const Compact: core.CodecWrap<Compact> = core.wrapCodec(
 
 export type NonZero<T extends number | bigint> = Opaque<T, 'non-zero'>
 export const NonZero = {
-  with: <T extends number | bigint>(int: core.Codec<T>): core.Codec<NonZero<T>> => {
-    // wrap and check on encode
-    return null
+  with: <T extends number | bigint>(int: core.CodecOrWrap<T>): core.Codec<NonZero<T>> => {
+    const intCodec = core.toCodec(int)
+    return new core.CodecImpl(
+      scale.encodeFactory(
+        (value, walker) => {
+          if (value === 0) throw new Error('Got a zero value at `NonZero` codec')
+          intCodec.encodeRaw(value, walker)
+        },
+        (value) => {
+          return intCodec.encodeRaw.sizeHint(value)
+        },
+      ),
+      intCodec.decodeRaw as scale.Decode<NonZero<T>>,
+    )
   },
 }
 
 export type Option<T> = scale.RustOption<T>
 export const Option = {
+  None: <T>(): Option<T> => scale.variant('None'),
+  Some: <T>(some: T): Option<T> => scale.variant('Some', some),
   with: <T>(some: core.Codec<T>): core.Codec<Option<T>> => {
-    return null
+    return new core.CodecImpl(scale.createOptionEncoder(some.encodeRaw), scale.createOptionDecoder(some.decodeRaw))
   },
 }
 
 export type Map<K, V> = globalThis.Map<K, V>
 export const Map = {
   with: <K, V>(key: core.Codec<K>, value: core.Codec<V>): core.Codec<Map<K, V>> => {
-    return null
+    return new core.CodecImpl(
+      scale.createMapEncoder(key.encodeRaw, value.encodeRaw),
+      scale.createMapDecoder(key.decodeRaw, value.decodeRaw),
+    )
   },
 }
 
 export type Vec<T> = globalThis.Array<T>
 export const Vec = {
   with: <T>(item: core.Codec<T>): core.Codec<T[]> => {
-    return null
+    return new core.CodecImpl(scale.createVecEncoder(item.encodeRaw), scale.createVecDecoder(item.decodeRaw))
   },
 }
 
 export type Array<T> = globalThis.Array<T>
 export const Array = {
   with: <T>(item: core.Codec<T>, len: number): core.Codec<T[]> => {
-    return null
+    return new core.CodecImpl(
+      scale.createArrayEncoder(item.encodeRaw, len),
+      scale.createArrayDecoder(item.decodeRaw, len),
+    )
   },
 }
 
 // TODO parse/stringify json lazily when needed
 export class Json<T extends JsonValue = JsonValue> implements core.CodecWrap<Json> {
-  public static fromValue<T extends JsonValue>(value: T): Json<T> {}
+  public static fromValue<T extends JsonValue>(value: T): Json<T> {
+    return new Json({ some: value }, null)
+  }
 
-  public static fromJsonString<T extends JsonValue = JsonValue>(value: string): Json<T> {}
+  public static fromJsonString<T extends JsonValue = JsonValue>(value: string): Json<T> {
+    return new Json(null, value)
+  }
 
-  [core.symbolCodec]: core.Codec<Json> = {}
+  [core.symbolCodec]: core.Codec<Json> = new core.CodecImpl(
+    scale.encodeFactory(
+      (value, walker) => {
+        return scale.encodeStr(value.asJsonString(), walker)
+      },
+      (value) => {
+        return scale.encodeStr.sizeHint(value.asJsonString())
+      },
+    ),
+    (walker) => {
+      const str = scale.decodeStr(walker)
+      return Json.fromJsonString(str)
+    },
+  )
 
-  public toValue(): T {
-    // TODO
+  #value: null | { some: T }
+  #str: null | string
+
+  constructor(asValue: null | { some: T }, asString: string | null) {
+    this.#value = asValue
+    this.#str = asString
+  }
+
+  public asValue(): T {
+    if (!this.#value) {
+      this.#value = { some: JSON.parse(this.#str!) }
+    }
+    return this.#value.some
+  }
+
+  public asJsonString(): string {
+    if (!this.#str) {
+      this.#str = JSON.stringify(this.#value!.some)
+    }
+    return this.#str
+  }
+
+  /**
+   * For {@link JSON} integration
+   */
+  public toJSON(): T {
+    return this.asValue()
   }
 }
-
-// export type Json = JsonValue
-// export const Json = core.wrapCodec<Json>(new core.CodecImpl(
-//     [core.symbolCodec]() {
-
-//     }
-// ))

@@ -5,12 +5,8 @@ export const symbolCodec = Symbol('codec')
 // TODO: maybe use to hide "raw" encode/decode
 // const symbolCoreCodec = Symbol('codec-core')
 
-type Decode<T> = (source: ArrayBufferView) => T
-type Encode<T> = (value: T) => Uint8Array
-
-export interface CodecWrap<T> {
-  [symbolCodec]: Codec<T>
-}
+export type Decode<T> = (source: ArrayBufferView) => T
+export type Encode<T> = (value: T) => Uint8Array
 
 export interface Codec<T> {
   encode: Encode<T>
@@ -18,6 +14,12 @@ export interface Codec<T> {
   decode: Decode<T>
   decodeRaw: scale.Decode<T>
 }
+
+export interface CodecWrap<T> {
+  [symbolCodec]: Codec<T>
+}
+
+export type CodecOrWrap<T> = Codec<T> | CodecWrap<T>
 
 export class CodecImpl<T> implements Codec<T> {
   public encodeRaw: scale.Encode<T>
@@ -53,13 +55,15 @@ export function boxEnumCodec<T>(codec: Codec<T>): Codec<{ enum: T }> {
 
 export function toCodec<T>(
   source: T,
-): T extends CodecWrap<infer U>
+): T extends Codec<infer U>
   ? Codec<U>
-  : T extends () => CodecWrap<infer U>
+  : T extends CodecWrap<infer U>
     ? Codec<U>
-    : T extends () => Codec<infer U>
+    : T extends () => CodecWrap<infer U>
       ? Codec<U>
-      : never {
+      : T extends () => Codec<infer U>
+        ? Codec<U>
+        : never {
   if (typeof source === 'function') {
     return new CodecImpl(
       scale.encodeFactory(
@@ -71,11 +75,15 @@ export function toCodec<T>(
         },
       ),
       (walker) => {
-        unwrapContainerOrCodec(source()).decodeRaw(walker)
+        return unwrapContainerOrCodec(source()).decodeRaw(walker)
       },
     ) as any
   }
-  return (source as any)[symbolCodec]
+  if (symbolCodec in (source as any)) {
+    return (source as any)[symbolCodec]
+  }
+  // console.log('hey', source[symbolCodec])
+  return source as any
 }
 
 function unwrapContainerOrCodec<T>(value: CodecWrap<T> | Codec<T>) {

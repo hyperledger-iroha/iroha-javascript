@@ -17,14 +17,14 @@ fn main() {
             .add("DomainId", &DomainId::from_str("Hey").unwrap())
             .add(
                 "AssetDefinitionId",
-                &AssetDefinitionId::from_str(&format!("{SAMPLE_SIGNATORY}#wonderland")).unwrap(),
+                &AssetDefinitionId::from_str("rose#wonderland").unwrap(),
             )
             .add(
                 "AccountId",
                 &AccountId::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap(),
             )
-            .add("Time-based Trigger ISI", &sample_register_time_trigger(),)
-            .add("Data-based Trigger ISI", &sample_register_data_trigger(),)
+            .add("Register time trigger", &sample_register_time_trigger(),)
+            .add("Register data trigger", &sample_register_data_trigger(),)
             .add("Metadata", &sample_metadata())
             .to_json()
     );
@@ -78,14 +78,14 @@ fn to_hex(val: &Vec<u8>) -> String {
 
 fn sample_register_time_trigger() -> InstructionBox {
     let asset_id = AssetId::new(
-        AssetDefinitionId::from_str(&format!("{SAMPLE_SIGNATORY}#wonderland")).unwrap(),
+        AssetDefinitionId::from_str("rose#wonderland").unwrap(),
         AccountId::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap(),
     );
 
     Register::trigger(Trigger::new(
         "mint_rose".parse().expect("valid"),
         Action::new(
-            [Mint::asset_numeric(1u32, asset_id.clone())],
+            [Mint::asset_numeric(1123u32, asset_id.clone())],
             Repeats::Indefinitely,
             asset_id.account().clone(),
             TimeEventFilter::new(ExecutionTime::Schedule(
@@ -98,8 +98,7 @@ fn sample_register_time_trigger() -> InstructionBox {
 }
 
 fn sample_register_data_trigger() -> InstructionBox {
-    let asset_definition_id: AssetDefinitionId =
-        format!("{SAMPLE_SIGNATORY}#wonderland").parse().unwrap();
+    let asset_definition_id: AssetDefinitionId = "rose#wonderland".parse().unwrap();
     let account_id =
         <Account as Identifiable>::Id::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap();
     let asset_id = AssetId::new(asset_definition_id.clone(), account_id.clone());
@@ -107,7 +106,7 @@ fn sample_register_data_trigger() -> InstructionBox {
     Register::trigger(Trigger::new(
         "mint_rose".parse().expect("valid"),
         Action::new(
-            [Mint::asset_numeric(1u32, asset_id)],
+            [Mint::asset_numeric(Numeric::new(1_441_234, 2), asset_id)],
             Repeats::Indefinitely,
             account_id,
             DataEventFilter::AssetDefinition(
