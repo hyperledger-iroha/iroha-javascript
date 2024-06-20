@@ -238,10 +238,6 @@ export class KeyPair extends SingleFreeWrap<wasmPkg.KeyPair> implements HasAlgor
     return PublicKey.fromKeyPair(this)
   }
 
-  public sign(payload: Bytes): Signature {
-    return Signature.create(this, payload)
-  }
-
   public toJSON(): wasmPkg.KeyPairJson {
     return this.inner.to_json()
   }
@@ -254,8 +250,8 @@ export class Signature
   /**
    * Create a signature from its payload and public key. This function **does not sign the payload**.
    */
-  public static fromBytes(publicKey: PublicKey, payload: Bytes): Signature {
-    return new Signature(wasmPkg.Signature.from_bytes(publicKey.inner, payload.wasm))
+  public static fromBytes(payload: Bytes): Signature {
+    return new Signature(wasmPkg.Signature.from_bytes(payload.wasm))
   }
 
   public static fromJSON(json: wasmPkg.SignatureJson): Signature {
@@ -264,28 +260,22 @@ export class Signature
 
   public static fromDataModel(signature: datamodel.Signature): Signature {
     return freeScope((scope) => {
-      // TODO patch wasm first
-      const publicKey = PublicKey.fromDataModel(signature.public_key)
-      const result = Signature.fromBytes(publicKey, Bytes.array(signature.payload))
+      const result = Signature.fromBytes(Bytes.array(signature.payload))
       scope.forget(result)
       return result
     })
   }
 
   /**
-   * Creates an actual signature, signing the payload
+   * Creates an actual signature, signing the payload with the given private key
    */
-  public static create(keyPair: KeyPair, payload: Bytes) {
-    let value = new wasmPkg.Signature(keyPair.inner, payload.wasm)
+  public static create(privateKey: PrivateKey, payload: Bytes) {
+    let value = new wasmPkg.Signature(privateKey.inner, payload.wasm)
     return new Signature(value)
   }
 
-  public verify(message: Bytes): wasmPkg.VerifyResult {
-    return this.inner.verify(message.wasm)
-  }
-
-  public publicKey(): PublicKey {
-    return new PublicKey(this.inner.public_key())
+  public verify(publicKey: PublicKey, message: Bytes): wasmPkg.VerifyResult {
+    return this.inner.verify(publicKey.inner, message.wasm)
   }
 
   public payload(): Uint8Array

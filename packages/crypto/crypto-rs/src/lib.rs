@@ -374,9 +374,9 @@ impl Signature {
     ///
     /// # Errors
     /// - Invalid bytes input
-    pub fn from_bytes(public_key: &PublicKey, payload: BytesJs) -> JsResult<Signature> {
+    pub fn from_bytes(payload: BytesJs) -> JsResult<Signature> {
         let payload: Vec<u8> = payload.try_into()?;
-        let inner = iroha_crypto::Signature::from_bytes(public_key.0.clone(), &payload);
+        let inner = iroha_crypto::Signature::from_bytes(&payload);
         Ok(Self(inner))
     }
 
@@ -385,26 +385,21 @@ impl Signature {
     /// # Errors
     /// If parsing bytes input fails
     #[wasm_bindgen(constructor)]
-    pub fn new(key_pair: &KeyPair, payload: BytesJs) -> JsResult<Signature> {
+    pub fn new(private_key: &PrivateKey, payload: BytesJs) -> JsResult<Signature> {
         let payload: Vec<u8> = payload.try_into()?;
-        let inner = iroha_crypto::Signature::new(&key_pair.0, &payload);
+        let inner = iroha_crypto::Signature::new(&private_key.0, &payload);
         Ok(Self(inner))
     }
 
-    /// Verify `payload` using signed data and the signature's public key
+    /// Verify that the signature is signed by the given public key
     ///
     /// # Errors
     /// - If parsing of bytes input fails
     /// - If failed to construct verify error
-    pub fn verify(&self, payload: BytesJs) -> JsResult<VerifyResultJs> {
+    pub fn verify(&self, public_key: &PublicKey, payload: BytesJs) -> JsResult<VerifyResultJs> {
         let payload: Vec<_> = payload.try_into()?;
-        let result = self.0.verify(&payload).try_into()?;
+        let result = self.0.verify(&public_key.0, &payload).try_into()?;
         Ok(result)
-    }
-
-    pub fn public_key(&self) -> PublicKey {
-        let inner = self.0.public_key().clone();
-        PublicKey(inner)
     }
 
     pub fn payload(&self) -> Vec<u8> {

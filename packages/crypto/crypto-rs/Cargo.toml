@@ -11,8 +11,10 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-# `iroha2-dev` as of 2024-03-13
-iroha_crypto = { git = "https://github.com/hyperledger/iroha.git", rev = "7014f535d41ff3f2ebe96bae4c8d5bd1b49de5fb", default-features = false, features = ["rand"] }
+# FIXME use upstream
+iroha_crypto = { path = "../../../../iroha/crypto", default-features = false, features = [
+    "rand",
+] }
 
 getrandom = { version = "0.2", features = ["js"] }
 

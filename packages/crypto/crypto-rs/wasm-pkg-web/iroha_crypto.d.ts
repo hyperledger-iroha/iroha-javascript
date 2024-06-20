@@ -231,34 +231,30 @@ export class Signature {
 *
 * # Errors
 * - Invalid bytes input
-* @param {PublicKey} public_key
 * @param {Binary} payload
 * @returns {Signature}
 */
-  static from_bytes(public_key: PublicKey, payload: Binary): Signature;
+  static from_bytes(payload: Binary): Signature;
 /**
 * Creates new signature by signing the payload via the key pair's private key.
 *
 * # Errors
 * If parsing bytes input fails
-* @param {KeyPair} key_pair
+* @param {PrivateKey} private_key
 * @param {Binary} payload
 */
-  constructor(key_pair: KeyPair, payload: Binary);
+  constructor(private_key: PrivateKey, payload: Binary);
 /**
-* Verify `payload` using signed data and the signature's public key
+* Verify that the signature is signed by the given public key
 *
 * # Errors
 * - If parsing of bytes input fails
 * - If failed to construct verify error
+* @param {PublicKey} public_key
 * @param {Binary} payload
 * @returns {VerifyResult}
 */
-  verify(payload: Binary): VerifyResult;
-/**
-* @returns {PublicKey}
-*/
-  public_key(): PublicKey;
+  verify(public_key: PublicKey, payload: Binary): VerifyResult;
 /**
 * @returns {Uint8Array}
 */
@@ -312,14 +308,13 @@ export interface InitOutput {
   readonly keypair_to_json: (a: number, b: number) => void;
   readonly __wbg_signature_free: (a: number) => void;
   readonly signature_from_json: (a: number, b: number) => void;
-  readonly signature_from_bytes: (a: number, b: number, c: number) => void;
+  readonly signature_from_bytes: (a: number, b: number) => void;
   readonly signature_new: (a: number, b: number, c: number) => void;
-  readonly signature_verify: (a: number, b: number, c: number) => void;
+  readonly signature_verify: (a: number, b: number, c: number, d: number) => void;
   readonly signature_payload: (a: number, b: number) => void;
   readonly signature_payload_hex: (a: number, b: number) => void;
   readonly signature_to_json: (a: number, b: number) => void;
   readonly publickey_algorithm: (a: number) => number;
-  readonly signature_public_key: (a: number) => number;
   readonly main_js: () => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
