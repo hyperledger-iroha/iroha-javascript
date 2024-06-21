@@ -1,9 +1,10 @@
-import Emittery from 'emittery'
+import type Emittery from 'emittery'
 import Debug from 'debug'
 import { datamodel, toCodec } from '@iroha2/data-model'
 import { ENDPOINT_BLOCKS_STREAM } from './const'
-import { SocketEmitMapBase, setupWebSocket } from './util'
-import { IsomorphicWebSocketAdapter } from './web-socket/types'
+import type { SocketEmitMapBase } from './util'
+import { setupWebSocket } from './util'
+import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 
 const debug = Debug('@iroha2/client:blocks-stream')
 

@@ -3,7 +3,7 @@ import { listen } from 'listhen'
 import pinoHttp from 'pino-http'
 import pino from 'pino'
 
-import * as lib from '../lib'
+import type * as lib from '../lib'
 
 export async function run(port = 8765) {
   let peer: lib.StartPeerReturn | undefined

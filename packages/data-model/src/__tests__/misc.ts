@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
-import { Codec, CodecImpl, toCodec, wrapCodec } from '../core'
+import type { Codec } from '../core'
+import { CodecImpl, toCodec, wrapCodec } from '../core'
 import { decodeUnit, encodeUnit } from '@scale-codec/core'
 import { datamodel } from '../lib'
 import { fromHex, toHex } from '@scale-codec/util'

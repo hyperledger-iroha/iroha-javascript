@@ -1,5 +1,5 @@
 import { P, match } from 'ts-pattern'
-import { ResolvedConfig } from './types'
+import type { ResolvedConfig } from './types'
 import CFG from '../config'
 import path from 'path'
 import url from 'url'

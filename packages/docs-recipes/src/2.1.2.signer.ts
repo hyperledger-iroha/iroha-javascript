@@ -1,6 +1,7 @@
-import { cryptoTypes, freeScope } from '@iroha2/crypto-core'
+import type { cryptoTypes } from '@iroha2/crypto-core'
+import { freeScope } from '@iroha2/crypto-core'
 import { Signer } from '@iroha2/client'
-import { datamodel } from '@iroha2/data-model'
+import type { datamodel } from '@iroha2/data-model'
 
 // Key pair from the previous step
 declare const keyPair: cryptoTypes.KeyPair

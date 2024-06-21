@@ -1,4 +1,5 @@
-import { InputOption, OutputOptions, Plugin, RollupOptions, defineConfig } from 'rollup'
+import type { InputOption, OutputOptions, Plugin, RollupOptions } from 'rollup'
+import { defineConfig } from 'rollup'
 import PluginDtsBase from 'rollup-plugin-dts'
 import PluginReplace from '@rollup/plugin-replace'
 import { glob } from 'zx'
@@ -6,24 +7,18 @@ import { match } from 'ts-pattern'
 import path from 'path'
 import fs from 'fs/promises'
 import { pipe } from 'fp-ts/function'
-import {
-  PACKAGES_TO_ROLLUP,
-  PackageAny,
-  loadProductionDependencies,
-  packageEntry,
-  packageRoot,
-  scopePackage,
-} from './meta'
+import type { PackageAny } from './meta'
+import { PACKAGES_TO_ROLLUP, loadProductionDependencies, packageEntry, packageRoot, scopePackage } from './meta'
+import type { WasmPackTarget } from './meta-crypto'
 import {
   INTERFACE_WRAP_PROXY_TO_WASM_PKG_ROLLUP_ID,
   IrohaCryptoTarget,
   WASM_PACK_OUT_NAME,
   WASM_PKG_ROLLUP_ID,
-  WasmPackTarget,
   wasmPackOutDirForTarget,
   wasmPkgWithTargetRollupId,
 } from './meta-crypto'
-import { SetOptional } from 'type-fest'
+import type { SetOptional } from 'type-fest'
 
 function PluginDts() {
   return PluginDtsBase({ respectExternal: true })

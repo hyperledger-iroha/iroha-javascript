@@ -1,5 +1,6 @@
-import { Client, Signer, ToriiRequirementsForApiHttp } from '@iroha2/client'
-import { datamodel } from '@iroha2/data-model'
+import type { Signer, ToriiRequirementsForApiHttp } from '@iroha2/client'
+import { Client } from '@iroha2/client'
+import type { datamodel } from '@iroha2/data-model'
 
 // --snip--
 declare const signer: Signer

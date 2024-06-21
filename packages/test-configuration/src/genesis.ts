@@ -1,8 +1,8 @@
-import { resolveBinary, EXECUTOR_WASM_PATH } from '@iroha2/iroha-source'
+import { EXECUTOR_WASM_PATH, resolveBinary } from '@iroha2/iroha-source'
 import { temporaryFile } from 'tempy'
 import { writeFile } from 'fs/promises'
 import { execa } from 'execa'
-import { GENESIS_KEY_PAIR, DOMAIN, ACCOUNT_KEY_PAIR, BLOCK_TIME_MS, COMMIT_TIME_MS, CHAIN } from './base'
+import { ACCOUNT_KEY_PAIR, BLOCK_TIME_MS, CHAIN, COMMIT_TIME_MS, DOMAIN, GENESIS_KEY_PAIR } from './base'
 
 const kagami = await resolveBinary('kagami')
 

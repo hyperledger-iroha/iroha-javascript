@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { SetupEventsReturn, Torii } from '@iroha2/client'
-import { datamodel, sugar } from '@iroha2/data-model'
+import type { SetupEventsReturn } from '@iroha2/client'
+import { Torii } from '@iroha2/client'
+import type { datamodel } from '@iroha2/data-model'
+import { sugar } from '@iroha2/data-model'
 import { computed, onBeforeUnmount, shallowReactive, shallowRef } from 'vue'
 import { toriiPre } from '../client'
 

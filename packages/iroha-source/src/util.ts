@@ -6,7 +6,7 @@ import makeDir from 'make-dir'
 import { fs, path } from 'zx'
 import url from 'url'
 import { CLONE_DIR, IROHA_DIR, IROHA_DIR_CLONE_META_DIR_FILE } from '../etc/meta'
-import { RawGitCloneConfiguration, ResolvedConfig, ResolvedConfigGitClone } from './types'
+import type { RawGitCloneConfiguration, ResolvedConfig, ResolvedConfigGitClone } from './types'
 
 export async function clone(config: RawGitCloneConfiguration): Promise<void> {
   consola.info(
@@ -100,5 +100,5 @@ export async function syncIrohaSymlink(config: ResolvedConfig) {
 
 export async function syncSourceRepo(config: ResolvedConfig) {
   if (config.t === 'git-clone' && !(await isCloneUpToDate(config))) await clone(config)
-    await syncIrohaSymlink(config);
+  await syncIrohaSymlink(config)
 }

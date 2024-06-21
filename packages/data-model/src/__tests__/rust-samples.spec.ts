@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import SAMPLES from '../../../data-model-rust-samples/samples.json'
-import { type CodecOrWrap, toCodec, datamodel } from '../lib'
+import { type CodecOrWrap, datamodel, toCodec } from '../lib'
 import { fromHex, toHex } from '@scale-codec/util'
 
 const SAMPLE_SIGNATORY: datamodel.PublicKey = {

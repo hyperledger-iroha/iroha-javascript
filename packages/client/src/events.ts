@@ -1,9 +1,10 @@
 import { datamodel, toCodec } from '@iroha2/data-model'
-import Emittery from 'emittery'
+import type Emittery from 'emittery'
 import Debug from 'debug'
-import { SocketEmitMapBase, setupWebSocket } from './util'
+import type { SocketEmitMapBase } from './util'
+import { setupWebSocket } from './util'
 import { ENDPOINT_EVENTS } from './const'
-import { IsomorphicWebSocketAdapter } from './web-socket/types'
+import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 
 const debug = Debug('@iroha2/client:events')
 

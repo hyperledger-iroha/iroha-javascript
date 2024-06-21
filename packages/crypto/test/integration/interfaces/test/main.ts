@@ -1,8 +1,8 @@
 /* eslint-disable no-lone-blocks */
-import { IrohaCryptoInterface } from '@iroha2/crypto-core'
-import { crypto as cryptoWeb, init as initWeb } from '@iroha2/crypto-target-web'
-import { crypto as cryptoNode } from '@iroha2/crypto-target-node'
-import { crypto as cryptoBundler } from '@iroha2/crypto-target-bundler'
+import type { IrohaCryptoInterface } from '@iroha2/crypto-core'
+import type { crypto as cryptoWeb, init as initWeb } from '@iroha2/crypto-target-web'
+import type { crypto as cryptoNode } from '@iroha2/crypto-target-node'
+import type { crypto as cryptoBundler } from '@iroha2/crypto-target-bundler'
 
 {
   /**

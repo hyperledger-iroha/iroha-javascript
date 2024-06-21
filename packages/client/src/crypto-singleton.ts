@@ -1,4 +1,4 @@
-import { IrohaCryptoInterface } from '@iroha2/crypto-core'
+import type { IrohaCryptoInterface } from '@iroha2/crypto-core'
 
 let __crypto: IrohaCryptoInterface | null = null
 

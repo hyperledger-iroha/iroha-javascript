@@ -10,7 +10,7 @@ import {
   makeSignedTransaction,
   makeTransactionPayload,
 } from '@iroha2/client'
-import { freeScope, Bytes } from '@iroha2/crypto-core'
+import { Bytes, freeScope } from '@iroha2/crypto-core'
 import { datamodel, sugar } from '@iroha2/data-model'
 import { pipe } from 'fp-ts/function'
 import { produce } from 'immer'

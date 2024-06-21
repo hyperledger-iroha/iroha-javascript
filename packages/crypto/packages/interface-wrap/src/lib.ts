@@ -1,5 +1,6 @@
 import { wasmPkg } from '@iroha2/crypto-interface-wrap/~wasm-pack-proxy'
-import { Bytes, Free, FreeGuard, FreeScope, GetInnerTrackObject, freeScope } from '@iroha2/crypto-util'
+import type { Free, GetInnerTrackObject } from '@iroha2/crypto-util'
+import { Bytes, FreeGuard, FreeScope, freeScope } from '@iroha2/crypto-util'
 import { datamodel } from '@iroha2/data-model'
 
 export type Algorithm = wasmPkg.Algorithm

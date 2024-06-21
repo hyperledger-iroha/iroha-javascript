@@ -1,4 +1,4 @@
-import {
+import type {
   ToriiRequirementsForApiHttp,
   ToriiRequirementsForApiWebSocket,
 } from '@iroha2/client'

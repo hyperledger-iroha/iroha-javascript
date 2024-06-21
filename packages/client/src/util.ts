@@ -1,8 +1,9 @@
-import { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types'
-import { Debugger } from 'debug'
+import type { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types'
+import type { Debugger } from 'debug'
 import Emittery from 'emittery'
 import { getCryptoAnyway } from './crypto-singleton'
-import { Bytes, freeScope } from '@iroha2/crypto-core'
+import type { Bytes } from '@iroha2/crypto-core'
+import { freeScope } from '@iroha2/crypto-core'
 
 export function cryptoHash(input: Bytes): Uint8Array {
   return freeScope(() => getCryptoAnyway().Hash.hash(input).bytes())

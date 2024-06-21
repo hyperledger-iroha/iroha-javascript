@@ -1,4 +1,4 @@
-import { Set } from 'immutable'
+import type { Set } from 'immutable'
 import path from 'path'
 import consola from 'consola'
 import chalk from 'chalk'

@@ -1,6 +1,7 @@
 import path from 'path'
 import { Set } from 'immutable'
-import { SetEntry, resolve } from './util'
+import type { SetEntry } from './util'
+import { resolve } from './util'
 
 export const CRYPTO_MONOREPO_ROOT = resolve('packages/crypto')
 const resolveRelativeToCryptoMonorepoRoot = (...paths: string[]) => path.resolve(CRYPTO_MONOREPO_ROOT, ...paths)

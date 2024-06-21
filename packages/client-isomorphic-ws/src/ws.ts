@@ -1,4 +1,4 @@
-import { IncomingData, initWebSocket as trueInit } from '../types'
+import type { IncomingData, initWebSocket as trueInit } from '../types'
 import WebSocket from 'ws'
 
 function handleIncomingData(data: string | Buffer | ArrayBuffer | Buffer[]): IncomingData {

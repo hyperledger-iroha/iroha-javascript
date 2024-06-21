@@ -1,4 +1,4 @@
-import { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
+import type { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
 import { P, match } from 'ts-pattern'
 import invariant from 'tiny-invariant'
 import { camelCase } from 'change-case'

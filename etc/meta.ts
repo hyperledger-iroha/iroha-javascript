@@ -1,9 +1,10 @@
 import path from 'path'
-import { PackageJson } from 'type-fest'
+import type { PackageJson } from 'type-fest'
 import { Set } from 'immutable'
 import * as metaCrypto from './meta-crypto'
 import { P, match } from 'ts-pattern'
-import { SetEntry, resolve } from './util'
+import type { SetEntry } from './util'
+import { resolve } from './util'
 
 function predicateStartsWith<S extends string>(prefix: S): (x: string) => x is `${S}${string}` {
   return (x): x is `${S}` => x.startsWith(prefix)

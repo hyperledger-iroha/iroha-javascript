@@ -1,5 +1,5 @@
 import { Torii } from '@iroha2/client'
-import { datamodel } from '@iroha2/data-model'
+import type { datamodel } from '@iroha2/data-model'
 
 // --snip--
 declare const query: datamodel.SignedQuery

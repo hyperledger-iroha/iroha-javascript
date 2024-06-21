@@ -1,5 +1,5 @@
 import { datamodel } from '@iroha2/data-model'
-import { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
+import type { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
 
 // --snip--
 declare const client: Client

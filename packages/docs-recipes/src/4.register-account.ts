@@ -1,4 +1,5 @@
-import { Client, ToriiRequirementsForApiHttp, getCryptoAnyway } from '@iroha2/client'
+import type { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
+import { getCryptoAnyway } from '@iroha2/client'
 import { Bytes, freeScope } from '@iroha2/crypto-core'
 import { datamodel } from '@iroha2/data-model'
 

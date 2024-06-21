@@ -1,4 +1,4 @@
-import { datamodel } from '@iroha2/data-model'
+import type { datamodel } from '@iroha2/data-model'
 
 export const BLOCK_TIME_MS = 0
 export const COMMIT_TIME_MS = 0

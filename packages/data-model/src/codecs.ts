@@ -1,6 +1,6 @@
 import * as scale from '@scale-codec/core'
 import * as core from './core'
-import { JsonValue, Opaque } from 'type-fest'
+import type { JsonValue, Opaque } from 'type-fest'
 
 export type U8 = number
 export const U8 = core.wrapCodec<U8>(new core.CodecImpl(scale.encodeU8, scale.decodeU8))

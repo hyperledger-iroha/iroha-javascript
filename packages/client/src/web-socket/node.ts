@@ -1,4 +1,4 @@
-import { IncomingData, IsomorphicWebSocketAdapter } from '@iroha2/client'
+import type { IncomingData, IsomorphicWebSocketAdapter } from '@iroha2/client'
 import WebSocket from 'ws'
 
 function handleIncomingData(data: string | Buffer | ArrayBuffer | Buffer[]): IncomingData {

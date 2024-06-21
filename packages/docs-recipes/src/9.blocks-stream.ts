@@ -1,4 +1,5 @@
-import { Torii, ToriiRequirementsForApiWebSocket } from '@iroha2/client'
+import type { ToriiRequirementsForApiWebSocket } from '@iroha2/client'
+import { Torii } from '@iroha2/client'
 import { datamodel } from '@iroha2/data-model'
 
 declare const requirements: ToriiRequirementsForApiWebSocket

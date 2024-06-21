@@ -1,5 +1,5 @@
 // #region pre
-import { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
+import type { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
 import { datamodel } from '@iroha2/data-model'
 
 // --snip--

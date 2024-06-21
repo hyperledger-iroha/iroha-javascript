@@ -5,10 +5,13 @@
  * Events, Status & Health check.
  */
 
-import { Bytes, cryptoTypes, freeScope } from '@iroha2/crypto-core'
-import { Result, datamodel, toCodec, variant, type Enumerate } from '@iroha2/data-model'
-import { Except } from 'type-fest'
-import { SetupBlocksStreamParams, SetupBlocksStreamReturn, setupBlocksStream } from './blocks-stream'
+import type { cryptoTypes } from '@iroha2/crypto-core'
+import { Bytes, freeScope } from '@iroha2/crypto-core'
+import type { Result } from '@iroha2/data-model'
+import { type Enumerate, datamodel, toCodec, variant } from '@iroha2/data-model'
+import type { Except } from 'type-fest'
+import type { SetupBlocksStreamParams, SetupBlocksStreamReturn } from './blocks-stream'
+import { setupBlocksStream } from './blocks-stream'
 import {
   ENDPOINT_CONFIGURATION,
   ENDPOINT_HEALTH,
@@ -18,9 +21,10 @@ import {
   ENDPOINT_TRANSACTION,
   HEALTHY_RESPONSE,
 } from './const'
-import { SetupEventsParams, SetupEventsReturn, setupEvents } from './events'
+import type { SetupEventsParams, SetupEventsReturn } from './events'
+import { setupEvents } from './events'
 import { cryptoHash } from './util'
-import { IsomorphicWebSocketAdapter } from './web-socket/types'
+import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 import { getCryptoAnyway } from './crypto-singleton'
 
 type Fetch = typeof fetch
