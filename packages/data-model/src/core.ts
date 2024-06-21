@@ -30,11 +30,11 @@ export class CodecImpl<T> implements Codec<T> {
     this.decodeRaw = decodeRaw
   }
 
-  encode(value: T): Uint8Array {
+  public encode(value: T): Uint8Array {
     return scale.WalkerImpl.encode(value, this.encodeRaw)
   }
 
-  decode(source: ArrayBufferView): T {
+  public decode(source: ArrayBufferView): T {
     return scale.WalkerImpl.decode(source, this.decodeRaw)
   }
 }

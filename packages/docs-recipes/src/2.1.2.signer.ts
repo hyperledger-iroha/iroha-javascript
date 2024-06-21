@@ -13,4 +13,4 @@ const accountId: datamodel.AccountId = {
   domain: { name: 'wonderland' },
 }
 
-const signer = new Signer(accountId, keyPair)
+const _signer = new Signer(accountId, keyPair)

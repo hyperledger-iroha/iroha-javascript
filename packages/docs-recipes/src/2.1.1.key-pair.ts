@@ -1,7 +1,7 @@
 import { crypto } from '@iroha2/crypto-target-node'
 import { Bytes } from '@iroha2/crypto-core'
 
-const keyPair1 = crypto.KeyPair.fromParts(
+const _keyPair1 = crypto.KeyPair.fromParts(
   crypto.PublicKey.fromMultihash(
     'ed0120e555d194e8822da35ac541ce9eec8b45058f4d294d9426ef97ba92698766f7d3',
   ),
@@ -12,6 +12,6 @@ const keyPair1 = crypto.KeyPair.fromParts(
 
 const keyPair2 = crypto.KeyPair.deriveFromSeed(Bytes.hex('001122'))
 
-const keyPair3 = crypto.KeyPair.deriveFromPrivateKey(keyPair2.privateKey())
+const _keyPair3 = crypto.KeyPair.deriveFromPrivateKey(keyPair2.privateKey())
 
-const keyPair4 = crypto.KeyPair.random()
+const _keyPair4 = crypto.KeyPair.random()

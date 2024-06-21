@@ -540,7 +540,7 @@ function generateSingleEntry(item: CodegenEntry): string {
       ]
     })
     .with({ t: 'struct-gen' }, ({ genericsCount, fields }) => {
-      const genericsTypes = Array.from({ length: genericsCount }, (v, i) => `T${i}`).join(', ')
+      const genericsTypes = Array.from({ length: genericsCount }, (_v, i) => `T${i}`).join(', ')
       const genericsPart = `<${genericsTypes}>`
       const typeFields = fields
         .map(({ name, type }) => {
@@ -561,7 +561,7 @@ function generateSingleEntry(item: CodegenEntry): string {
       })
       const withFnBody = `return ${libItem('structCodec')}([${schemaItems.join(', ')}])`
 
-      const withFnArgs = Array.from({ length: genericsCount }, (v, i) => `codec${i}: ${libItem('Codec')}<T${i}>`)
+      const withFnArgs = Array.from({ length: genericsCount }, (_v, i) => `codec${i}: ${libItem('Codec')}<T${i}>`)
 
       const withFn = `${genericsPart}(${withFnArgs}): ${libItem('Codec')}<${
         item.id

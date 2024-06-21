@@ -5,10 +5,11 @@ import type {
 import { adapter as WS } from '@iroha2/client/web-socket/node'
 
 import nodeFetch from 'node-fetch'
-// another alternative
-import { fetch as undiciFetch } from 'undici'
 
-const toriiRequirements: ToriiRequirementsForApiHttp & ToriiRequirementsForApiWebSocket =
+// another alternative
+// import { fetch as undiciFetch } from 'undici'
+
+const _toriiRequirements: ToriiRequirementsForApiHttp & ToriiRequirementsForApiWebSocket =
   {
     apiURL: 'http://127.0.0.1:8080',
     ws: WS,

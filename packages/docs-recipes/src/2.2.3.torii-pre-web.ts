@@ -4,7 +4,7 @@ import type {
 } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/native'
 
-const toriiRequirements: ToriiRequirementsForApiHttp & ToriiRequirementsForApiWebSocket =
+const _toriiRequirements: ToriiRequirementsForApiHttp & ToriiRequirementsForApiWebSocket =
   {
     apiURL: 'http://127.0.0.1:8080',
     ws: WS,

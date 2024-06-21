@@ -16,10 +16,22 @@ module.exports = {
         allowSeparatedGroups: false,
       },
     ],
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        args: 'all',
+        argsIgnorePattern: '^_',
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      },
+    ],
   },
   globals: {
     BigInt: true,
-    globalThis: true
+    globalThis: true,
   },
   overrides: [
     {

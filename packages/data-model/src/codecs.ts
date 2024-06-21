@@ -102,7 +102,7 @@ export class Json<T extends JsonValue = JsonValue> implements core.CodecWrap<Jso
     return new Json(null, value)
   }
 
-  [core.symbolCodec]: core.Codec<Json> = new core.CodecImpl(
+  public [core.symbolCodec]: core.Codec<Json> = new core.CodecImpl(
     scale.encodeFactory(
       (value, walker) => {
         return scale.encodeStr(value.asJsonString(), walker)
@@ -120,7 +120,7 @@ export class Json<T extends JsonValue = JsonValue> implements core.CodecWrap<Jso
   #value: null | { some: T }
   #str: null | string
 
-  constructor(asValue: null | { some: T }, asString: string | null) {
+  private constructor(asValue: null | { some: T }, asString: string | null) {
     this.#value = asValue
     this.#str = asString
   }
