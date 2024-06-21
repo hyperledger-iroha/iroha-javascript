@@ -8,10 +8,12 @@
     "cli:config": "pnpm cli config-from-client-tests"
   },
   "devDependencies": {
+    "@iarna/toml": "^2.2.5",
     "@iroha2/client": "workspace:^7.0.0",
     "@iroha2/iroha-source": "workspace:^0.0.0",
     "@iroha2/test-configuration": "workspace:^",
     "@types/debug": "^4.1.7",
+    "@types/iarna__toml": "^2.0.5",
     "@types/yargs": "^17.0.22",
     "axios": "^0.24.0",
     "debug": "^4.3.4",
@@ -20,6 +22,7 @@
     "pino": "^8.14.1",
     "pino-http": "^8.3.3",
     "pino-pretty": "^10.0.0",
+    "tempy": "^3.1.0",
     "yargs": "^17.6.2"
   }
 }

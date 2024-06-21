@@ -15,23 +15,6 @@ export type Algorithm =
     | 'bls_small'
 
 
-    
-export interface PrivateKeyJson {
-    algorithm: string
-    /** Hex-encoded bytes */
-    payload: string
-}
-
-export interface KeyPairJson {
-    public_key: string
-    private_key: PrivateKeyJson
-}
-
-export interface SignatureJson {
-    public_key: string
-    /** Hex-encoded bytes */
-    payload: string
-}
 
 export type VerifyResult =
     | { t: 'ok' }
@@ -76,13 +59,6 @@ export class Hash {
 export class KeyPair {
   free(): void;
 /**
-* # Errors
-* Fails if deserialization fails
-* @param {KeyPairJson} value
-* @returns {KeyPair}
-*/
-  static from_json(value: KeyPairJson): KeyPair;
-/**
 * Generate a random key pair
 *
 * # Errors
@@ -121,12 +97,6 @@ export class KeyPair {
 */
   private_key(): PrivateKey;
 /**
-* # Errors
-* Fails if serialisation fails
-* @returns {KeyPairJson}
-*/
-  to_json(): KeyPairJson;
-/**
 */
   readonly algorithm: Algorithm;
 }
@@ -137,11 +107,11 @@ export class PrivateKey {
   free(): void;
 /**
 * # Errors
-* Fails if serialization fails
-* @param {PrivateKeyJson} value
+* Fails if multihash parsing fails
+* @param {string} multihash
 * @returns {PrivateKey}
 */
-  static from_json(value: PrivateKeyJson): PrivateKey;
+  static from_multihash_hex(multihash: string): PrivateKey;
 /**
 * # Errors
 * Fails if parsing of digest function or payload byte input fails
@@ -159,11 +129,9 @@ export class PrivateKey {
 */
   payload_hex(): string;
 /**
-* # Errors
-* Fails is serialisation fails
-* @returns {PrivateKeyJson}
+* @returns {string}
 */
-  to_json(): PrivateKeyJson;
+  to_multihash_hex(): string;
 /**
 */
   readonly algorithm: Algorithm;
@@ -198,11 +166,6 @@ export class PublicKey {
 */
   to_multihash_hex(): string;
 /**
-* Equivalent to [`Self::to_multihash_hex`]
-* @returns {string}
-*/
-  to_json(): string;
-/**
 * @returns {Uint8Array}
 */
   payload(): Uint8Array;
@@ -219,13 +182,6 @@ export class PublicKey {
 */
 export class Signature {
   free(): void;
-/**
-* # Errors
-* If failed to deserialise JSON
-* @param {SignatureJson} value
-* @returns {Signature}
-*/
-  static from_json(value: SignatureJson): Signature;
 /**
 * Construct the signature from raw components received from elsewhere
 *
@@ -263,12 +219,6 @@ export class Signature {
 * @returns {string}
 */
   payload_hex(): string;
-/**
-* # Errors
-* If conversion fails
-* @returns {SignatureJson}
-*/
-  to_json(): SignatureJson;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -286,18 +236,16 @@ export interface InitOutput {
   readonly publickey_from_bytes: (a: number, b: number, c: number) => void;
   readonly publickey_from_private_key: (a: number) => number;
   readonly publickey_to_multihash_hex: (a: number, b: number) => void;
-  readonly publickey_to_json: (a: number, b: number) => void;
   readonly publickey_payload: (a: number, b: number) => void;
   readonly publickey_payload_hex: (a: number, b: number) => void;
   readonly __wbg_privatekey_free: (a: number) => void;
-  readonly privatekey_from_json: (a: number, b: number) => void;
+  readonly privatekey_from_multihash_hex: (a: number, b: number, c: number) => void;
   readonly privatekey_from_bytes: (a: number, b: number, c: number) => void;
   readonly privatekey_algorithm: (a: number) => number;
   readonly privatekey_payload: (a: number, b: number) => void;
   readonly privatekey_payload_hex: (a: number, b: number) => void;
-  readonly privatekey_to_json: (a: number, b: number) => void;
+  readonly privatekey_to_multihash_hex: (a: number, b: number) => void;
   readonly __wbg_keypair_free: (a: number) => void;
-  readonly keypair_from_json: (a: number, b: number) => void;
   readonly keypair_random: (a: number, b: number) => void;
   readonly keypair_from_parts: (a: number, b: number, c: number) => void;
   readonly keypair_derive_from_seed: (a: number, b: number, c: number) => void;
@@ -305,15 +253,12 @@ export interface InitOutput {
   readonly keypair_algorithm: (a: number) => number;
   readonly keypair_public_key: (a: number) => number;
   readonly keypair_private_key: (a: number) => number;
-  readonly keypair_to_json: (a: number, b: number) => void;
   readonly __wbg_signature_free: (a: number) => void;
-  readonly signature_from_json: (a: number, b: number) => void;
   readonly signature_from_bytes: (a: number, b: number) => void;
   readonly signature_new: (a: number, b: number, c: number) => void;
   readonly signature_verify: (a: number, b: number, c: number, d: number) => void;
   readonly signature_payload: (a: number, b: number) => void;
   readonly signature_payload_hex: (a: number, b: number) => void;
-  readonly signature_to_json: (a: number, b: number) => void;
   readonly publickey_algorithm: (a: number) => number;
   readonly main_js: () => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;

@@ -1,28 +1,30 @@
-import { datamodel, sugar } from '@iroha2/data-model'
+import { datamodel } from '@iroha2/data-model'
 import { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
-import { pipe } from 'fp-ts/function'
 
 // --snip--
 declare const client: Client
 declare const toriiRequirements: ToriiRequirementsForApiHttp
+declare const aliceSignatory: datamodel.PublicKey
+declare const mouseSignatory: datamodel.PublicKey
 
-const domainId = sugar.domainId('wonderland')
+const domain: datamodel.DomainId = { name: 'wonderland' }
+const assetDefinition: datamodel.AssetDefinitionId = { name: 'time', domain }
+const amountToTransfer: datamodel.Numeric = { mantissa: 100n, scale: 0n }
+const fromAccount: datamodel.AccountId = { domain, signatory: aliceSignatory }
+const toAccount: datamodel.AccountId = { domain, signatory: mouseSignatory }
 
-const assetDefinitionId = sugar.assetDefinitionId('time', domainId)
-
-const amountToTransfer = sugar.value.numericU32(100)
-
-const fromAccount = sugar.accountId('alice', domainId)
-
-const toAccount = sugar.accountId('mouse', domainId)
-
-const transferIsi = sugar.instruction.transfer(
-  datamodel.IdBox('AssetId', sugar.assetId(fromAccount, assetDefinitionId)),
-  amountToTransfer,
-  datamodel.IdBox('AssetId', sugar.assetId(toAccount, assetDefinitionId)),
+const transfer = datamodel.InstructionBox.Transfer(
+  datamodel.TransferBox.Asset(
+    datamodel.AssetTransferBox.Numeric({
+      object: amountToTransfer,
+      source: { account: fromAccount, definition: assetDefinition },
+      destination: toAccount,
+    }),
+  ),
 )
 
 await client.submitExecutable(
   toriiRequirements,
-  pipe(transferIsi, sugar.executable.instructions),
+  datamodel.Executable.Instructions([transfer]),
+  { chain: '000-000' },
 )

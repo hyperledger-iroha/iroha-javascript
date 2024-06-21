@@ -21,6 +21,7 @@ await client.submitExecutable(
       }),
     ),
   ]),
+  { chain: '000-000' },
 )
 // #endregion do-reg
 
@@ -38,8 +39,9 @@ async function ensureDomainExistence(domainName: string) {
   // Obtain the domain
   const domain = result
     .as('Ok')
-    .batch.as('Vec')
-    .map((x) => x.enum.as('Identifiable').enum.as('Domain'))
+    .as('V1')
+    .batch.enum.as('Vec')
+    .map((x) => x.enum.as('Identifiable').as('Domain'))
     .find((x) => x.id.name === domainName) // [!code hl]
 
   // Throw an error if the domain is unavailable

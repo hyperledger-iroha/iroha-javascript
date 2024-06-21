@@ -44,7 +44,7 @@ export async function loadProductionDependencies(pkg: PackageToRollup): Promise<
   const pathToPackageJson: string = path.join(packageRoot(pkg), 'package.json')
   const {
     default: { dependencies, peerDependencies },
-  }: { default: PackageJson } = await import(pathToPackageJson, { assert: { type: 'json' } })
+  }: { default: PackageJson } = await import(pathToPackageJson, { with: { type: 'json' } })
   return Set(Object.keys({ ...dependencies, ...peerDependencies }))
 }
 

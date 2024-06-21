@@ -21,6 +21,7 @@ import {
 import { SetupEventsParams, SetupEventsReturn, setupEvents } from './events'
 import { cryptoHash } from './util'
 import { IsomorphicWebSocketAdapter } from './web-socket/types'
+import { getCryptoAnyway } from './crypto-singleton'
 
 type Fetch = typeof fetch
 
@@ -43,12 +44,9 @@ export class Signer {
 
   public sign(message: Bytes): datamodel.Signature {
     return freeScope(() => {
-      const signature = this.keyPair.sign(message)
-      const publicKey = signature.publicKey().toDataModel()
+      const signature = getCryptoAnyway().Signature.create(this.keyPair.privateKey(), message)
 
-      // FIXME!!
       return {
-        public_key: publicKey,
         payload: signature.payload(),
       }
     })

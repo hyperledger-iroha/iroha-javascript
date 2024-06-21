@@ -96,8 +96,8 @@ namespace('test', () => {
     await $`pnpm vitest run`
   })
 
-  task('crypto', async () => {
-    await $`pnpm --filter monorepo-crypto test`
+  task('crypto', ['build:all'], async () => {
+    await $`pnpm --filter monorepo-crypto test:integration`
   })
 
   task('prepare-client-integration', ['build:all'])

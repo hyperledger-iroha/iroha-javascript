@@ -3,9 +3,6 @@ import { Bytes, Free, FreeGuard, FreeScope, GetInnerTrackObject, freeScope } fro
 import { datamodel } from '@iroha2/data-model'
 
 export type Algorithm = wasmPkg.Algorithm
-export type PrivateKeyJson = wasmPkg.PrivateKeyJson
-export type KeyPairJson = wasmPkg.KeyPairJson
-export type SignatureJson = wasmPkg.SignatureJson
 export type VerifyResult = wasmPkg.VerifyResult
 
 export const Algorithm = {
@@ -80,10 +77,6 @@ export interface ToDataModel<T> {
   toDataModel: () => T
 }
 
-export interface ToJSON<T> {
-  toJSON: () => T
-}
-
 export class Hash extends SingleFreeWrap<wasmPkg.Hash> {
   public static zeroed(): Hash {
     return new Hash(wasmPkg.Hash.zeroed())
@@ -100,13 +93,9 @@ export class Hash extends SingleFreeWrap<wasmPkg.Hash> {
   }
 }
 
-export class PrivateKey
-  extends SingleFreeWrap<wasmPkg.PrivateKey>
-  implements HasAlgorithm, HasPayload, ToJSON<wasmPkg.PrivateKeyJson>
-{
-  public static fromJSON(value: wasmPkg.PrivateKeyJson): PrivateKey {
-    const key = wasmPkg.PrivateKey.from_json(value)
-    return new PrivateKey(key)
+export class PrivateKey extends SingleFreeWrap<wasmPkg.PrivateKey> implements HasAlgorithm, HasPayload {
+  public static fromMultihash(hex: string): PrivateKey {
+    return new PrivateKey(wasmPkg.PrivateKey.from_multihash_hex(hex))
   }
 
   public static fromKeyPair(pair: KeyPair): PrivateKey {
@@ -127,25 +116,22 @@ export class PrivateKey
     return kind === 'hex' ? this.inner.payload_hex() : this.inner.payload()
   }
 
-  public toJSON(): wasmPkg.PrivateKeyJson {
-    return this.inner.to_json()
+  public toMultihash(): string {
+    return this.inner.to_multihash_hex()
+  }
+
+  public sign(message: Bytes): Signature {
+    return Signature.create(this, message)
   }
 }
 
 export class PublicKey
   extends SingleFreeWrap<wasmPkg.PublicKey>
-  implements HasAlgorithm, HasPayload, ToDataModel<datamodel.PublicKey>, ToJSON<string>
+  implements HasAlgorithm, HasPayload, ToDataModel<datamodel.PublicKey>
 {
   public static fromMultihash(hex: string): PublicKey {
     const key = wasmPkg.PublicKey.from_multihash_hex(hex)
     return new PublicKey(key)
-  }
-
-  /**
-   * Same as {@fromMultihash}
-   */
-  public static fromJSON(hex: string): PublicKey {
-    return PublicKey.fromMultihash(hex)
   }
 
   public static fromPrivateKey(privateKey: PrivateKey): PublicKey {
@@ -179,18 +165,15 @@ export class PublicKey
     return kind === 'hex' ? this.inner.payload_hex() : this.inner.payload()
   }
 
-  /**
-   * Equal to {@link toMultihash} in `'hex'` mode
-   */
-  public toJSON(): string {
-    return this.toMultihash()
-  }
-
   public toDataModel(): datamodel.PublicKey {
     return {
       algorithm: Algorithm.toDataModel(this.algorithm),
       payload: this.payload(),
     }
+  }
+
+  public verifySignature(signature: Signature, message: Bytes): wasmPkg.VerifyResult {
+    return signature.verify(this, message)
   }
 }
 
@@ -201,12 +184,7 @@ export interface WithAlgorithm {
   algorithm?: Algorithm
 }
 
-export class KeyPair extends SingleFreeWrap<wasmPkg.KeyPair> implements HasAlgorithm, ToJSON<wasmPkg.KeyPairJson> {
-  public static fromJSON(value: wasmPkg.KeyPairJson): KeyPair {
-    const pair = wasmPkg.KeyPair.from_json(value)
-    return new KeyPair(pair)
-  }
-
+export class KeyPair extends SingleFreeWrap<wasmPkg.KeyPair> implements HasAlgorithm {
   public static random(options?: WithAlgorithm): KeyPair {
     const pair = wasmPkg.KeyPair.random(options?.algorithm)
     return new KeyPair(pair)
@@ -237,10 +215,6 @@ export class KeyPair extends SingleFreeWrap<wasmPkg.KeyPair> implements HasAlgor
   public publicKey(): PublicKey {
     return PublicKey.fromKeyPair(this)
   }
-
-  public toJSON(): wasmPkg.KeyPairJson {
-    return this.inner.to_json()
-  }
 }
 
 export class Signature
@@ -252,10 +226,6 @@ export class Signature
    */
   public static fromBytes(payload: Bytes): Signature {
     return new Signature(wasmPkg.Signature.from_bytes(payload.wasm))
-  }
-
-  public static fromJSON(json: wasmPkg.SignatureJson): Signature {
-    return new Signature(wasmPkg.Signature.from_json(json))
   }
 
   public static fromDataModel(signature: datamodel.Signature): Signature {
@@ -288,9 +258,5 @@ export class Signature
     return {
       payload: this.payload(),
     }
-  }
-
-  public toJSON(): wasmPkg.SignatureJson {
-    return this.inner.to_json()
   }
 }

@@ -353,27 +353,6 @@ export class KeyPair {
         wasm.__wbg_keypair_free(ptr);
     }
     /**
-    * # Errors
-    * Fails if deserialization fails
-    * @param {KeyPairJson} value
-    * @returns {KeyPair}
-    */
-    static from_json(value) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.keypair_from_json(retptr, addHeapObject(value));
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
-            if (r2) {
-                throw takeObject(r1);
-            }
-            return KeyPair.__wrap(r0);
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
-    /**
     * Generate a random key pair
     *
     * # Errors
@@ -483,26 +462,6 @@ export class KeyPair {
         const ret = wasm.keypair_private_key(this.__wbg_ptr);
         return PrivateKey.__wrap(ret);
     }
-    /**
-    * # Errors
-    * Fails if serialisation fails
-    * @returns {KeyPairJson}
-    */
-    to_json() {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.keypair_to_json(retptr, this.__wbg_ptr);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
-            if (r2) {
-                throw takeObject(r1);
-            }
-            return takeObject(r0);
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
 }
 
 const PrivateKeyFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -534,14 +493,16 @@ export class PrivateKey {
     }
     /**
     * # Errors
-    * Fails if serialization fails
-    * @param {PrivateKeyJson} value
+    * Fails if multihash parsing fails
+    * @param {string} multihash
     * @returns {PrivateKey}
     */
-    static from_json(value) {
+    static from_multihash_hex(multihash) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.privatekey_from_json(retptr, addHeapObject(value));
+            const ptr0 = passStringToWasm0(multihash, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.privatekey_from_multihash_hex(retptr, ptr0, len0);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var r2 = getInt32Memory0()[retptr / 4 + 2];
@@ -618,23 +579,22 @@ export class PrivateKey {
         }
     }
     /**
-    * # Errors
-    * Fails is serialisation fails
-    * @returns {PrivateKeyJson}
+    * @returns {string}
     */
-    to_json() {
+    to_multihash_hex() {
+        let deferred1_0;
+        let deferred1_1;
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.privatekey_to_json(retptr, this.__wbg_ptr);
+            wasm.privatekey_to_multihash_hex(retptr, this.__wbg_ptr);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
-            if (r2) {
-                throw takeObject(r1);
-            }
-            return takeObject(r0);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
     }
 }
@@ -740,26 +700,6 @@ export class PublicKey {
         }
     }
     /**
-    * Equivalent to [`Self::to_multihash_hex`]
-    * @returns {string}
-    */
-    to_json() {
-        let deferred1_0;
-        let deferred1_1;
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.publickey_to_json(retptr, this.__wbg_ptr);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            deferred1_0 = r0;
-            deferred1_1 = r1;
-            return getStringFromWasm0(r0, r1);
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-        }
-    }
-    /**
     * @returns {Algorithm}
     */
     get algorithm() {
@@ -829,27 +769,6 @@ export class Signature {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_signature_free(ptr);
-    }
-    /**
-    * # Errors
-    * If failed to deserialise JSON
-    * @param {SignatureJson} value
-    * @returns {Signature}
-    */
-    static from_json(value) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.signature_from_json(retptr, addHeapObject(value));
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
-            if (r2) {
-                throw takeObject(r1);
-            }
-            return Signature.__wrap(r0);
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
     }
     /**
     * Construct the signature from raw components received from elsewhere
@@ -960,26 +879,6 @@ export class Signature {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
     }
-    /**
-    * # Errors
-    * If conversion fails
-    * @returns {SignatureJson}
-    */
-    to_json() {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-            wasm.signature_to_json(retptr, this.__wbg_ptr);
-            var r0 = getInt32Memory0()[retptr / 4 + 0];
-            var r1 = getInt32Memory0()[retptr / 4 + 1];
-            var r2 = getInt32Memory0()[retptr / 4 + 2];
-            if (r2) {
-                throw takeObject(r1);
-            }
-            return takeObject(r0);
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
 }
 
 async function __wbg_load(module, imports) {
@@ -1028,6 +927,10 @@ function __wbg_get_imports() {
         const ret = typeof(val) === 'object' && val !== null;
         return ret;
     };
+    imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
+        const ret = new Error(getStringFromWasm0(arg0, arg1));
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
         const obj = getObject(arg1);
         const ret = typeof(obj) === 'string' ? obj : undefined;
@@ -1065,10 +968,6 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbindgen_bigint_from_u64 = function(arg0) {
         const ret = BigInt.asUintN(64, arg0);
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
-        const ret = new Error(getStringFromWasm0(arg0, arg1));
         return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_is_undefined = function(arg0) {

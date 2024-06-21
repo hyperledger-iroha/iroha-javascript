@@ -11,6 +11,8 @@ import {
   syncIrohaSymlink,
   syncSourceRepo,
 } from './util'
+import { path } from 'zx'
+import { IROHA_DIR } from '../etc/meta'
 
 export type Binary = 'iroha' | 'kagami'
 
@@ -63,3 +65,5 @@ export async function buildBinary(bin: Binary, ignoreBuilt = false): Promise<voi
   if (ignoreBuilt || !(await isAccessible(path))) await runCargoBuild(bin)
   consola.success(`${chalk.magenta.bold(bin)} is built`)
 }
+
+export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'configs/swarm/executor.wasm')

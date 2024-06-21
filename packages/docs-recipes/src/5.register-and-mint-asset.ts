@@ -1,51 +1,56 @@
 // #region pre
-import { datamodel, sugar } from '@iroha2/data-model'
+import { datamodel } from '@iroha2/data-model'
 import { Client, ToriiRequirementsForApiHttp } from '@iroha2/client'
-import { pipe } from 'fp-ts/function'
 
 // --snip--
 declare const client: Client
 declare const toriiRequirements: ToriiRequirementsForApiHttp
+declare const accountPublicKey: datamodel.PublicKey
 
-const timeDefinitionId = sugar.assetDefinitionId('time', 'looking_glass')
+const timeDefinitionId: datamodel.AssetDefinitionId = {
+  name: 'time',
+  domain: { name: 'looking_glass' },
+}
 // #endregion pre
 
 // #region register
 await client.submitExecutable(
   toriiRequirements,
-  pipe(
-    sugar.identifiable.newAssetDefinition(
-      timeDefinitionId, // [!code hl]
-      datamodel.AssetValueType('Quantity'),
-      {
-        mintable: datamodel.Mintable('Infinitely'), // If only we could mint more time.
-      },
+  datamodel.Executable.Instructions([
+    datamodel.InstructionBox.Register(
+      datamodel.RegisterBox.AssetDefinition({
+        object: {
+          id: timeDefinitionId,
+          valueType: datamodel.AssetValueType.Numeric({ scale: datamodel.Option.None() }),
+          mintable: datamodel.Mintable.Infinitely, // If only we could mint more time.
+          metadata: new Map(),
+          logo: datamodel.Option.None(),
+        },
+      }),
     ),
-    sugar.instruction.register,
-    sugar.executable.instructions,
-  ),
+  ]),
+  { chain: '000-000' },
 )
 // #endregion register
 
 {
   // #region mint
-  const mintValue = sugar.value.numericU32(32)
+  const mintValue: datamodel.Numeric = { mantissa: 32n, scale: 0n }
 
   await client.submitExecutable(
     toriiRequirements,
-    pipe(
-      sugar.instruction.mint(
-        mintValue,
-        datamodel.IdBox(
-          'AssetId',
-          sugar.assetId(
-            sugar.accountId('alice', 'wonderland'),
-            timeDefinitionId, // [!code hl]
-          ),
-        ),
+    datamodel.Executable.Instructions([
+      datamodel.InstructionBox.Mint(
+        datamodel.MintBox.Asset({
+          destination: {
+            account: { signatory: accountPublicKey, domain: { name: 'wonderland' } },
+            definition: timeDefinitionId,
+          },
+          object: mintValue,
+        }),
       ),
-      sugar.executable.instructions,
-    ),
+    ]),
+    { chain: '000-000' },
   )
   // #endregion mint
 }

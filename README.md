@@ -48,7 +48,7 @@ Make sure you have installed **Node.js v16.17 or v18**. As for a package manager
 Also make sure you have installed the following version of **Rust toolchain**:
 
 ```bash
-rustup default nightly-2023-06-25
+rustup default nightly-2024-06-12
 ```
 
 Before working with the repository, install the necessary packages:
