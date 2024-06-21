@@ -1,25 +1,10 @@
 import chalk from 'chalk'
 import consola from 'consola'
-import config from './config-resolved'
-import {
-  assertConfigurationIsGitClone,
-  clone,
-  isAccessible,
-  isCloneUpToDate,
-  resolveBinaryPath,
-  runCargoBuild,
-  syncIrohaSymlink,
-  syncSourceRepo,
-} from './util'
-import { path } from 'zx'
+import { path, fs } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
+import { execa } from 'execa'
 
-export type Binary = 'iroha' | 'kagami'
-
-export async function forceClone() {
-  assertConfigurationIsGitClone(config)
-  await clone(config)
-}
+export type Binary = 'irohad' | 'kagami'
 
 /**
  * Resolves path to the release build of the binary.
@@ -27,43 +12,33 @@ export async function forceClone() {
  * If configuration is "git-clone" and the repo is not cloned or outdated,
  * it is re-created. If the binary is not yet built, builds it. These updates could be disabled with the flag.
  */
-export async function resolveBinary(
-  bin: Binary,
-  options?: {
-    /**
-     * If the repo is not up-to-date or the binary is not built, then an error will be thrown.
-     * @default false
-     */
-    skipUpdate?: boolean
-  },
-): Promise<{ path: string }> {
-  const skipUpdate = options?.skipUpdate ?? false
-
-  if (config.t === 'git-clone') {
-    if (!(await isCloneUpToDate(config))) {
-      if (skipUpdate) throw new Error('Repo is out of date, cannot resolve the binary')
-      await clone(config)
-    }
-  }
-
-  await syncIrohaSymlink(config)
-
+export async function resolveBinary(bin: Binary): Promise<{ path: string }> {
   const binaryPath = resolveBinaryPath(bin)
-
-  if (!skipUpdate) {
-    await runCargoBuild(bin)
-  } else if (!(await isAccessible(binaryPath))) {
-    throw new Error('The binary is not built')
+  if (!(await isAccessible(binaryPath))) {
+    throw new Error(`Binary "${bin}" is not accessible on path "${binaryPath}". Ensure to call \`buildBinary()\` first`)
   }
-
   return { path: binaryPath }
 }
 
-export async function buildBinary(bin: Binary, ignoreBuilt = false): Promise<void> {
-  await syncSourceRepo(config)
-  const path = resolveBinaryPath(bin)
-  if (ignoreBuilt || !(await isAccessible(path))) await runCargoBuild(bin)
+export async function buildBinary(bin: Binary): Promise<void> {
+  consola.info(chalk`Building binary {magenta.bold ${bin}}...`)
+  await runCargoBuild(bin)
   consola.success(`${chalk.magenta.bold(bin)} is built`)
 }
 
 export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'configs/swarm/executor.wasm')
+
+function resolveBinaryPath(bin: string): string {
+  return path.join(IROHA_DIR, `target/release`, bin)
+}
+
+async function runCargoBuild(crate: string): Promise<void> {
+  await execa('cargo', ['build', '--release', '-p', crate], { stdio: 'inherit', cwd: IROHA_DIR })
+}
+
+async function isAccessible(path: string, mode?: number): Promise<boolean> {
+  return fs
+    .access(path, mode)
+    .then(() => true)
+    .catch(() => false)
+}

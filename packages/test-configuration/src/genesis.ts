@@ -8,8 +8,8 @@ const kagami = await resolveBinary('kagami')
 
 const RAW_GENESIS_FOR_KAGAMI = {
   instructions: [
-    { Register: { Domain: { id: DOMAIN.name } } },
-    { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@wonderland` } } },
+    { Register: { Domain: { id: DOMAIN.name, metadata: {} } } },
+    { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@wonderland`, metadata: {} } } },
     { NewParameter: `?BlockTime=${BLOCK_TIME_MS}` },
     { NewParameter: `?CommitTimeLimit=${COMMIT_TIME_MS}` },
   ],
@@ -25,7 +25,6 @@ const { stdout } = await execa(
   [
     `genesis`,
     `sign`,
-    `--genesis-file`,
     genesisPathTmp,
     `--public-key`,
     GENESIS_KEY_PAIR.publicKey,

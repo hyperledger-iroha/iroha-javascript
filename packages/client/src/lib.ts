@@ -278,7 +278,7 @@ export const Torii: ToriiOmnibus = {
     return variant('Ok', null)
   },
 
-  async listenForEvents(pre, params: Pick<SetupEventsParams, 'filters'>) {
+  async listenForEvents(pre, params: Except<SetupEventsParams, 'adapter' | 'toriiApiURL'>) {
     return setupEvents({
       filters: params.filters,
       toriiApiURL: pre.apiURL,
@@ -286,7 +286,7 @@ export const Torii: ToriiOmnibus = {
     })
   },
 
-  async listenForBlocksStream(pre, params: Pick<SetupBlocksStreamParams, 'fromBlockHeight'>) {
+  async listenForBlocksStream(pre, params: Except<SetupBlocksStreamParams, 'adapter' | 'toriiApiURL'>) {
     return setupBlocksStream({
       fromBlockHeight: params.fromBlockHeight,
       toriiApiURL: pre.apiURL,
@@ -295,8 +295,9 @@ export const Torii: ToriiOmnibus = {
   },
 
   async getStatus(pre): Promise<datamodel.Status> {
-    // TODO
-    const response = await pre.fetch(pre.apiURL + ENDPOINT_STATUS)
+    const response = await pre.fetch(pre.apiURL + ENDPOINT_STATUS, {
+      headers: { accept: 'application/x-parity-scale' },
+    })
     ResponseError.throwIfStatusIsNot(response, 200)
     return response.arrayBuffer().then((buffer) => toCodec(datamodel.Status).decode(new Uint8Array(buffer)))
   },

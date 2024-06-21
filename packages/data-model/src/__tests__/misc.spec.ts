@@ -53,6 +53,23 @@ test('Status according to the example from https://hyperledger.github.io/iroha-2
   }
   const ENCODED = '10 14 7C 0C 14 40 7C D9 37 08 48'
 
-  expect(toHex(toCodec(datamodel.Status).encode(STATUS))).toEqual(ENCODED)
+  expect(toHex(toCodec(datamodel.Status).encode(STATUS)).toUpperCase()).toEqual(ENCODED)
   expect(toCodec(datamodel.Status).decode(fromHex(ENCODED))).toEqual(STATUS)
+})
+
+test('Status from zeros', () => {
+  expect(toCodec(datamodel.Status).decode(fromHex('00 00 00 00 00 00 00 00 00 00 00'))).toMatchInlineSnapshot(`
+    {
+      "blocks": 0n,
+      "peers": 0n,
+      "queueSize": 0n,
+      "txsAccepted": 0n,
+      "txsRejected": 0n,
+      "uptime": {
+        "nanos": 0,
+        "secs": 0n,
+      },
+      "viewChanges": 0n,
+    }
+  `)
 })

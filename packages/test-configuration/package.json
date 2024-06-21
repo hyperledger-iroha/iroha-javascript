@@ -2,6 +2,7 @@
   "name": "@iroha2/test-configuration",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "main": "src/lib.ts",
   "devDependencies": {
     "@iroha2/data-model": "workspace:^",

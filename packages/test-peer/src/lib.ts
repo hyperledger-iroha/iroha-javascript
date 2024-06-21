@@ -6,6 +6,7 @@ import { PEER_CONFIG_BASE, SIGNED_GENESIS } from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
 import { temporaryDirectory } from 'tempy'
 import { Torii } from '@iroha2/client'
+import mergeDeep from '@tinkoff/utils/object/mergeDeep'
 
 import Debug from 'debug'
 
@@ -78,36 +79,37 @@ export interface IrohaConfiguration {
 export async function startPeer(): Promise<StartPeerReturn> {
   const API_ADDRESS = '127.0.0.1:8080'
   const API_URL = `http://${API_ADDRESS}`
-  const NETWORK_ADDRESS = '127.0.0.1:1337'
+  const P2P_ADDRESS = '127.0.0.1:1337'
   const TMP_DIR = temporaryDirectory()
-  debug('Peer temporary directory: %o\nConfigs, artifacts, logs will go there', TMP_DIR)
+  debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
-  await fs.writeFile(path.join(TMP_DIR, 'config.toml'), TOML.stringify(PEER_CONFIG_BASE))
+  await fs.writeFile(
+    path.join(TMP_DIR, 'config.toml'),
+    TOML.stringify(
+      mergeDeep(PEER_CONFIG_BASE, {
+        genesis: { signed_file: './genesis.scale' },
+        kura: { store_dir: './storage' },
+        torii: { address: API_ADDRESS },
+        network: { address: P2P_ADDRESS },
+        snapshot: { mode: 'disabled' },
+      }),
+    ),
+  )
   await fs.writeFile(path.join(TMP_DIR, 'genesis.scale'), SIGNED_GENESIS.blob)
 
-  const iroha = (await resolveBinary('iroha', { skipUpdate: true })).path
+  const irohad = (await resolveBinary('irohad')).path
 
   // state
   let isAlive = false
 
   // starting peer
-  const subprocess = execa({
-    env: {
-      GENESIS_SIGNED_FILE: './genesis.scale',
-      KURA_STORE_DIR: './storage',
-      API_ADDRESS,
-      NETWORK_ADDRESS,
-      LOG_FORMAT: 'json',
-      SNAPSHOT_MODE: 'disabled',
-    },
+  const subprocess = execa(irohad, ['--config', './config.toml', '--submit-genesis'], {
+    env: { LOG_FORMAT: 'json', LOG_LEVEL: 'DEBUG' },
     cwd: TMP_DIR,
-    stdout: { file: path.join(TMP_DIR, 'stdout.json') },
-    stderr: { file: path.join(TMP_DIR, 'stderr') },
-  })`${iroha} --config ./config.toml --submit-genesis`
+  })
 
-  // invariant(subprocess.stdout && subprocess.stderr)
-  // readableToDebug(subprocess.stdout, 'subprocess-stdout')
-  // readableToDebug(subprocess.stderr, 'subprocess-stderr')
+  subprocess.pipeStdout!(fs.createWriteStream(path.join(TMP_DIR, 'stdout.json')))
+  subprocess.pipeStderr!(fs.createWriteStream(path.join(TMP_DIR, 'stderr')))
 
   subprocess.once('spawn', () => {
     isAlive = true

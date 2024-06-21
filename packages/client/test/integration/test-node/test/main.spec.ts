@@ -1,18 +1,15 @@
 import { Torii } from '@iroha2/client'
-import { type RustResult, datamodel, sugar, variant } from '@iroha2/data-model'
-import { CLIENT_CONFIG } from '@iroha2/test-configuration'
+import { type Result, datamodel, variant } from '@iroha2/data-model'
 import { Seq } from 'immutable'
 import { describe, expect, test } from 'vitest'
-import { clientFactory, setupPeerTestsLifecycle } from './util'
+import { usePeer } from './util'
 import { pipe } from 'fp-ts/function'
 
-setupPeerTestsLifecycle()
-
 // Actually, it is already tested within `@iroha2/test-peer`
-test('Peer is healthy', async () => {
-  const { pre } = clientFactory()
+test.only('Peer is healthy', async () => {
+  const { torii } = await usePeer()
 
-  expect(await Torii.getHealth(pre)).toEqual(variant('Ok', null) as RustResult<null, any>)
+  expect(await Torii.getHealth(torii)).toEqual(variant('Ok', null) as Result<null, any>)
 })
 
 test('AddAsset instruction with name length more than limit is not committed', async () => {
