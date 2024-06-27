@@ -12,6 +12,7 @@ export default defineConfig({
       '@iroha2/data-model': resolve('./packages/data-model/src/lib.ts'),
       '@iroha2/crypto-core': resolve('./packages/crypto/packages/core/src/lib.ts'),
       '@iroha2/crypto-util': resolve('./packages/crypto/packages/util/src/lib.ts'),
+      // '@iroha2/crypto-target-node': resolve('./packages/crypto/packages/target-node/src/lib.ts'),
     },
   },
   test: {

@@ -15,11 +15,7 @@
     "dist",
     "CHANGELOG.md"
   ],
-  "devDependencies": {
-    "@iroha2/crypto-interface-wrap": "workspace:^0.0.0"
-  },
   "dependencies": {
-    "@iroha2/crypto-util": "workspace:^0.1.0",
-    "@iroha2/data-model": "workspace:^7.0.0"
+    "@iroha2/crypto-util": "workspace:^0.1.0"
   }
 }

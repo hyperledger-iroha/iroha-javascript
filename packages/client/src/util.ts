@@ -1,13 +1,6 @@
 import type { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types'
 import type { Debugger } from 'debug'
 import Emittery from 'emittery'
-import { getCryptoAnyway } from './crypto-singleton'
-import type { Bytes } from '@iroha2/crypto-core'
-import { freeScope } from '@iroha2/crypto-core'
-
-export function cryptoHash(input: Bytes): Uint8Array {
-  return freeScope(() => getCryptoAnyway().Hash.hash(input).bytes())
-}
 
 export function transformProtocolInUrlFromHttpToWs(url: string): string {
   return url.replace(/^https?:\/\//, (substr) => {

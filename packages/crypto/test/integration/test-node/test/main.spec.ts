@@ -1,7 +1,9 @@
 /* eslint-disable max-nested-callbacks */
 import { afterAll, describe, expect, test } from 'vitest'
-import { crypto } from '@iroha2/crypto-target-node'
-import { Bytes, FREE_HEAP, freeScope } from '@iroha2/crypto-core'
+import { wasmPkg } from '@iroha2/crypto-target-node'
+import { Bytes, FREE_HEAP, KeyPair, PrivateKey, PublicKey, Signature, freeScope, setWASM } from '@iroha2/crypto-core'
+
+setWASM(wasmPkg)
 
 const { hex: bytesHex } = Bytes
 
@@ -14,7 +16,7 @@ describe('KeyPair generation', () => {
     const SEED_BYTES = [49, 50, 51, 52]
 
     const parts = freeScope(() => {
-      const kp = crypto.KeyPair.deriveFromSeed(Bytes.array(Uint8Array.from(SEED_BYTES)))
+      const kp = KeyPair.deriveFromSeed(Bytes.array(Uint8Array.from(SEED_BYTES)))
       return { publicKey: kp.publicKey().toMultihash(), privateKey: kp.privateKey().toMultihash() }
     })
 
@@ -32,7 +34,7 @@ describe('KeyPair generation', () => {
 
     expect(
       freeScope(() => {
-        const kp = crypto.KeyPair.deriveFromPrivateKey(crypto.PrivateKey.fromMultihash(SAMPLE))
+        const kp = KeyPair.deriveFromPrivateKey(PrivateKey.fromMultihash(SAMPLE))
         return {
           publicKey: kp.publicKey().toMultihash(),
           privateKey: kp.privateKey().toMultihash(),
@@ -47,7 +49,7 @@ describe('KeyPair generation', () => {
   })
 
   test('Generates randomly without an error', () => {
-    expect(() => freeScope(() => crypto.KeyPair.random())).not.toThrow()
+    expect(() => freeScope(() => KeyPair.random())).not.toThrow()
   })
 })
 
@@ -56,7 +58,7 @@ describe('Given a multihash', () => {
 
   test('a public key could be constructed', () => {
     freeScope(() => {
-      const key = crypto.PublicKey.fromMultihash(MULTIHASH)
+      const key = PublicKey.fromMultihash(MULTIHASH)
 
       expect(key.algorithm).toMatchInlineSnapshot('"ed25519"')
       expect(key.payload('hex')).toMatchInlineSnapshot(
@@ -70,7 +72,7 @@ describe('Given a multihash', () => {
 describe('Signature verification', () => {
   function pairFactory() {
     return freeScope((scope) => {
-      const pair = crypto.KeyPair.deriveFromSeed(Bytes.hex('aa1108'))
+      const pair = KeyPair.deriveFromSeed(Bytes.hex('aa1108'))
       scope.forget(pair)
       return pair
     })
@@ -114,21 +116,10 @@ describe('Signature verification', () => {
   })
 })
 
-describe('Data Model representation', () => {
-  test('Signature serializes as expected', () => {
-    freeScope(() => {
-      const cryptoSignature = crypto.KeyPair.deriveFromSeed(bytesHex('001122')).privateKey().sign(bytesHex('112233'))
-      const dataModelSignature = cryptoSignature.toDataModel()
-
-      expect(cryptoSignature.payload()).toEqual(dataModelSignature.payload)
-    })
-  })
-})
-
 describe('Raw conversion', () => {
   test('Construct PublicKey', () => {
     const multihash = freeScope(() =>
-      crypto.PublicKey.fromRaw(
+      PublicKey.fromRaw(
         'ed25519',
         bytesHex('A88D1B0D23BC1ADC564DE57CEDBF8FD7D045D0D698EF27E5D9C1807C1041E016'),
       ).toMultihash(),
@@ -139,16 +130,13 @@ describe('Raw conversion', () => {
 
   test('Fail to construct PublicKey', () => {
     expect(() =>
-      crypto.PublicKey.fromRaw(
-        'bls_normal',
-        bytesHex('A88D1B0D23BC1ADC564DE57CEDBF8FD7D045D0D698EF27E5D9C1807C1041E016'),
-      ),
+      PublicKey.fromRaw('bls_normal', bytesHex('A88D1B0D23BC1ADC564DE57CEDBF8FD7D045D0D698EF27E5D9C1807C1041E016')),
     ).toThrowErrorMatchingInlineSnapshot(`[Error: the input buffer contained invalid data]`)
   })
 
   test('Construct PrivateKey', () => {
     const json = freeScope(() =>
-      crypto.PrivateKey.fromBytes(
+      PrivateKey.fromBytes(
         'ed25519',
         bytesHex(
           '01f2db2416255e79db67d5ac807e55459ed8754f07586864948aea00f6f81763f149bb4b59feb0ace3074f10c65e179880ea2c4fe4e0d6022b1e82c33c3278c7',
@@ -163,7 +151,7 @@ describe('Raw conversion', () => {
 
   test('Fail to construct PrivateKey', () => {
     expect(() =>
-      crypto.PrivateKey.fromBytes(
+      PrivateKey.fromBytes(
         'secp256k1',
         bytesHex(
           '01f2db2416255e79db67d5ac807e55459ed8754f07586864948aea00f6f81763f149bb4b59feb0ace3074f10c65e179880ea2c4fe4e0d6022b1e82c33c3278c7',
@@ -175,11 +163,11 @@ describe('Raw conversion', () => {
   test('Fail to construct KeyPair', () => {
     expect(() =>
       freeScope(() => {
-        const kp1 = crypto.KeyPair.deriveFromSeed(bytesHex('deadbeef'), { algorithm: 'bls_normal' })
-        const kp2 = crypto.KeyPair.deriveFromSeed(bytesHex('beefdead'))
+        const kp1 = KeyPair.deriveFromSeed(bytesHex('deadbeef'), { algorithm: 'bls_normal' })
+        const kp2 = KeyPair.deriveFromSeed(bytesHex('beefdead'))
 
         // should fail here:
-        crypto.KeyPair.fromParts(kp1.publicKey(), kp2.privateKey())
+        KeyPair.fromParts(kp1.publicKey(), kp2.privateKey())
       }),
     ).toThrowErrorMatchingInlineSnapshot(`[Error: Key generation failed. Mismatch of key algorithms]`)
   })
@@ -188,7 +176,7 @@ describe('Raw conversion', () => {
     const SAMPLE_PAYLOAD =
       'd0fbac97dcc1c859c110dcf3c55ecff6c28dd49b6e5560e2175a7f308a2214d3d4666c37f0ebfbeb24341a15e606d71780f992f151652adba39fe87e831a2000'
 
-    const actualPayload = freeScope(() => crypto.Signature.fromBytes(bytesHex(SAMPLE_PAYLOAD)).payload('hex'))
+    const actualPayload = freeScope(() => Signature.fromBytes(bytesHex(SAMPLE_PAYLOAD)).payload('hex'))
 
     expect(actualPayload).toEqual(SAMPLE_PAYLOAD)
   })

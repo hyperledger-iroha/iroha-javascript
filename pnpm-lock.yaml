@@ -165,12 +165,12 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
-      fp-ts:
-        specifier: ^2.13.1
-        version: 2.14.0
-      immer:
-        specifier: ^9.0.19
-        version: 9.0.19
+      p-defer:
+        specifier: ^4.0.1
+        version: 4.0.1
+      ts-pattern:
+        specifier: ^5.0.1
+        version: 5.0.1
       vite:
         specifier: ^5.1.5
         version: 5.1.5(@types/node@20.14.7)(sass@1.77.6)
@@ -242,61 +242,12 @@ importers:
       '@iroha2/crypto-util':
         specifier: workspace:^0.1.0
         version: link:../util
-      '@iroha2/data-model':
-        specifier: workspace:^7.0.0
-        version: link:../../../data-model
-    devDependencies:
-      '@iroha2/crypto-interface-wrap':
-        specifier: workspace:^0.0.0
-        version: link:../interface-wrap
 
-  packages/crypto/packages/interface-wrap:
-    devDependencies:
-      '@iroha2/crypto-util':
-        specifier: workspace:^0.1.0
-        version: link:../util
-      '@iroha2/data-model':
-        specifier: workspace:^7.0.0
-        version: link:../../../data-model
+  packages/crypto/packages/target-bundler: {}
 
-  packages/crypto/packages/target-bundler:
-    dependencies:
-      '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
-        version: link:../core
-      '@iroha2/data-model':
-        specifier: workspace:^7.0.0
-        version: link:../../../data-model
-    devDependencies:
-      '@iroha2/crypto-interface-wrap':
-        specifier: workspace:^0.0.0
-        version: link:../interface-wrap
+  packages/crypto/packages/target-node: {}
 
-  packages/crypto/packages/target-node:
-    dependencies:
-      '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
-        version: link:../core
-      '@iroha2/data-model':
-        specifier: workspace:^7.0.0
-        version: link:../../../data-model
-    devDependencies:
-      '@iroha2/crypto-interface-wrap':
-        specifier: workspace:^0.0.0
-        version: link:../interface-wrap
-
-  packages/crypto/packages/target-web:
-    dependencies:
-      '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
-        version: link:../core
-      '@iroha2/data-model':
-        specifier: workspace:^7.0.0
-        version: link:../../../data-model
-    devDependencies:
-      '@iroha2/crypto-interface-wrap':
-        specifier: workspace:^0.0.0
-        version: link:../interface-wrap
+  packages/crypto/packages/target-web: {}
 
   packages/crypto/packages/util: {}
 
@@ -326,8 +277,11 @@ importers:
 
   packages/crypto/test/integration/test-web:
     devDependencies:
+      '@iroha2/crypto-core':
+        specifier: workspace:^1.1.1
+        version: link:../../../packages/core
       '@iroha2/crypto-target-web':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^1.1.1
         version: link:../../../packages/target-web
       cypress:
         specifier: ^13.12.0
@@ -341,9 +295,9 @@ importers:
 
   packages/data-model:
     dependencies:
-      '@iroha2/i64-fixnum':
-        specifier: workspace:^0.4.2
-        version: link:../i64-fixnum
+      '@iroha2/crypto-core':
+        specifier: workspace:^1.1.1
+        version: link:../crypto/packages/core
       '@scale-codec/core':
         specifier: ^2.0.1
         version: 2.0.1
@@ -351,6 +305,9 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
     devDependencies:
+      '@iroha2/crypto-target-node':
+        specifier: workspace:^1.1.1
+        version: link:../crypto/packages/target-node
       '@iroha2/data-model-schema':
         specifier: workspace:*
         version: link:../data-model-schema
@@ -2783,9 +2740,6 @@ packages:
     resolution: {integrity: sha512-5Fytz/IraMjqpwfd34ke28PTVMjZjJG2MPn5t7OE4eUCUNf8BAa7b5WUS9/Qvr6mwOQS7Mk6vdsMno5he+T8Xw==}
     engines: {node: '>= 4'}
 
-  immer@9.0.19:
-    resolution: {integrity: sha512-eY+Y0qcsB4TZKwgQzLaE/lqYMlKhv5J9dyd2RhhtGhNo2njPXDqU9XPfcNfa3MIDsdtZt5KlkIsirlo4dHsWdQ==}
-
   immutable@4.1.0:
     resolution: {integrity: sha512-oNkuqVTA8jqG1Q6c+UglTOD1xhC1BtjKI7XkCXRkZHrN5m18/XsnUp8Q89GkQO/z+0WjonSvl0FLhDYftp46nQ==}
 
@@ -3349,6 +3303,10 @@ packages:
 
   outdent@0.5.0:
     resolution: {integrity: sha512-/jHxFIzoMXdqPzTaCpFzAAWhpkSjZPF4Vsn6jAfNpmbH/ymsmd7Qc6VE9BGn0L6YMj6uwpQLxCECpus4ukKS9Q==}
+
+  p-defer@4.0.1:
+    resolution: {integrity: sha512-Mr5KC5efvAK5VUptYEIopP1bakB85k2IWXaRC0rsh1uwn1L6M0LVml8OIQ4Gudg4oyZakf7FmeRLkMMtZW1i5A==}
+    engines: {node: '>=12'}
 
   p-filter@2.1.0:
     resolution: {integrity: sha512-ZBxxZ5sL2HghephhpGAQdoskxplTwr7ICaehZwLIlfL6acuVgZPm8yBNuRAFBGEqtD/hmUeq9eqLg2ys9Xr/yw==}
@@ -6918,8 +6876,6 @@ snapshots:
 
   ignore@5.3.1: {}
 
-  immer@9.0.19: {}
-
   immutable@4.1.0: {}
 
   immutable@4.2.4: {}
@@ -7468,6 +7424,8 @@ snapshots:
   ospath@1.2.2: {}
 
   outdent@0.5.0: {}
+
+  p-defer@4.0.1: {}
 
   p-filter@2.1.0:
     dependencies:

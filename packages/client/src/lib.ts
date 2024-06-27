@@ -5,7 +5,7 @@
  * Events, Status & Health check.
  */
 
-import type { cryptoTypes } from '@iroha2/crypto-core'
+import { type KeyPair, Signature } from '@iroha2/crypto-core'
 import { Bytes, freeScope } from '@iroha2/crypto-core'
 import type { Result } from '@iroha2/data-model'
 import { type Enumerate, datamodel, toCodec, variant } from '@iroha2/data-model'
@@ -23,13 +23,9 @@ import {
 } from './const'
 import type { SetupEventsParams, SetupEventsReturn } from './events'
 import { setupEvents } from './events'
-import { cryptoHash } from './util'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types'
-import { getCryptoAnyway } from './crypto-singleton'
 
 type Fetch = typeof fetch
-
-type KeyPair = cryptoTypes.KeyPair
 
 export interface SetPeerConfigParams {
   logger: {
@@ -359,5 +355,4 @@ export class Client {
 
 export * from './events'
 export * from './blocks-stream'
-export * from './crypto-singleton'
 export * from './web-socket/types'

@@ -51,11 +51,9 @@ export async function loadProductionDependencies(pkg: PackageToRollup): Promise<
 
 export type PackageToRollup = SetEntry<typeof PACKAGES_TO_ROLLUP>
 
-export const PACKAGES_TO_ROLLUP = metaCrypto.PACKAGES_TO_ROLLUP.merge(
-  Set(['client', 'data-model', 'i64-fixnum'] as const),
-)
+export const PACKAGES_TO_ROLLUP = metaCrypto.PACKAGES.merge(Set(['client', 'data-model', 'i64-fixnum'] as const))
 
-export const PACKAGES_TO_BUILD_WITH_TSC = metaCrypto.PACKAGES_TO_BUILD_WITH_TSC.merge(PACKAGES_TO_ROLLUP)
+export const PACKAGES_TO_BUILD_WITH_TSC = metaCrypto.PACKAGES.merge(PACKAGES_TO_ROLLUP)
 
 export type PackageToBuildWithTsc = SetEntry<typeof PACKAGES_TO_BUILD_WITH_TSC>
 
@@ -63,7 +61,7 @@ export type PackageToPublish = SetEntry<typeof PACKAGES_TO_PUBLISH>
 
 export const PACKAGES_TO_PUBLISH = PACKAGES_TO_ROLLUP.merge(Set(['data-model-schema'] as const))
 
-export type PackageAny = PackageToRollup | PackageToPublish | metaCrypto.PackageToBuildWithTsc
+export type PackageAny = PackageToRollup | PackageToPublish | metaCrypto.Package
 
 export function scopePackage<T extends PackageAny>(name: T) {
   return `@iroha2/${name}` as const
