@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-iroha_data_model = { path = "../iroha-source/.iroha/data_model" }
+iroha_data_model = { path = "../iroha-source/.iroha/data_model", features = [
+    "http",
+] }
+iroha_crypto = { path = "../iroha-source/.iroha/crypto" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 parity-scale-codec = "3.2"
+hex = "0.4.3"

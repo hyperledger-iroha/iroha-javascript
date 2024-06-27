@@ -17,11 +17,12 @@
   ],
   "license": "Apache 2.0",
   "dependencies": {
-    "@iroha2/i64-fixnum": "workspace:^0.4.2",
+    "@iroha2/crypto-core": "workspace:^1.1.1",
     "@scale-codec/core": "^2.0.1",
     "@scale-codec/definition-runtime": "^4.0.1"
   },
   "devDependencies": {
+    "@iroha2/crypto-target-node": "workspace:^1.1.1",
     "@iroha2/data-model-schema": "workspace:*",
     "@scale-codec/definition-compiler": "^4.0.1",
     "@scale-codec/util": "^1.1.2",

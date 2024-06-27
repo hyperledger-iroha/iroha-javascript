@@ -1,7 +1,19 @@
-import { describe, expect, test } from 'vitest'
-import SAMPLES from '../../../data-model-rust-samples/samples.json'
-import { type CodecOrWrap, datamodel, toCodec } from '../lib'
-import { fromHex, toHex } from '@scale-codec/util'
+import { describe, expect, onTestFinished, test } from 'vitest'
+import SAMPLES from '../../data-model-rust-samples/samples.json'
+import {
+  type CodecOrWrap,
+  datamodel,
+  toCodec,
+  defineTxPayload,
+  publicKeyFromCrypto,
+  signTransaction,
+  transactionHash,
+} from '../src/lib'
+import { fromHex } from './util'
+import { Algorithm, Bytes, Hash, KeyPair, PublicKey, setWASM } from '@iroha2/crypto-core'
+import { wasmPkg } from '@iroha2/crypto-target-node'
+
+setWASM(wasmPkg)
 
 const SAMPLE_SIGNATORY: datamodel.PublicKey = {
   algorithm: datamodel.Algorithm.Ed25519,
@@ -10,13 +22,12 @@ const SAMPLE_SIGNATORY: datamodel.PublicKey = {
 
 const SAMPLE_ACCOUNT_ID = { signatory: SAMPLE_SIGNATORY, domain: { name: 'wonderland' } } satisfies datamodel.AccountId
 
-// eslint-disable-next-line max-params
-function defineCase<T>(label: keyof typeof SAMPLES, codec: CodecOrWrap<T>, value: T) {
-  const sample = SAMPLES[label]
+function testEncodeDecodeOfSample<T>(sampleName: keyof typeof SAMPLES, codec: CodecOrWrap<T>, value: T) {
+  const sample = SAMPLES[sampleName]
 
-  describe(label, () => {
+  describe(sampleName, () => {
     test('encode', () => {
-      expect(toHex(toCodec(codec).encode(value))).toEqual(sample.encoded)
+      expect(toCodec(codec).encode(value)).toEqual(fromHex(sample.encoded))
     })
 
     test('decode', () => {
@@ -25,16 +36,16 @@ function defineCase<T>(label: keyof typeof SAMPLES, codec: CodecOrWrap<T>, value
   })
 }
 
-defineCase('AccountId', datamodel.AccountId, SAMPLE_ACCOUNT_ID)
+testEncodeDecodeOfSample('AccountId', datamodel.AccountId, SAMPLE_ACCOUNT_ID)
 
-defineCase('DomainId', datamodel.DomainId, { name: 'Hey' })
+testEncodeDecodeOfSample('DomainId', datamodel.DomainId, { name: 'Hey' })
 
-defineCase('AssetDefinitionId', datamodel.AssetDefinitionId, {
+testEncodeDecodeOfSample('AssetDefinitionId', datamodel.AssetDefinitionId, {
   name: 'rose',
   domain: { name: 'wonderland' },
 })
 
-defineCase(
+testEncodeDecodeOfSample(
   'Register time trigger',
   datamodel.InstructionBox,
   datamodel.InstructionBox.Register(
@@ -68,7 +79,7 @@ defineCase(
   ),
 )
 
-defineCase(
+testEncodeDecodeOfSample(
   'Register data trigger',
   datamodel.InstructionBox,
   datamodel.InstructionBox.Register(
@@ -102,7 +113,7 @@ defineCase(
   ),
 )
 
-defineCase(
+testEncodeDecodeOfSample(
   'Metadata',
   datamodel.Metadata,
   new Map([
@@ -112,5 +123,35 @@ defineCase(
     ['salt', datamodel.MetadataValueBox.String('ABCDEFG')],
   ]),
 )
+
+describe('SignedTransaction and its hash', () => {
+  // TODO: clean garbage
+  const kp = KeyPair.deriveFromSeed(Bytes.array(new Uint8Array([1, 4, 2, 4, 1])), { algorithm: 'bls_small' })
+  const publicKey = kp.publicKey()
+  const privateKey = kp.privateKey()
+
+  const payload = defineTxPayload({
+    chain: '00000',
+    authority: {
+      domain: { name: 'looking_glass' },
+      signatory: publicKeyFromCrypto(publicKey),
+    },
+    executable: datamodel.Executable.Instructions([]),
+    creationTime: 100402000n,
+    metadata: new Map([['foo', datamodel.MetadataValueBox.String('bar')]]),
+  })
+
+  const tx = signTransaction(payload, privateKey)
+  const hash = transactionHash(tx)
+
+  test('transaction encode/decode roundtrip', () => {
+    expect(toCodec(datamodel.SignedTransaction).decode(fromHex(SAMPLES['SignedTransaction'].encoded))).toEqual(tx)
+    expect(toCodec(datamodel.SignedTransaction).encode(tx)).toEqual(fromHex(SAMPLES['SignedTransaction'].encoded))
+  })
+
+  test('transaction hash is as expected', () => {
+    expect(hash.bytes()).toEqual(fromHex(SAMPLES['SignedTransaction (hash)'].encoded))
+  })
+})
 
 // TODO: add more tests, cover manually edited/added schema structs

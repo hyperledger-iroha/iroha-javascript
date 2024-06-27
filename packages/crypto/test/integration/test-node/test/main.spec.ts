@@ -184,3 +184,19 @@ describe('Raw conversion', () => {
   // TODO
   test.todo('Failed to construct Signature... is it possible?')
 })
+
+test('BlsSmall signature', () => {
+  const SEED = 'babe'
+  const PAYLOAD = 'deadbeef'
+  const EXPECTED_SIGNATURE =
+    '81ed6a74bb04f2a9d2007dcf7f39ae186019abc8ba46316a751c405a509fed2470443b60f82188102ed6bf3bf61d593a'
+
+  const actual = freeScope(() =>
+    KeyPair.deriveFromSeed(Bytes.hex(SEED), { algorithm: 'bls_small' })
+      .privateKey()
+      .sign(Bytes.hex(PAYLOAD))
+      .payload('hex'),
+  )
+
+  expect(actual).toBe(EXPECTED_SIGNATURE)
+})

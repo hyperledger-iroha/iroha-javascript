@@ -1,4 +1,5 @@
 import * as scale from '@scale-codec/core'
+import { trackDecode } from '@scale-codec/definition-runtime'
 
 export const symbolCodec = Symbol('codec')
 
@@ -99,7 +100,9 @@ export function enumCodec<T>(schema: EnumCodecSchema): Codec<T> {
 
   for (const [dis, tag, codec] of schema) {
     ;(encoders as any)[tag] = codec ? [dis, codec.encodeRaw] : dis
-    ;(decoders as any)[dis] = codec ? [tag, codec.decodeRaw] : tag
+    ;(decoders as any)[dis] = codec
+      ? [tag, (walker: scale.Walker) => trackDecode(`<enum>::${tag}`, walker, codec.decodeRaw)]
+      : tag
   }
 
   return new CodecImpl(scale.createEnumEncoder(encoders), scale.createEnumDecoder(decoders)) as any
@@ -125,7 +128,7 @@ export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
 
   for (const [field, codec] of schema as [string, Codec<any>][]) {
     encoders.push([field, codec.encodeRaw])
-    decoders.push([field, codec.decodeRaw])
+    decoders.push([field, (walker) => trackDecode(`<struct>.${field}`, walker, codec.decodeRaw)])
   }
 
   return new CodecImpl(scale.createStructEncoder(encoders), scale.createStructDecoder(decoders))

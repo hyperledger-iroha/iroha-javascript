@@ -1,5 +1,9 @@
+use iroha_crypto::{HashOf, KeyPair};
+use iroha_data_model::account::AccountId;
+use iroha_data_model::domain::DomainId;
 use iroha_data_model::metadata::MetadataValueBox;
 use iroha_data_model::prelude::*;
+use iroha_data_model::transaction::TransactionBuilder;
 use parity_scale_codec::Encode;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -11,6 +15,8 @@ const SAMPLE_SIGNATORY: &str =
     "ed01207233BFC89DCBD68C19FDE6CE6158225298EC1131B6A130D1AEB454C1AB5183C0";
 
 fn main() {
+    let (tx, tx_hash) = sample_transaction();
+
     println!(
         "{}",
         SamplesMap::new()
@@ -23,9 +29,11 @@ fn main() {
                 "AccountId",
                 &AccountId::from_str(&format!("{SAMPLE_SIGNATORY}@wonderland")).unwrap(),
             )
-            .add("Register time trigger", &sample_register_time_trigger(),)
-            .add("Register data trigger", &sample_register_data_trigger(),)
+            .add("Register time trigger", &sample_register_time_trigger())
+            .add("Register data trigger", &sample_register_data_trigger())
             .add("Metadata", &sample_metadata())
+            .add("SignedTransaction", tx)
+            .add("SignedTransaction (hash)", tx_hash)
             .to_json()
     );
 }
@@ -38,9 +46,9 @@ struct Sample {
 }
 
 impl Sample {
-    fn new<T: Encode + Debug>(something: &T) -> Self {
-        let encoded = Encode::encode(something);
-        let encoded = to_hex(&encoded);
+    fn new<T: Encode + Debug>(something: T) -> Self {
+        let encoded = Encode::encode(&something);
+        let encoded = hex::encode(&encoded);
 
         Self {
             debug: format!("{:?}", something),
@@ -56,7 +64,7 @@ impl SamplesMap {
         Self(BTreeMap::new())
     }
 
-    fn add<T: Encode + Debug>(&mut self, label: &str, something: &T) -> &mut Self {
+    fn add<T: Encode + Debug>(&mut self, label: &str, something: T) -> &mut Self {
         self.0.insert(label.to_owned(), Sample::new(something));
         self
     }
@@ -64,16 +72,6 @@ impl SamplesMap {
     fn to_json(&self) -> String {
         serde_json::to_string_pretty(&self.0).expect("Failed to serialize samples map")
     }
-}
-
-fn to_hex(val: &Vec<u8>) -> String {
-    let mut parts: Vec<String> = Vec::with_capacity(val.len());
-
-    for byte in val {
-        parts.push(format!("{:0>2x}", byte));
-    }
-
-    parts.join(" ")
 }
 
 fn sample_register_time_trigger() -> InstructionBox {
@@ -147,6 +145,26 @@ fn sample_metadata() -> Metadata {
         .set("authentication", "80252ad8c8546c687b2a7e2505cc".to_owned())
         .set("email", "user123@mail.com".to_owned())
         .set("salt", "ABCDEFG".to_owned())
+}
+
+fn sample_transaction() -> (SignedTransaction, HashOf<SignedTransaction>) {
+    let kp = KeyPair::from_seed(vec![1, 4, 2, 4, 1], iroha_crypto::Algorithm::BlsSmall);
+    let account = AccountId::new(
+        DomainId::new("looking_glass".parse().unwrap()),
+        kp.public_key().clone(),
+    );
+
+    let mut builder = TransactionBuilder::new("00000".into(), account).with_metadata(
+        vec![("foo", "bar")]
+            .into_iter()
+            .map(|(k, v)| (k.parse().unwrap(), MetadataValueBox::String(v.to_owned())))
+            .collect::<UnlimitedMetadata>(),
+    );
+    builder.set_creation_time(Duration::from_secs(100402));
+    let tx = builder.sign(kp.private_key());
+    let hash = tx.hash();
+
+    (tx, hash)
 }
 
 #[cfg(test)]

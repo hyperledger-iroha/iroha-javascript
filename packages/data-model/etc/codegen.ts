@@ -117,7 +117,7 @@ function transform(schema: Schema): ActualCodegenSchema {
       id: 'BlockSignature',
       fields: [
         { name: 'peer_topology_index', type: { t: 'lib', id: 'codecs.U64' } },
-        { name: 'payload', type: { t: 'ref', id: 'BlockPayload' } },
+        { name: 'payload', type: { t: 'ref', id: 'Signature' } },
       ],
     },
     {
