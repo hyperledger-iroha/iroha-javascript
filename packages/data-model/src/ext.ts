@@ -81,7 +81,39 @@ export function transactionHash(tx: datamodel.SignedTransaction): crypto.Hash {
   return crypto.Hash.hash(crypto.Bytes.array(bytes))
 }
 
-// export function
+export interface DefineQueryPayloadParams {
+  account: datamodel.AccountId
+  query: datamodel.QueryBox
+  /**
+   * @default PredicateBox.Raw(QueryOutputPredicate.Pass)
+   */
+  filter?: datamodel.PredicateBox
+  // timestampMs?: bigint
+  sorting?: datamodel.Sorting
+  pagination?: datamodel.Pagination
+  fetchSize?: number
+}
+
+export function defineQueryPayload(params: DefineQueryPayloadParams): datamodel.ClientQueryPayload {
+  return {
+    authority: params.account,
+    query: params.query,
+    filter: params?.filter ?? datamodel.PredicateBox.Raw(datamodel.QueryOutputPredicate.Pass),
+    fetchSize: {
+      fetchSize: params.fetchSize
+        ? datamodel.Option.Some(datamodel.NonZero.define(params.fetchSize))
+        : datamodel.Option.None(),
+    },
+    sorting: params.sorting ?? { sortByMetadataKey: datamodel.Option.None() },
+    pagination: params.pagination ?? { start: datamodel.Option.None(), limit: datamodel.Option.None() },
+  }
+}
+
+export function signQuery(payload: datamodel.ClientQueryPayload, privateKey: crypto.PrivateKey): datamodel.SignedQuery {
+  const payloadBytes = toCodec(datamodel.ClientQueryPayload).encode(payload)
+  const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).bytes()))
+  return datamodel.SignedQuery.V1({ payload, signature: signatureFromCrypto(signature) })
+}
 
 export function signTransaction(
   payload: datamodel.TransactionPayload,
