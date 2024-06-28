@@ -7,14 +7,24 @@ import { ACCOUNT_KEY_PAIR, BLOCK_TIME_MS, CHAIN, COMMIT_TIME_MS, DOMAIN, GENESIS
 const kagami = await resolveBinary('kagami')
 
 const RAW_GENESIS_FOR_KAGAMI = {
+  chain: CHAIN,
+  executor: EXECUTOR_WASM_PATH,
   instructions: [
     { Register: { Domain: { id: DOMAIN.name, metadata: {} } } },
-    { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@wonderland`, metadata: {} } } },
+    { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.name}`, metadata: {} } } },
+    {
+      Transfer: {
+        Domain: {
+          source: `${GENESIS_KEY_PAIR.publicKey}@genesis`,
+          object: DOMAIN.name,
+          destination: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.name}`,
+        },
+      },
+    },
     { NewParameter: `?BlockTime=${BLOCK_TIME_MS}` },
     { NewParameter: `?CommitTimeLimit=${COMMIT_TIME_MS}` },
   ],
-  executor: EXECUTOR_WASM_PATH,
-  chain: CHAIN,
+  topology: [],
 }
 
 const genesisPathTmp = temporaryFile({ extension: 'json' })

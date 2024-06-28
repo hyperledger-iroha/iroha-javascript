@@ -9,7 +9,7 @@ import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 const debug = Debug('@iroha2/client:blocks-stream')
 
 export interface SetupBlocksStreamParams {
-  toriiApiURL: string
+  toriiURL: string
   fromBlockHeight?: datamodel.NonZero<datamodel.U64>
   adapter: IsomorphicWebSocketAdapter
 }
@@ -32,7 +32,7 @@ export async function setupBlocksStream(params: SetupBlocksStreamParams): Promis
     close,
     accepted,
   } = setupWebSocket<BlocksStreamEmitteryMap>({
-    baseURL: params.toriiApiURL,
+    baseURL: params.toriiURL,
     endpoint: ENDPOINT_BLOCKS_STREAM,
     parentDebugger: debug,
     adapter: params.adapter,

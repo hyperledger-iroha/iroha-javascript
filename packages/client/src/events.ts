@@ -13,7 +13,7 @@ export interface EventsEmitteryMap extends SocketEmitMapBase {
 }
 
 export interface SetupEventsParams {
-  toriiApiURL: string
+  toriiURL: string
   filters?: datamodel.EventFilterBox[]
   adapter: IsomorphicWebSocketAdapter
 }
@@ -35,7 +35,7 @@ export async function setupEvents(params: SetupEventsParams): Promise<SetupEvent
     accepted,
     send: sendRaw,
   } = setupWebSocket<EventsEmitteryMap>({
-    baseURL: params.toriiApiURL,
+    baseURL: params.toriiURL,
     endpoint: ENDPOINT_EVENTS,
     parentDebugger: debug,
     adapter: params.adapter,

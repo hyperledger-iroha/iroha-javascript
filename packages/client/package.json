@@ -40,6 +40,7 @@
     "@iroha2/data-model": "workspace:7.0.0",
     "debug": "^4.3.4",
     "emittery": "^0.10.1",
+    "p-defer": "^4.0.1",
     "type-fest": "^3.6.1"
   },
   "devDependencies": {

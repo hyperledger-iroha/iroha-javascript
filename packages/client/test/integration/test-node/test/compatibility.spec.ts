@@ -4,12 +4,9 @@
  */
 
 import * as allure from 'allure-vitest'
-import { pipe } from 'fp-ts/function'
 import { describe, expect, test } from 'vitest'
-import { clientFactory, setupPeerTestsLifecycle } from './util'
-import { datamodel, sugar } from '@iroha2/data-model'
-
-setupPeerTestsLifecycle()
+import { usePeer } from './util'
+import { datamodel } from '@iroha2/data-model'
 
 // TODO: consider adding shared context for tests?
 // beforeEach(() => { ... })
@@ -24,34 +21,27 @@ describe('Compatibility Matrix tests', () => {
 
     const DOMAIN_NAME = 'new_domain_name'
 
-    const { pre, client, getBlocksListener } = clientFactory()
-    const blocks = await getBlocksListener()
+    const { client } = await usePeer()
 
-    await blocks.wait(async () => {
-      await client.submitExecutable(
-        pre,
-        pipe(sugar.identifiable.newDomain(DOMAIN_NAME), sugar.instruction.register, sugar.executable.instructions),
-      )
-    })
-
-    const result = (
-      await client.requestWithQueryBox(
-        pre,
-        datamodel.QueryBox(
-          'FindDomainById',
-          datamodel.FindDomainById({
-            id: datamodel.Expression(
-              'Raw',
-              datamodel.Value('Id', datamodel.IdBox('DomainId', sugar.domainId(DOMAIN_NAME))),
-            ),
+    await client.submit(
+      datamodel.Executable.Instructions([
+        datamodel.InstructionBox.Register(
+          datamodel.RegisterBox.Domain({
+            object: {
+              id: { name: DOMAIN_NAME },
+              logo: datamodel.Option.None(),
+              metadata: new Map(),
+            },
           }),
         ),
-      )
+      ]),
+      { verify: true },
     )
-      .as('Ok')
-      .batch.enum.as('Identifiable')
-      .enum.as('Domain')
 
-    expect(result.id.name).toEqual(DOMAIN_NAME)
+    const registered = (await client.query(datamodel.QueryBox.FindDomainById({ id: { name: DOMAIN_NAME } })))
+      .as('V1')
+      .batch.enum.as('Identifiable')
+      .as('Domain')
+    expect(registered.id.name).toBe(DOMAIN_NAME)
   })
 })

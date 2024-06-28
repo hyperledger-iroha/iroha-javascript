@@ -5,7 +5,7 @@ import { fs } from 'zx'
 import { PEER_CONFIG_BASE, SIGNED_GENESIS } from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
 import { temporaryDirectory } from 'tempy'
-import { Torii } from '@iroha2/client'
+import { ToriiHttpParams, getHealth } from '@iroha2/client'
 import mergeDeep from '@tinkoff/utils/object/mergeDeep'
 
 import Debug from 'debug'
@@ -18,8 +18,8 @@ const debug = Debug('@iroha2/test-peer')
 const HEALTH_CHECK_TIMEOUT = 1_500
 const HEALTH_CHECK_INTERVAL = 200
 
-export async function waitUntilPeerIsHealthy(apiURL: string, abort: AbortSignal): Promise<void> {
-  const toriiPre = { apiURL, fetch }
+export async function waitUntilPeerIsHealthy(toriiURL: string, abort: AbortSignal): Promise<void> {
+  const toriiHttp = { toriiURL, http: fetch } satisfies ToriiHttpParams
 
   let now = Date.now()
   const endAt = now + HEALTH_CHECK_TIMEOUT
@@ -35,7 +35,7 @@ export async function waitUntilPeerIsHealthy(apiURL: string, abort: AbortSignal)
     now = Date.now()
     if (now > endAt) throw new Error(`Peer is still not alive even after ${HEALTH_CHECK_TIMEOUT}ms`)
 
-    const health = await Torii.getHealth(toriiPre)
+    const health = await getHealth(toriiHttp)
     if (health.tag === 'Ok') return
     debug('not yet healthy: %o', health.content)
 
@@ -63,7 +63,7 @@ export interface StartPeerReturn {
    */
   isAlive: () => boolean
 
-  toriiUrl: string
+  toriiURL: string
 }
 
 export interface IrohaConfiguration {
@@ -150,6 +150,6 @@ export async function startPeer(): Promise<StartPeerReturn> {
   return {
     kill,
     isAlive: () => isAlive,
-    toriiUrl: API_URL,
+    toriiURL: API_URL,
   }
 }
