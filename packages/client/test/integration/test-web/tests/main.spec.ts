@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 // import { startPeer } from '@iroha2/test-peer'//
 import { $ } from 'zx'
 import { PORT_PEER_API } from '../etc/meta'

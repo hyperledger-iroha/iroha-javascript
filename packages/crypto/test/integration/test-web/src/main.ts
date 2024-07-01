@@ -1,5 +1,5 @@
-import { wasmPkg, init } from '@iroha2/crypto-target-web'
-import { PublicKey, PrivateKey, setWASM } from '@iroha2/crypto-core'
+import { init, wasmPkg } from '@iroha2/crypto-target-web'
+import { PrivateKey, PublicKey, setWASM } from '@iroha2/crypto-core'
 
 setWASM(wasmPkg)
 await init()

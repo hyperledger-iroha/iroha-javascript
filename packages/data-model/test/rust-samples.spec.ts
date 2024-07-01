@@ -1,12 +1,13 @@
 import { describe, expect, onTestFinished, test } from 'vitest'
+// TODO: possibly, make an async module which will invoke `cargo run` and parse json on the fly
 import SAMPLES from '../../data-model-rust-samples/samples.json'
 import {
   type CodecOrWrap,
   datamodel,
-  toCodec,
   defineTxPayload,
   publicKeyFromCrypto,
   signTransaction,
+  toCodec,
   transactionHash,
 } from '../src/lib'
 import { fromHex } from './util'

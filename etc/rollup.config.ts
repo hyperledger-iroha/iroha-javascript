@@ -10,10 +10,10 @@ import type { PackageAny } from './meta'
 import { PACKAGES_TO_ROLLUP, loadProductionDependencies, packageEntry, packageRoot, scopePackage } from './meta'
 import type { WasmPackTarget } from './meta-crypto'
 import {
+  type Package as CryptoPackage,
   IrohaCryptoTarget,
   WASM_PACK_OUT_NAME,
   wasmPackOutDirForTarget,
-  type Package as CryptoPackage,
 } from './meta-crypto'
 import type { SetOptional } from 'type-fest'
 

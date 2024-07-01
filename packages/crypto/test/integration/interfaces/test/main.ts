@@ -1,6 +1,6 @@
 /* eslint-disable no-lone-blocks */
 import type { WasmPkg } from '@iroha2/crypto-core'
-import type { wasmPkg as wasmWeb, init as initWeb } from '@iroha2/crypto-target-web'
+import type { init as initWeb, wasmPkg as wasmWeb } from '@iroha2/crypto-target-web'
 import type { wasmPkg as wasmNode } from '@iroha2/crypto-target-node'
 import type { wasmPkg as wasmBundler } from '@iroha2/crypto-target-bundler'
 

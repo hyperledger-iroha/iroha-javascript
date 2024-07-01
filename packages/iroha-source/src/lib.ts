@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import consola from 'consola'
-import { path, fs } from 'zx'
+import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
 

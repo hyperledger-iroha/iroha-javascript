@@ -11,14 +11,14 @@ import type { DefineQueryPayloadParams, DefineTransactionPayloadParams, Result }
 import {
   type Enumerate,
   datamodel,
-  toCodec,
-  variant,
+  defineQueryPayload,
   defineTxPayload,
   publicKeyFromCrypto,
-  signTransaction,
-  transactionHash,
-  defineQueryPayload,
   signQuery,
+  signTransaction,
+  toCodec,
+  transactionHash,
+  variant,
 } from '@iroha2/data-model'
 import type { Except } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'

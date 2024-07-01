@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest'
-import { CodecImpl, toCodec, wrapCodec, type Codec, datamodel } from '../src/lib'
+import { type Codec, CodecImpl, datamodel, toCodec, wrapCodec } from '../src/lib'
 import { decodeUnit, encodeUnit } from '@scale-codec/core'
-import { toHex, fromHex } from './util'
+import { fromHex, toHex } from './util'
 
 describe('toCodec', () => {
   const CODEC: Codec<null> = new CodecImpl(encodeUnit, decodeUnit)

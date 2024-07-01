@@ -1,7 +1,7 @@
 import { Client } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/node'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration'
-import { type Free, PublicKey, PrivateKey, KeyPair } from '@iroha2/crypto-core'
+import { type Free, KeyPair, PrivateKey, PublicKey } from '@iroha2/crypto-core'
 import type { datamodel } from '@iroha2/data-model'
 import { onTestFinished } from 'vitest'
 import { delay } from '../../util'
