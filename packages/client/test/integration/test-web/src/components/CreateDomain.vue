@@ -1,21 +1,23 @@
 <script setup lang="ts">
-import { sugar } from '@iroha2/data-model'
-import { pipe } from 'fp-ts/function'
 import { ref } from 'vue'
-import { client, toriiPre } from '../client'
+import { datamodel } from '@iroha2/data-model'
 import { useTask } from '@vue-kakuyaku/core'
+import { client } from '../client'
 
 const domainName = ref('')
 
-const { state, run: registerDomain } = useTask(async () => {
-  // we can `await` pipe because the last function returns a `Promise`
-  await pipe(
-    sugar.identifiable.newDomain(domainName.value),
-    sugar.instruction.register,
-    sugar.executable.instructions,
-    (exec) => client.submitExecutable(toriiPre, exec),
-  )
-})
+const { state, run: registerDomain } = useTask(() =>
+  client.submit(
+    datamodel.Executable.Instructions([
+      datamodel.InstructionBox.Register(
+        datamodel.RegisterBox.Domain({
+          object: { id: { name: domainName.value }, logo: datamodel.Option.None(), metadata: new Map() },
+        }),
+      ),
+    ]),
+    { verify: true },
+  ),
+)
 </script>
 
 <template>

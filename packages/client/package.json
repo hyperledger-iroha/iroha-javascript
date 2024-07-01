@@ -31,7 +31,7 @@
   },
   "scripts": {
     "test:integration": "run-s test:build-iroha test:node test:web",
-    "test:build-iroha": "pnpm --filter iroha-source build:iroha",
+    "test:build-iroha": "pnpm --filter iroha-source cli build irohad",
     "test:node": "pnpm --filter client-test-node test",
     "test:web": "pnpm --filter client-test-web test"
   },

@@ -6,7 +6,6 @@ import { glob } from 'zx'
 import { P, match } from 'ts-pattern'
 import path from 'path'
 import fs from 'fs/promises'
-import { pipe } from 'fp-ts/function'
 import type { PackageAny } from './meta'
 import { PACKAGES_TO_ROLLUP, loadProductionDependencies, packageEntry, packageRoot, scopePackage } from './meta'
 import type { WasmPackTarget } from './meta-crypto'
@@ -221,20 +220,14 @@ async function* generateRolls(): AsyncGenerator<RollupOptions> {
           path.join(rootTsBuild, `${entry}.${ext}`)
 
         yield {
-          input: pipe(
-            ENTRIES.map((x) => [x, entryInput(x, 'js')] as const),
-            Object.fromEntries,
-          ),
+          input: Object.fromEntries(ENTRIES.map((x) => [x, entryInput(x, 'js')] as const)),
           external,
           plugins: commonJsPlugins(),
           output: [output('esm', dist), output('cjs', dist)],
         }
 
         yield {
-          input: pipe(
-            ENTRIES.map((x) => [x, entryInput(x, 'd.ts')] as const),
-            Object.fromEntries,
-          ),
+          input: Object.fromEntries(ENTRIES.map((x) => [x, entryInput(x, 'd.ts')] as const)),
           external,
           plugins: [PluginDts()],
           output: output('types', dist),

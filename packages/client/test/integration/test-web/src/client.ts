@@ -1,17 +1,26 @@
-import { Client, Signer } from '@iroha2/client'
+import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration/src/base'
+
+import { Client } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/native'
-import { crypto } from './crypto'
-import { CLIENT_CONFIG } from '@iroha2/test-configuration'
+
+// it must resolve first, before using core crypto exports
+import './setup-crypto'
+
+import { KeyPair, PrivateKey, PublicKey } from '@iroha2/crypto-core'
+
+const keyPair = KeyPair.fromParts(
+  PublicKey.fromMultihash(ACCOUNT_KEY_PAIR.publicKey),
+  PrivateKey.fromMultihash(ACCOUNT_KEY_PAIR.privateKey),
+)
 
 const HOST = window.location.host
 
-export const toriiPre = {
+export const client = new Client({
   // proxified with vite
-  apiURL: `http://${HOST}/torii/api`,
+  toriiURL: `http://${HOST}/torii`,
   ws: WS,
-  fetch: fetch.bind(window),
-}
-
-const signer = new Signer(CLIENT_CONFIG.accountId, crypto.KeyPair.fromJSON(CLIENT_CONFIG.keyPair))
-
-export const client = new Client({ signer })
+  http: fetch.bind(window),
+  chain: CHAIN,
+  accountDomain: DOMAIN.name,
+  accountKeyPair: keyPair,
+})

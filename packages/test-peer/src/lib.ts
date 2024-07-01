@@ -5,24 +5,22 @@ import { fs } from 'zx'
 import { PEER_CONFIG_BASE, SIGNED_GENESIS } from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
 import { temporaryDirectory } from 'tempy'
-import { ToriiHttpParams, getHealth } from '@iroha2/client'
+import { type ToriiHttpParams, getHealth, getStatus } from '@iroha2/client'
 import mergeDeep from '@tinkoff/utils/object/mergeDeep'
+import readline from 'readline'
 
 import Debug from 'debug'
 
 const debug = Debug('@iroha2/test-peer')
 
-/**
- * Time within to check if peer is up and running
- */
-const HEALTH_CHECK_TIMEOUT = 1_500
-const HEALTH_CHECK_INTERVAL = 200
+const GENESIS_CHECK_TIMEOUT = 1_500
+const GENESIS_CHECK_INTERVAL = 200
 
-export async function waitUntilPeerIsHealthy(toriiURL: string, abort: AbortSignal): Promise<void> {
+async function waitForGenesis(toriiURL: string, abort: AbortSignal) {
   const toriiHttp = { toriiURL, http: fetch } satisfies ToriiHttpParams
 
   let now = Date.now()
-  const endAt = now + HEALTH_CHECK_TIMEOUT
+  const endAt = now + GENESIS_CHECK_TIMEOUT
 
   let aborted = false
   abort.addEventListener('abort', () => {
@@ -33,13 +31,17 @@ export async function waitUntilPeerIsHealthy(toriiURL: string, abort: AbortSigna
     if (aborted) throw new Error('Aborted')
 
     now = Date.now()
-    if (now > endAt) throw new Error(`Peer is still not alive even after ${HEALTH_CHECK_TIMEOUT}ms`)
+    if (now > endAt) throw new Error(`Genesis is still not committed after ${GENESIS_CHECK_TIMEOUT}ms`)
 
-    const health = await getHealth(toriiHttp)
-    if (health.tag === 'Ok') return
-    debug('not yet healthy: %o', health.content)
+    try {
+      const { blocks } = await getStatus(toriiHttp)
+      if (blocks === 1n) break
+      throw `blocks: ${blocks}`
+    } catch (error) {
+      debug('genesis is not yet ready: %o', error)
+    }
 
-    await new Promise((r) => setTimeout(r, HEALTH_CHECK_INTERVAL))
+    await new Promise((r) => setTimeout(r, GENESIS_CHECK_INTERVAL))
   }
 }
 
@@ -76,8 +78,9 @@ export interface IrohaConfiguration {
  *
  * **Note:** Iroha binary must be pre-built.
  */
-export async function startPeer(): Promise<StartPeerReturn> {
-  const API_ADDRESS = '127.0.0.1:8080'
+export async function startPeer(params?: { port?: number }): Promise<StartPeerReturn> {
+  const PORT = params?.port ?? 8080
+  const API_ADDRESS = `127.0.0.1:${PORT}`
   const API_URL = `http://${API_ADDRESS}`
   const P2P_ADDRESS = '127.0.0.1:1337'
   const TMP_DIR = temporaryDirectory()
@@ -110,6 +113,9 @@ export async function startPeer(): Promise<StartPeerReturn> {
 
   subprocess.pipeStdout!(fs.createWriteStream(path.join(TMP_DIR, 'stdout.json')))
   subprocess.pipeStderr!(fs.createWriteStream(path.join(TMP_DIR, 'stderr')))
+  readline.createInterface(subprocess.stderr!).on('line', (line) => {
+    debug.extend('stderr')(line)
+  })
 
   subprocess.once('spawn', () => {
     isAlive = true
@@ -121,7 +127,6 @@ export async function startPeer(): Promise<StartPeerReturn> {
   })
 
   const healthCheckAbort = new AbortController()
-  const irohaIsHealthyPromise = waitUntilPeerIsHealthy(API_URL, healthCheckAbort.signal)
 
   const exitPromise = new Promise<void>((resolve) => {
     subprocess.once('exit', (...args) => {
@@ -139,13 +144,13 @@ export async function startPeer(): Promise<StartPeerReturn> {
     debug('Peer is killed')
   }
 
-  await new Promise<void>((resolve, reject) => {
+  await Promise.race([
     exitPromise.then(() => {
-      reject(new Error('Iroha has exited already, maybe something went wrong'))
       healthCheckAbort.abort()
-    })
-    irohaIsHealthyPromise.then(() => resolve()).catch((err) => reject(err))
-  })
+      throw new Error('Iroha has exited already, maybe something went wrong')
+    }),
+    waitForGenesis(API_URL, healthCheckAbort.signal),
+  ])
 
   return {
     kill,

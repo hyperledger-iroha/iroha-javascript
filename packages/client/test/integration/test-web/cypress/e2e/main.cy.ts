@@ -1,15 +1,6 @@
-import * as testPeerClient from '@iroha2/test-peer/src/api/client'
-
-testPeerClient.setBaseURL('/peer-server')
-
-before(async () => {
-  await testPeerClient.prepareConfiguration()
-})
-
 beforeEach(async () => {
-  await testPeerClient.killPeer()
-  await testPeerClient.clearPeerStorage()
-  await testPeerClient.startPeer()
+  await fetch('/peer-server/kill', { method: 'POST' })
+  await fetch('/peer-server/start', { method: 'POST' })
 })
 
 it('Register new domain and wait until commitment', () => {
@@ -27,5 +18,5 @@ it('Register new domain and wait until commitment', () => {
   cy.contains('Blocks: 2')
 
   // And that events are caught
-  cy.get('ul.events-list').children('li').should('have.length', 1)
+  cy.get('ul.events-list').children('li').should('have.length', 5).last().contains('Block').contains('Applied')
 })

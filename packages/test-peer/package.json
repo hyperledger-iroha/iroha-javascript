@@ -16,7 +16,6 @@
     "@types/debug": "^4.1.7",
     "@types/iarna__toml": "^2.0.5",
     "@types/yargs": "^17.0.22",
-    "axios": "^0.24.0",
     "debug": "^4.3.4",
     "h3": "^1.6.5",
     "listhen": "^1.0.4",

@@ -1,12 +1,13 @@
 {
   "name": "@iroha2/client-test-web",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev:app": "vite",
-    "dev:peer-server": "DEBUG=@iroha2* tsx etc/dev-peer-server",
+    "dev:peer-server": "DEBUG=* tsx etc/dev-peer-server",
     "dev:cy": "cypress open",
     "test": "run-s test:app:build test:run",
-    "test:app:build": "vite build",
+    "test:app:build": "vue-tsc --noEmit && vite build",
     "test:run": "DEBUG=@iroha2* tsx etc/test-run"
   },
   "devDependencies": {
@@ -28,6 +29,7 @@
     "sass": "^1.52.1",
     "start-server-and-test": "^1.14.0",
     "vite": "^5.1.5",
-    "vue": "^3.2.47"
+    "vue": "^3.2.47",
+    "vue-tsc": "^2.0.24"
   }
 }

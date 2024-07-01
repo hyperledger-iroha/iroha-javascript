@@ -7,9 +7,9 @@
     "paths": {
       // these virtual imports are replaced in Rollup
       "@iroha2/~crypto-wasm-pkg/*": ["./packages/crypto/crypto-rs/wasm-pkg-*/iroha_crypto"],
-
       "@iroha2/crypto-*": ["./packages/crypto/packages/*/src/lib.ts"],
-      "@iroha2/*": ["./packages/*/src/lib.ts"]
+      "@iroha2/*": ["./packages/*/src/lib.ts"],
+      // "@iroha2/client/*": ["./packages/client/src/*"],
     }
   },
   "exclude": [

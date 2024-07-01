@@ -30,7 +30,6 @@
     "eslint-plugin-cypress": "^3.3.0",
     "eslint-plugin-vue": "^9.26.0",
     "execa": "^8",
-    "fp-ts": "^2.13.1",
     "immutable": "^4.2.4",
     "jake": "^10.8.5",
     "make-dir": "^3.1.0",
