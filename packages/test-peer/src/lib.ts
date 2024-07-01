@@ -5,7 +5,7 @@ import { fs } from 'zx'
 import { PEER_CONFIG_BASE, SIGNED_GENESIS } from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
 import { temporaryDirectory } from 'tempy'
-import { type ToriiHttpParams, getHealth, getStatus } from '@iroha2/client'
+import { type ToriiHttpParams, getStatus } from '@iroha2/client'
 import mergeDeep from '@tinkoff/utils/object/mergeDeep'
 import readline from 'readline'
 

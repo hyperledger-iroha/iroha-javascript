@@ -1,4 +1,4 @@
-import { describe, expect, onTestFinished, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 // TODO: possibly, make an async module which will invoke `cargo run` and parse json on the fly
 import SAMPLES from '../../data-model-rust-samples/samples.json'
 import {
@@ -11,7 +11,7 @@ import {
   transactionHash,
 } from '../src/lib'
 import { fromHex } from './util'
-import { Algorithm, Bytes, Hash, KeyPair, PublicKey, setWASM } from '@iroha2/crypto-core'
+import { Bytes, KeyPair, setWASM } from '@iroha2/crypto-core'
 import { wasmPkg } from '@iroha2/crypto-target-node'
 
 setWASM(wasmPkg)
