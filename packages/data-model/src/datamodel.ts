@@ -1,4 +1,3 @@
-// import { Duration } from './__generated__'
 import { Compact, U32 } from './codecs'
 import { structCodec, toCodec, wrapCodec } from './core'
 

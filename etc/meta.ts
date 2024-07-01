@@ -68,12 +68,5 @@ export function scopePackage<T extends PackageAny>(name: T) {
 }
 
 export function artifactsToClean(): string[] {
-  return [
-    '**/dist',
-    '**/dist-tsc',
-
-    // compilation artifacts
-    'packages/data-model-schema/src/__schema__.json',
-    'packages/data-model-rust-samples/samples.json',
-  ]
+  return ['**/dist', '**/dist-tsc', 'packages/data-model-rust-samples/samples.json']
 }

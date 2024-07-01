@@ -13,18 +13,13 @@ task('clean', async () => {
 })
 
 namespace('prepare', () => {
-  desc('Compile data-model schema with Kagami')
-  task('data-model-schema', ['clean'], async () => {
-    await $`pnpm --filter data-model-schema compile-with-kagami`
-  })
-
   desc('Produce Rust SCALE samples for data-model tests')
   task('data-model-rust-samples', ['clean'], async () => {
     await $`pnpm --filter data-model-rust-samples produce-samples`
   })
 
   desc('Compile all necessary artifacts')
-  task('all', ['data-model-schema', 'data-model-rust-samples'])
+  task('all', ['data-model-rust-samples'])
 })
 
 namespace('crypto-wasm', () => {

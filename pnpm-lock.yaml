@@ -335,11 +335,7 @@ importers:
 
   packages/data-model-rust-samples: {}
 
-  packages/data-model-schema:
-    devDependencies:
-      '@iroha2/iroha-source':
-        specifier: workspace:^0.0.0
-        version: link:../iroha-source
+  packages/data-model-schema: {}
 
   packages/i64-fixnum:
     dependencies:
