@@ -2,5 +2,4 @@ dist
 dist-tsc
 node_modules
 **/data-model/src/__generated__.ts
-etc/api/**/*
 packages/crypto/crypto-rs/wasm-pkg-*

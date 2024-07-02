@@ -1,3 +1,6 @@
+/**
+ * @module @iroha2/crypto-core
+ */
 export * from './types'
 export * from './singleton'
 export * from '@iroha2/crypto-util'

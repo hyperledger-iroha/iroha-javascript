@@ -79,7 +79,7 @@ namespace('build', () => {
 
   desc('Rollup')
   task('rollup', ['build:tsc'], async () => {
-    await $`pnpm rollup -c`
+    await $`pnpm rollup`
   })
 
   desc('Run TypeScript Compiler and Rollup')

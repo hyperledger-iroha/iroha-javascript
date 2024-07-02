@@ -72,7 +72,7 @@ async function readWasmPkgAssets(target: WasmPackTarget): Promise<{ fileName: st
 }
 
 /**
- * Virtual `@iroha2/crypto-{...}/~rollup-wasm` import
+ * Virtual `@iroha2/crypto-{...}~rollup-wasm` import
  * @param target
  * @param mode
  * @returns
@@ -90,7 +90,7 @@ function PluginRollupCryptoWasm(
     .with({ importer: 'core' }, () => `crypto-core`)
     .with({ importer: 'target' }, ({ target }) => `crypto-target-${target}`)
     .exhaustive()
-  const MODULE_NAME = `@iroha2/${packageName}/~rollup-wasm`
+  const MODULE_NAME = `@iroha2/${packageName}~rollup-wasm`
   const WASM_PKG_ASSETS_DIR = `wasm-pkg`
   const WASM_PKG_COPIED_ENTRY_EXTERNAL = `./${WASM_PKG_ASSETS_DIR}/${WASM_PACK_OUT_NAME}`
 

@@ -1,3 +1,1 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-require('@esbuild-kit/cjs-loader')
-module.exports = require('./etc/rollup.config')
+export { default } from './etc/rollup.config.ts'

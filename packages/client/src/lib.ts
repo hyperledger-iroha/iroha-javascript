@@ -1,4 +1,8 @@
 /**
+ * @module @iroha2/client
+ */
+
+/**
  * @packageDocumentation
  *
  * Client library to interact with Iroha v2 Peer. Library implements Transactions, Queries,

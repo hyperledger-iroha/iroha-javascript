@@ -2,8 +2,8 @@ node_modules
 .DS_Store
 dist
 dist-tsc
-/etc/api/tmp
 /docs/api
+/docs/.vitepress/cache
 esbuild-kit
 v8-compile-cache-0
 
