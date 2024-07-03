@@ -1,6 +1,6 @@
 dist
 dist-tsc
-/packages/data-model/src/__generated__.ts
+/packages/data-model/src/generated/index.ts
 
 /packages/crypto/crypto-rs/wasm-pkg-*
 /packages/crypto/crypto-rs/target

@@ -7,31 +7,25 @@ export function generate(schema: Schema): string {
   const transformed = transform(schema)
   transformed.sort((a, b) => (a.id < b.id ? -1 : a.id === b.id ? 0 : 1))
 
-  return [`import * as lib from './generated-prelude'`, ...transformed.map((x) => generateSingleEntry(x))].join('\n')
+  return [`import { core, z } from './prelude'`, ...transformed.map((x) => generateSingleEntry(x))].join('\n')
 }
 
 type ActualCodegenSchema = CodegenEntry[]
 
 type CodegenEntry = { id: string } & (
-  | {
-      t: 'enum'
-      /**
-       * Whether this enum should be "boxed" in order to workaround circular
-       * reference issues in TypeScript in the generated code
-       */
-      box: boolean
-      variants: CodegenEnumVariant[]
-    }
+  | { t: 'enum'; breakRecursion: boolean; variants: CodegenEnumVariant[] }
   | { t: 'struct'; fields: { name: string; type: TypeIdent }[] }
-  | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: GenericTypeIdent }[] }
-  | { t: 'array'; item: TypeIdent; len: number }
-  | { t: 'bitmap'; repr: 'u32'; masks: { name: string; mask: number }[] }
+  | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: CodegenGenericTypeRef }[] }
+  | { t: 'bitmap'; repr: LibCodec; masks: { name: string; mask: number }[] }
   | { t: 'alias'; to: TypeIdent }
+  | { t: 'branded-alias'; to: TypeIdent }
 )
 
 type CodegenEnumVariant =
   | { t: 'unit'; tag: string; discriminant: number }
   | { t: 'with-type'; tag: string; discriminant: number; type: TypeIdent }
+
+type CodegenGenericTypeRef = TypeIdent | { t: 'gen'; genericIndex: number }
 
 /**
  * Identifier of a type, either a local one or from the "library"
@@ -39,9 +33,26 @@ type CodegenEnumVariant =
 type TypeIdent =
   | { t: 'ref'; id: string; generics?: TypeIdent[] }
   | { t: 'lib'; id: LibCodec; generics?: TypeIdent[] }
-  | { t: 'lib-array'; len: number; item: TypeIdent }
+  | { t: 'lit'; literal: string }
 
-type GenericTypeIdent = TypeIdent | { t: 'gen'; genericIndex: number }
+type LibCodec =
+  | 'BytesVec'
+  | 'String'
+  | 'U8'
+  | 'U16'
+  | 'U32'
+  | 'U64'
+  | 'U128'
+  | 'NonZero'
+  | 'Option'
+  | 'Compact'
+  | 'Vec'
+  | 'Map'
+  | 'Array'
+  | 'Json'
+  | 'Bool'
+  | 'U8Array'
+  | 'U16Array'
 
 /**
  * Apply a number of transformations to the schema:
@@ -76,7 +87,7 @@ function transform(schema: Schema): ActualCodegenSchema {
         genericsCount: 1,
         fields: [
           { name: 'object', type: { t: 'gen', genericIndex: 0 } },
-          { name: 'key', type: { t: 'lib', id: 'codecs.String' } },
+          { name: 'key', type: { t: 'lib', id: 'String' } },
           { name: 'value', type: { t: 'ref', id: 'MetadataValueBox' } },
         ],
       }),
@@ -108,7 +119,7 @@ function transform(schema: Schema): ActualCodegenSchema {
       genericsCount: 1,
       fields: [
         { name: 'target', type: { t: 'gen', genericIndex: 0 } },
-        { name: 'key', type: { t: 'lib', id: 'codecs.String' } },
+        { name: 'key', type: { t: 'lib', id: 'String' } },
         { name: 'value', type: { t: 'ref', id: 'MetadataValueBox' } },
       ],
     },
@@ -116,7 +127,7 @@ function transform(schema: Schema): ActualCodegenSchema {
       t: 'struct',
       id: 'BlockSignature',
       fields: [
-        { name: 'peer_topology_index', type: { t: 'lib', id: 'codecs.U64' } },
+        { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
         { name: 'payload', type: { t: 'ref', id: 'Signature' } },
       ],
     },
@@ -137,11 +148,11 @@ function transform(schema: Schema): ActualCodegenSchema {
         // TODO: check if correct
         {
           name: 'secs',
-          type: { t: 'lib', id: 'codecs.U64' },
+          type: { t: 'lib', id: 'U64' },
         },
         {
           name: 'nanos',
-          type: { t: 'lib', id: 'codecs.U32' },
+          type: { t: 'lib', id: 'U32' },
         },
       ],
     },
@@ -186,7 +197,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
   const id = transformIdent(name)
 
   // has been resolved to a lib type, can exclude from schema
-  if (id.t === 'lib' || id.t === 'lib-array') return []
+  if (id.t === 'lib' || id.t === 'lit') return []
 
   return match([id, item])
     .returnType<CodegenEntry[]>()
@@ -204,14 +215,14 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
       {
         t: 'struct',
         id,
-        fields: [{ name: 'blob', type: { t: 'lib', id: 'codecs.BytesVec' } }],
+        fields: [{ name: 'blob', type: { t: 'lib', id: 'BytesVec' } }],
       },
     ])
     .with([{ id: 'IpfsPath' }, 'String'], ([{ id }]) => [
       {
         t: 'struct',
         id,
-        fields: [{ name: 'path', type: { t: 'lib', id: 'codecs.String' } }],
+        fields: [{ name: 'path', type: { t: 'lib', id: 'String' } }],
       },
     ])
     .with([P._, { Struct: P._ }], ([{ id }, { Struct: fields }]) => {
@@ -227,7 +238,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
       ]
     })
     .with([P._, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
-      const box = match(id)
+      const breakRecursion = match(id)
         .with(
           P.union('PredicateBox', 'QueryOutputPredicate', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox'),
           () => true,
@@ -238,7 +249,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         {
           t: 'enum',
           id,
-          box,
+          breakRecursion,
           variants: variants.map((x) =>
             match(x)
               .returnType<CodegenEnumVariant>()
@@ -267,13 +278,13 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
       ([
         { id },
         {
-          Bitmap: { masks },
+          Bitmap: { masks, repr },
         },
       ]) => [
         {
           t: 'bitmap',
           id,
-          repr: 'u32',
+          repr: upcase(repr),
           masks,
         },
       ],
@@ -317,7 +328,11 @@ function transformIdent(id: string | Ident): TypeIdent {
         id: 'Signature',
       }),
     )
-    .with({ id: 'NonTrivial', items: [P._] }, () => ({ t: 'ref', id: 'NonTrivial' }))
+    .with({ id: 'NonTrivial', items: [P._] }, () => ({
+      t: 'lib',
+      id: 'Vec',
+      generics: [{ t: 'ref', id: 'PredicateBox' }],
+    }))
     .with(
       { id: P.union('BatchedResponse', 'BatchedResponseV1'), items: [{ id: 'QueryOutputBox', items: [] }] },
       ({ id }) => ({ t: 'ref', id }),
@@ -326,23 +341,23 @@ function transformIdent(id: string | Ident): TypeIdent {
     .with({ id: 'BlockMessage', items: [] }, () => ({ t: 'ref', id: 'SignedBlock' }))
     .with({ id: P.union('SortedMap', 'Map'), items: [P._, P._] }, ({ items: [key, value] }) => ({
       t: 'lib',
-      id: 'codecs.Map',
+      id: 'Map',
       generics: [transformIdent(key), transformIdent(value)],
     }))
     .with({ id: 'NonZero', items: [{ id: P.union('u32', 'u64').select() }] }, (int) => ({
       t: 'lib',
-      id: 'codecs.NonZero',
-      generics: [{ t: 'lib', id: `codecs.${upcase(int)}` }],
+      id: 'NonZero',
+      generics: [{ t: 'lib', id: upcase(int) }],
     }))
-    .with({ id: 'Vec', items: [{ id: 'u8', items: [] }] }, () => ({ t: 'lib', id: 'codecs.BytesVec' }))
+    .with({ id: 'Vec', items: [{ id: 'u8', items: [] }] }, () => ({ t: 'lib', id: 'BytesVec' }))
     .with({ id: P.union('SortedVec', 'Vec'), items: [P.select()] }, (item) => ({
       t: 'lib',
-      id: 'codecs.Vec',
+      id: 'Vec',
       generics: [transformIdent(item)],
     }))
     .with({ id: 'Option', items: [P.select()] }, (some) => ({
       t: 'lib',
-      id: 'codecs.Option',
+      id: 'Option',
       generics: [transformIdent(some)],
     }))
     .with({ id: 'TimeEventFilter', items: [] }, () => ({ t: 'ref', id: 'ExecutionTime' }))
@@ -408,140 +423,185 @@ function transformIdent(id: string | Ident): TypeIdent {
       id: 'PredicateBox',
     }))
     .with({ id: 'EventMessage', items: [] }, () => ({ t: 'ref', id: 'EventBox' }))
-    .with({ id: 'Compact' }, () => ({ t: 'lib', id: 'codecs.Compact' }))
-    .with({ id: 'bool' }, () => ({ t: 'lib', id: 'codecs.Bool' }))
-    .with({ id: P.union('Name', 'ChainId', 'String'), items: [] }, () => ({ t: 'lib', id: 'codecs.String' }))
+    .with({ id: 'Compact' }, () => ({ t: 'lib', id: 'Compact' }))
+    .with({ id: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
+    .with({ id: P.union('Name', 'ChainId', 'String'), items: [] }, () => ({ t: 'lib', id: 'String' }))
     .with({ id: P.union('u8', 'u16', 'u32', 'u64', 'u128') }, ({ id }) => ({
       t: 'lib',
-      id: `codecs.${id.toUpperCase() as Uppercase<typeof id>}`,
+      id: upcase(id),
     }))
-    .with({ id: 'JsonString', items: [] }, () => ({ t: 'lib', id: 'codecs.Json' }))
-    .with({ id: 'Array', items: [P._, { items: [] }] }, ({ items: [item, { id: lenStr }] }) => {
-      const len = Number(lenStr)
-      invariant(!Number.isNaN(len))
-      return {
-        t: 'lib-array',
-        item: transformIdent(item),
-        len,
-      } satisfies TypeIdent
-    })
+    .with({ id: 'JsonString', items: [] }, () => ({ t: 'lib', id: 'Json' }))
+    .with(
+      {
+        id: 'Array',
+        items: [
+          { id: P.union('u8', 'u16').select('int'), items: [] },
+          { id: P.select('len'), items: [] },
+        ],
+      },
+      ({ int, len: lenStr }) => {
+        const len = Number(lenStr)
+        invariant(!Number.isNaN(len))
+        return {
+          t: 'lib',
+          id: `${upcase(int)}Array`,
+          generics: [{ t: 'lit', literal: lenStr }],
+        } satisfies TypeIdent
+      },
+    )
     .otherwise(({ id, items }) => {
       return { t: 'ref', id, generics: items.length ? items.map(transformIdent) : undefined }
     })
 }
 
-function generateIdent(ident: TypeIdent): {
+interface IdentGenerated {
   /** type-layer, `T` */
   type: string
   /** value that has type `Codec<T>` */
   codec: string
-} {
+  /** Zod schema */
+  schema: string
+  /** typeof schema */
+  typeofSchema: string
+}
+
+function generateIdent(ident: TypeIdent): IdentGenerated {
   return match(ident)
-    .returnType<{ type: string; codec: string }>()
+    .returnType<IdentGenerated>()
     .with({ t: 'ref', generics: P.array() }, ({ id, generics }) => {
       return {
         type: id + `<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
-        codec: libItem('toCodec') + `(() => ${id}.with(${generics.map((x) => generateIdent(x).codec).join(', ')}))`,
+        codec: `core.lazy(() => ${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')}))`,
+        schema: `z.lazy(() => ${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')}))`,
+        typeofSchema: `ReturnType<typeof ${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
     .with({ t: 'ref' }, ({ id }) => ({
       type: id,
-      codec: `${libItem('toCodec')}(() => ${id})`,
-    }))
-    .with({ t: 'lib-array' }, ({ item, len }) => ({
-      type: libItem('codecs.Array') + `<${generateIdent(item).type}>`,
-      codec: libItem('codecs.Array') + `.with(${generateIdent(item).codec}, ${len})`,
+      codec: `core.lazy(() => ${id}$codec)`,
+      schema: `z.lazy(() => ${id}$schema)`,
+      typeofSchema: `typeof ${id}$schema`,
     }))
     .with({ t: 'lib', generics: P.array() }, ({ id, generics }) => {
       return {
-        type: libItem(id) + `<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
-        codec: libItem(id) + `.with(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
+        type: `core.${id}<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
+        codec: `core.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
+        schema: `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})`,
+        typeofSchema: `ReturnType<typeof core.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
     .with({ t: 'lib' }, ({ id }) => ({
-      type: libItem(id),
-      codec: libItem('toCodec') + `(${libItem(id)})`,
+      type: `core.${id}`,
+      codec: `core.${id}$codec`,
+      schema: match(id)
+        .with('String', () => `z.string()`)
+        .with('Bool', () => `z.boolean()`)
+        .otherwise(() => `core.${id}$schema`),
+      typeofSchema: `typeof core.${id}$schema`,
     }))
+    .with({ t: 'lit' }, ({ literal }) => ({ type: literal, codec: literal, schema: literal, typeofSchema: literal }))
     .exhaustive()
+}
+
+function generateActualEnumSchema(variants: CodegenEnumVariant[]): string {
+  const options = variants.map((variant) => {
+    return match(variant)
+      .with(
+        { t: 'with-type' },
+        ({ tag, type }) => `z.object({ t: z.literal('${tag}'), value: ${generateIdent(type).schema} })`,
+      )
+      .with({ t: 'unit' }, ({ tag }) => `z.object({ t: z.literal('${tag}') })`)
+      .exhaustive()
+  })
+
+  return `z.discriminatedUnion('t', [${options.join(', ')}])`
+}
+
+function generateActualEnumCodec(variants: CodegenEnumVariant[]): string {
+  const options = variants.map((variant) =>
+    match(variant)
+      .with({ t: 'unit' }, ({ tag, discriminant }) => `[${discriminant}, '${tag}']`)
+      .with(
+        { t: 'with-type' },
+        ({ tag, discriminant, type }) => `[${discriminant}, '${tag}', ${generateIdent(type).codec}]`,
+      )
+      .exhaustive(),
+  )
+
+  return `core.enumeration([${options.join(', ')}])`
 }
 
 function generateSingleEntry(item: CodegenEntry): string {
   return match(item)
     .returnType<string[]>()
-    .with({ t: 'enum' }, ({ variants, box: isEnumBox }) => {
-      const actualEnumType = isEnumBox ? `${item.id}['enum']` : item.id
-
-      const parsed = variants.map((variant) =>
-        match(variant)
-          .with({ t: 'with-type' }, ({ tag, type, discriminant }) => {
-            const typeGen = generateIdent(type)
-            const inTypeDef = `${tag}: [${typeGen.type}]`
-            const doc = `Produce \`${tag}\` enum variant`
-            const createVariant = `${libItem('variant')}('${tag}', value)`
-            const asConstructor =
-              `/** ${doc} */ ` +
-              `${tag}: (value: ${typeGen.type}): ${item.id} => ` +
-              (isEnumBox ? `({ enum: ${createVariant} })` : createVariant)
-            const codec = `[${discriminant}, '${tag}', ${typeGen.codec}]`
-            return { inTypeDef, asConstructor, codec }
-          })
-          .otherwise(({ tag, discriminant }) => {
-            const inTypeDef = `${tag}: []`
-            const doc = `\`${tag}\` enum variant`
-            const createVariant = `${libItem('variant')}<${actualEnumType}>('${tag}')`
-            const asConstructor = `/** ${doc} */ ${tag}: ` + (isEnumBox ? `{ enum: ${createVariant} }` : createVariant)
-            const codec = `[${discriminant}, '${tag}']`
-            return { inTypeDef, asConstructor, codec }
-          }),
-      )
-
-      const constructors = parsed.map((x) => x.asConstructor).join(', ')
-
-      const codec = `${libItem('enumCodec')}<${actualEnumType}>([${parsed.map((x) => x.codec).join(', ')}])`
-      const codecMaybeBoxed = isEnumBox ? libItem('boxEnumCodec') + `(${codec})` : codec
-
-      const typeEnumerate = libItem('Enumerate') + `<{ ${parsed.map((x) => x.inTypeDef).join(', ')} }>`
-      const type = isEnumBox ? `{ enum: ${typeEnumerate} }` : typeEnumerate
-      const maybeValueType = isEnumBox ? `: ${libItem('EnumBoxValue')}<${item.id}>` : ''
-
+    .with({ t: 'enum', breakRecursion: false }, ({ variants, id }) => {
       return [
-        `export type ${item.id} = ${type}`,
-        `export const ${item.id}${maybeValueType} = { ${constructors}, [${libItem('symbolCodec')}]: ${codecMaybeBoxed} }`,
+        `export type ${id} = z.infer<typeof ${id}$schema>`,
+        `export const ${id}$schema  = ${generateActualEnumSchema(variants)}`,
+        `export const ${id}$codec: core.Codec<${id}> = ${generateActualEnumCodec(variants)}`,
       ]
     })
-    .with({ t: 'struct' }, ({ fields }) => {
-      const typeFields = fields.map((x) => `${camelCase(x.name)}: ${generateIdent(x.type).type};`).join(' ')
-      const codecFieldsSeparate = fields.map((x) => `['${camelCase(x.name)}', ${generateIdent(x.type).codec}]`)
-      const codecFields = `[${codecFieldsSeparate.join(', ')}]`
+    .with({ t: 'enum', breakRecursion: true }, ({ id, variants }) => {
+      const typeInputOutput = variants
+        .map((variant) =>
+          match(variant)
+            .with({ t: 'unit' }, ({ tag }) => `{ t: '${tag}' }`)
+            .with({ t: 'with-type' }, ({ tag, type }) => ({
+              output: `{ t: '${tag}', value: ${generateIdent(type).type} }`,
+              input: `core.EnumOptionInput<'${tag}', ${generateIdent(type).typeofSchema}>`,
+            }))
+            .exhaustive(),
+        )
+        .map((x) =>
+          match(x)
+            .with(P.string, (output) => ({ output, input: output }))
+            .otherwise((x) => x),
+        )
+
+      const typeOutput = typeInputOutput.map((x) => x.output).join(' | ')
+      const typeInput = typeInputOutput.map((x) => x.input).join(' | ')
 
       return [
-        `export type ${item.id} = { ${typeFields} }`,
-        `export const ${item.id} = ` +
-          libItem('wrapCodec') +
-          `<${item.id}>(` +
-          libItem('structCodec') +
-          `(${codecFields}))`,
+        `export interface ${id} { enum: ${typeOutput} }`,
+        `interface ${id}$input { enum: ${typeInput} }`,
+        `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = z.object({ enum: ${generateActualEnumSchema(variants)} })`,
+        `export const ${id}$codec: core.Codec<${id}> = core.struct([['enum', ${generateActualEnumCodec(variants)}]])`,
       ]
     })
-    .with({ t: 'bitmap', repr: 'u32' }, ({ id, masks }) => {
-      const repr = generateIdent({ t: 'lib', id: 'codecs.U32' })
+    .with({ t: 'struct' }, ({ id, fields }) => {
+      const schemaFields = fields.map((x) => `${camelCase(x.name)}: ${generateIdent(x.type).schema}`).join(', ')
+      const codecFields = fields.map((x) => `['${camelCase(x.name)}', ${generateIdent(x.type).codec}]`).join(', ')
 
-      const namedMasks = masks
-        .map(({ name, mask }) => {
-          const doc = `\`${name}\` event bitmask. Use \`|\` to combine with other {@link ${id}} bitmasks.`
-          return `/** ${doc} */ ${name}: ${mask}`
+      return [
+        `export type ${id} = z.infer<typeof ${id}$schema>`,
+        `export const ${id}$schema = z.object({ ${schemaFields} })`,
+        `export const ${id}$codec = core.struct([${codecFields}])`,
+      ]
+    })
+    .with({ t: 'bitmap' }, ({ id, masks, repr }) => {
+      invariant(repr === 'U32')
+
+      const literal = (x: string) => `z.literal('${x}')`
+      const literalSchema = match(masks)
+        .with([], () => {
+          throw new Error('bitmask has zero masks')
         })
-        .join(', ')
+        .with([P._], ([{ name }]) => literal(name))
+        .otherwise((twoOrMore) => `z.union([${twoOrMore.map((x) => literal(x.name)).join(', ')}])`)
+      const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
 
       return [
-        // TODO: make opaque?
-        `export type ${id} = ${repr.type}`,
-        `export const ${id} = { ${namedMasks}, [${libItem('symbolCodec')}]: ${repr.codec} }`,
+        `export type ${id} = z.infer<typeof ${id}$schema>`,
+        `const ${id}$literalSchema = ${literalSchema}`,
+        `export const ${id}$schema = z.set(${id}$literalSchema).or(z.array(${id}$literalSchema).transform(arr => new Set(arr)))`,
+        `export const ${id}$codec = core.bitmap<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`,
       ]
     })
-    .with({ t: 'struct-gen' }, ({ genericsCount, fields }) => {
-      const genericsTypes = Array.from({ length: genericsCount }, (_v, i) => `T${i}`).join(', ')
-      const genericsPart = `<${genericsTypes}>`
+    .with({ t: 'struct-gen' }, ({ id, genericsCount, fields }) => {
+      const mapGenerics = <T>(f: (index: number) => T): Array<T> =>
+        Array.from({ length: genericsCount }, (_v, i) => f(i))
+
+      const genericsTypes = mapGenerics((i) => `T${i}`).join(', ')
       const typeFields = fields
         .map(({ name, type }) => {
           return (
@@ -553,59 +613,52 @@ function generateSingleEntry(item: CodegenEntry): string {
         })
         .join(', ')
 
-      const schemaItems = fields.map(({ name, type }) => {
-        const codec = match(type)
-          .with({ t: 'gen' }, ({ genericIndex: i }) => `codec${i}`)
-          .otherwise((x) => generateIdent(x).codec)
-        return `['${camelCase(name)}', ${codec}]`
-      })
-      const withFnBody = `return ${libItem('structCodec')}([${schemaItems.join(', ')}])`
+      const zodFields = fields
+        .map(({ name, type }) => {
+          const schema = match(type)
+            .with({ t: 'gen' }, ({ genericIndex: i }) => `t${i}`)
+            .otherwise((x) => generateIdent(x).schema)
+          return `${camelCase(name)}: ${schema}`
+        })
+        .join(', ')
+      const schemaFn = `<${mapGenerics((i) => `T${i} extends z.ZodType`).join(', ')}>(${mapGenerics(
+        (i) => `t${i}: T${i}`,
+      ).join(', ')}) => z.object({ ${zodFields} })`
 
-      const withFnArgs = Array.from({ length: genericsCount }, (_v, i) => `codec${i}: ${libItem('Codec')}<T${i}>`)
-
-      const withFn = `${genericsPart}(${withFnArgs}): ${libItem('Codec')}<${
-        item.id
-      }${genericsPart}> => { ${withFnBody} }`
+      const codecSchemaItems = fields
+        .map(({ name, type }) => {
+          const codec = match(type)
+            .with({ t: 'gen' }, ({ genericIndex: i }) => `t${i}`)
+            .otherwise((x) => generateIdent(x).codec)
+          return `['${camelCase(name)}', ${codec}]`
+        })
+        .join(', ')
+      const codecFn = `<${mapGenerics((i) => `T${i}`).join(', ')}>(${mapGenerics(
+        (i) => `t${i}: core.Codec<T${i}>`,
+      ).join(', ')}) => core.struct([${codecSchemaItems}])`
 
       return [
-        `export type ${item.id}${genericsPart} = { ${typeFields} }`,
-        `export const ${item.id} = { with: ${withFn} }`,
-      ]
-    })
-    .with({ t: 'array' }, ({ id, item, len }) => {
-      const { type, codec } = generateIdent(item)
-
-      return [
-        `export type ${id} = ${type}[]`,
-        `export const ${id} = ${libItem('wrapCodec')}<${id}>(${libItem('codecs.Array')}.with(${codec}, ${len}))`,
+        `export interface ${id}<${genericsTypes}> { ${typeFields} }`,
+        `export const ${id}$schema = ${schemaFn}`,
+        `export const ${id}$codec = ${codecFn}`,
       ]
     })
     .with({ t: 'alias' }, ({ id, to }) => {
       return [
         `export type ${id} = ${generateIdent(to).type}`,
-        `export const ${id} = ${libItem('wrapCodec')}<${id}>(${generateIdent(to).codec})`,
+        `export const ${id}$schema = ${generateIdent(to).schema}`,
+        `export const ${id}$codec = ${generateIdent(to).codec}`,
+      ]
+    })
+    .with({ t: 'branded-alias' }, ({ id, to }) => {
+      return [
+        `export type ${id} = z.infer<typeof ${id}$schema>`,
+        `export const ${id}$schema = ${generateIdent(to).schema}.brand<'${id}'>()`,
+        `export const ${id}$codec = ${generateIdent(to).codec} as core.Codec<${id}>`,
       ]
     })
     .exhaustive()
     .join('\n')
-}
-
-type LibItem =
-  | 'boxEnumCodec'
-  | 'wrapCodec'
-  | 'Enumerate'
-  | 'variant'
-  | `${'enum' | 'struct'}Codec`
-  | 'toCodec'
-  | `codecs.${'BytesVec' | 'String' | 'U8' | 'U16' | 'U32' | 'U64' | 'U128' | 'NonZero' | 'Option' | 'Compact' | 'Vec' | 'Map' | 'Array' | 'Json' | 'Bool'}`
-  | 'Codec'
-  | 'symbolCodec'
-  | 'EnumBoxValue'
-
-type LibCodec = LibItem & `codecs.${string}`
-
-function libItem<T extends LibItem>(item: T): string {
-  return `lib.${item}`
 }
 
 function upcase<S extends string>(s: S): Uppercase<S> {
