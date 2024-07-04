@@ -1570,12 +1570,35 @@ export const IpfsPath$schema = z.string().brand<'IpfsPath'>()
 export const IpfsPath$codec = core.String$codec as core.Codec<IpfsPath>
 export const IpfsPath = (input: z.input<typeof IpfsPath$schema>): IpfsPath => IpfsPath$schema.parse(input)
 export type Ipv4Addr = z.infer<typeof Ipv4Addr$schema>
-export const Ipv4Addr$schema = core.U8Array$schema(4).brand<'Ipv4Addr'>()
-export const Ipv4Addr$codec = core.U8Array$codec(4) as core.Codec<Ipv4Addr>
+export const Ipv4Addr$schema = z.tuple([core.U8$schema, core.U8$schema, core.U8$schema, core.U8$schema])
+export const Ipv4Addr$codec: core.Codec<Ipv4Addr> = core.tuple([
+  core.U8$codec,
+  core.U8$codec,
+  core.U8$codec,
+  core.U8$codec,
+])
 export const Ipv4Addr = (input: z.input<typeof Ipv4Addr$schema>): Ipv4Addr => Ipv4Addr$schema.parse(input)
 export type Ipv6Addr = z.infer<typeof Ipv6Addr$schema>
-export const Ipv6Addr$schema = core.U16Array$schema(8).brand<'Ipv6Addr'>()
-export const Ipv6Addr$codec = core.U16Array$codec(8) as core.Codec<Ipv6Addr>
+export const Ipv6Addr$schema = z.tuple([
+  core.U16$schema,
+  core.U16$schema,
+  core.U16$schema,
+  core.U16$schema,
+  core.U16$schema,
+  core.U16$schema,
+  core.U16$schema,
+  core.U16$schema,
+])
+export const Ipv6Addr$codec: core.Codec<Ipv6Addr> = core.tuple([
+  core.U16$codec,
+  core.U16$codec,
+  core.U16$codec,
+  core.U16$codec,
+  core.U16$codec,
+  core.U16$codec,
+  core.U16$codec,
+  core.U16$codec,
+])
 export const Ipv6Addr = (input: z.input<typeof Ipv6Addr$schema>): Ipv6Addr => Ipv6Addr$schema.parse(input)
 export type LengthLimits = z.infer<typeof LengthLimits$schema>
 export const LengthLimits$schema = z.object({ min: core.U32$schema, max: core.U32$schema })

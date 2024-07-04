@@ -96,6 +96,14 @@ export function enumeration<T extends DatamodelZodEnumGeneric>(schema: EnumCodec
 
 export function enumerationSimpleUnion<T extends string>(schema: { [K in T]: number }): Codec<T> {}
 
+type TupleFromCodecs<T> = T extends [Codec<infer Head>, ...infer Tail]
+  ? [Head, ...TupleFromCodecs<Tail>]
+  : T extends []
+    ? []
+    : never
+
+export function tuple<T extends [Codec<any>, ...Codec<any>[]]>(codecs: T): Codec<TupleFromCodecs<T>> {}
+
 /**
  * @internal
  */

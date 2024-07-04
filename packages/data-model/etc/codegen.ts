@@ -17,6 +17,7 @@ type CodegenEntry = { id: string } & (
   | { t: 'enum'; mode: 'explicit' | 'normal'; variants: CodegenEnumVariant[] }
   | { t: 'struct'; fields: { name: string; type: TypeIdent }[] }
   | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: CodegenGenericTypeRef }[] }
+  | { t: 'tuple'; elements: TypeIdent[] }
   | { t: 'bitmap'; repr: LibCodec; masks: { name: string; mask: number }[] }
   | { t: 'alias'; to: TypeIdent }
   | { t: 'branded-alias'; to: TypeIdent }
@@ -352,6 +353,41 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         // it is a redundant self-alias. hard to formulate "why"... just is
         return []
 
+      if (type.id === 'Ipv4Addr') {
+        const LEN = 4
+
+        match(aliasParsed)
+          .with({ t: 'lib', id: 'U8Array', generics: [{ literal: String(LEN) }] }, () => {})
+          .otherwise(() => {
+            throw new Error('unexpected shape')
+          })
+
+        return [
+          {
+            t: 'tuple',
+            id: type.id,
+            elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U8' })),
+          } satisfies CodegenEntry,
+        ]
+      }
+
+      if (type.id === 'Ipv6Addr') {
+        const LEN = 8
+
+        match(aliasParsed)
+          .with({ t: 'lib', id: 'U16Array', generics: [{ literal: String(LEN) }] }, () => {})
+          .otherwise(() => {
+            throw new Error('unexpected shape')
+          })
+
+        return [
+          {
+            t: 'tuple',
+            id: type.id,
+            elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U16' })),
+          } satisfies CodegenEntry,
+        ]
+      }
       const branded = match(type.id)
         .with(P.union('Hash', 'Ipv4Addr', 'Ipv6Addr'), () => true)
         .otherwise(() => false)
@@ -680,6 +716,16 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         `export const ${id}$schema = z.object({ ${schemaFields} })`,
         `export const ${id}$codec = core.struct([${codecFields}])`,
+        generateParseFn(id),
+      ]
+    })
+    .with({ t: 'tuple' }, ({ id, elements }) => {
+      const schemaElements = elements.map((x) => generateIdent(x).schema)
+      const codecElements = elements.map((x) => generateIdent(x).codec)
+      return [
+        `export type ${id} = z.infer<typeof ${id}$schema>`,
+        `export const ${id}$schema = z.tuple([${schemaElements.join(', ')}])`,
+        `export const ${id}$codec: core.Codec<${id}> = core.tuple([${codecElements.join(', ')}])`,
         generateParseFn(id),
       ]
     })
