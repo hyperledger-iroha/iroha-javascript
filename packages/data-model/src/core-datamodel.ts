@@ -144,8 +144,8 @@ export type U16Array<_T extends number> = globalThis.Uint16Array
 
 export const U16Array$schema = (length: number) =>
   z
-    .instanceof(Uint8Array)
-    .refine((arr) => arr.length === length, { message: `Uint8Array length should be exactly ${length}` })
+    .instanceof(Uint16Array)
+    .refine((arr) => arr.length === length, { message: `Uint16Array length should be exactly ${length}` })
 
 // FIXME
 export const U16Array$codec = (length: number) =>

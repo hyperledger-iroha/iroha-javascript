@@ -7,7 +7,7 @@ export function generate(schema: Schema): string {
   const transformed = transform(schema)
   transformed.sort((a, b) => (a.id < b.id ? -1 : a.id === b.id ? 0 : 1))
 
-  return [`import { core, z } from './prelude'`, ...transformed.map((x) => generateSingleEntry(x))].join('\n')
+  return [`import { z, core, crypto } from './prelude'`, ...transformed.map((x) => generateSingleEntry(x))].join('\n')
 }
 
 type ActualCodegenSchema = CodegenEntry[]
@@ -125,39 +125,6 @@ function transform(schema: Schema): ActualCodegenSchema {
     },
     {
       t: 'struct',
-      id: 'BlockSignature',
-      fields: [
-        { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
-        { name: 'payload', type: { t: 'ref', id: 'Signature' } },
-      ],
-    },
-    {
-      t: 'struct',
-      id: 'BlockSubscriptionRequest',
-      fields: [
-        {
-          name: 'from_block_height',
-          type: transformIdent('NonZero<u64>'),
-        },
-      ],
-    },
-    {
-      t: 'struct',
-      id: 'Duration',
-      fields: [
-        // TODO: check if correct
-        {
-          name: 'secs',
-          type: { t: 'lib', id: 'U64' },
-        },
-        {
-          name: 'nanos',
-          type: { t: 'lib', id: 'U32' },
-        },
-      ],
-    },
-    {
-      t: 'struct',
       id: 'EventSubscriptionRequest',
       fields: [{ name: 'filters', type: transformIdent('Vec<EventFilterBox>') }],
     },
@@ -169,11 +136,6 @@ function transform(schema: Schema): ActualCodegenSchema {
         { name: 'start', type: { t: 'gen', genericIndex: 0 } },
         { name: 'limit', type: { t: 'gen', genericIndex: 0 } },
       ],
-    },
-    {
-      t: 'alias',
-      id: 'Metadata',
-      to: transformIdent('Map<Name, MetadataValueBox>'),
     },
   ]
 
@@ -204,6 +166,59 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
     .with([{ generics: P.array() }, P._], () => {
       throw new Error(`don't know how to transform the definition of "${name}"`)
     })
+    .with([{ id: 'Signature' }, { Struct: [{ name: 'payload', type: 'Vec<u8>' }] }], () => [
+      {
+        t: 'alias',
+        id: 'Signature',
+        to: transformIdent('Vec<u8>'),
+      },
+    ])
+    .with([{ id: 'BlockSignature' }, { Tuple: ['u64', P.string.startsWith('Signature')] }], () => [
+      {
+        t: 'struct',
+        id: 'BlockSignature',
+        fields: [
+          { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
+          { name: 'signature', type: { t: 'ref', id: 'Signature' } },
+        ],
+      },
+    ])
+    .with([{ id: 'BlockSubscriptionRequest' }, 'NonZero<u64>'], ([{ id }, type]) => {
+      return [{ t: 'struct', id, fields: [{ name: 'from_block_height', type: transformIdent(type) }] }]
+    })
+    .with(
+      [{ id: 'Duration' }, { Tuple: ['u64', 'u32'] }],
+      ([
+        { id },
+        {
+          Tuple: [secs, nanos],
+        },
+      ]) => [
+        {
+          t: 'struct',
+          id,
+          fields: [
+            {
+              name: 'secs',
+              type: { t: 'lib', id: upcase(secs) },
+            },
+            {
+              name: 'nanos',
+              type: { t: 'lib', id: upcase(nanos) },
+            },
+          ],
+        } satisfies CodegenEntry,
+      ],
+    )
+    .with(
+      [{ id: 'FetchSize' }, { Struct: [{ name: 'fetch_size' }] }],
+      ([
+        { id },
+        {
+          Struct: [{ type }],
+        },
+      ]) => [{ t: 'alias', id, to: transformIdent(type) }],
+    )
     .with([{ id: 'NonTrivial' }, 'Vec<GenericPredicateBox<QueryOutputPredicate>>'], () => [
       {
         t: 'alias',
@@ -562,6 +577,21 @@ function generateActualEnumExplicitTypes(variants: CodegenEnumVariant[]) {
   return { input, output }
 }
 
+function generateParseFn(id: string) {
+  return `export const ${id} = (input: z.input<typeof ${id}$schema>): ${id} => ${id}$schema.parse(input)`
+}
+
+/**
+ * TODO:
+ *
+ * - extend signature/hash schema: z.instanceof(crypto.Hash).transform(x => x.bytes).or(actualArraySchema)
+ * - tx payload: creation time default new Date; time to live default to some value; default nonce
+ * - query payload:
+ *   - default pagination with nones
+ * - Simple unions instead of discriminated: Minstability, Algorithm
+ * - Discriminated unions: extend objects??
+ * - unify Ids as BrandedStrings
+ */
 function generateSingleEntry(item: CodegenEntry): string {
   return match(item)
     .returnType<string[]>()
@@ -570,6 +600,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         `export const ${id}$schema  = ${generateActualEnumSchema(variants)}`,
         `export const ${id}$codec: core.Codec<${id}> = ${generateActualEnumCodec(variants)}`,
+        generateParseFn(id),
       ]
     })
     .with({ t: 'enum', mode: 'explicit' }, ({ id, variants }) => {
@@ -579,6 +610,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `type ${id}$input = ${type.input}`,
         `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = ${generateActualEnumSchema(variants, { removeDefault: true })}`,
         `export const ${id}$codec: core.Codec<${id}> = ${generateActualEnumCodec(variants)}`,
+        generateParseFn(id),
       ]
     })
     .with({ t: 'struct' }, ({ id, fields }) => {
@@ -589,6 +621,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         `export const ${id}$schema = z.object({ ${schemaFields} })`,
         `export const ${id}$codec = core.struct([${codecFields}])`,
+        generateParseFn(id),
       ]
     })
     .with({ t: 'bitmap' }, ({ id, masks, repr }) => {
@@ -608,6 +641,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `const ${id}$literalSchema = ${literalSchema}`,
         `export const ${id}$schema = z.set(${id}$literalSchema).or(z.array(${id}$literalSchema).transform(arr => new Set(arr)))`,
         `export const ${id}$codec = core.bitmap<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`,
+        generateParseFn(id),
       ]
     })
     .with({ t: 'struct-gen' }, ({ id, genericsCount, fields }) => {
@@ -654,6 +688,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export interface ${id}<${genericsTypes}> { ${typeFields} }`,
         `export const ${id}$schema = ${schemaFn}`,
         `export const ${id}$codec = ${codecFn}`,
+        // TODO: parse fn?
       ]
     })
     .with({ t: 'alias' }, ({ id, to }) => {
@@ -661,6 +696,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = ${generateIdent(to).type}`,
         `export const ${id}$schema = ${generateIdent(to).schema}`,
         `export const ${id}$codec = ${generateIdent(to).codec}`,
+        generateParseFn(id),
       ]
     })
     .with({ t: 'branded-alias' }, ({ id, to }) => {
@@ -668,6 +704,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         `export const ${id}$schema = ${generateIdent(to).schema}.brand<'${id}'>()`,
         `export const ${id}$codec = ${generateIdent(to).codec} as core.Codec<${id}>`,
+        generateParseFn(id),
       ]
     })
     .exhaustive()
