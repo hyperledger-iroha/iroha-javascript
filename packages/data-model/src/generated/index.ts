@@ -148,18 +148,18 @@ export const Action$codec = core.struct([
 ])
 export const Action = (input: z.input<typeof Action$schema>): Action => Action$schema.parse(input)
 export type Algorithm = z.infer<typeof Algorithm$schema>
-export const Algorithm$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('Ed25519') }),
-  z.object({ t: z.literal('Secp256k1') }),
-  z.object({ t: z.literal('BlsNormal') }),
-  z.object({ t: z.literal('BlsSmall') }),
+export const Algorithm$schema = z.union([
+  z.literal('ed25519'),
+  z.literal('secp256k1'),
+  z.literal('bls_normal'),
+  z.literal('bls_small'),
 ])
-export const Algorithm$codec: core.Codec<Algorithm> = core.enumeration([
-  [0, 'Ed25519'],
-  [1, 'Secp256k1'],
-  [2, 'BlsNormal'],
-  [3, 'BlsSmall'],
-])
+export const Algorithm$codec = core.enumerationSimpleUnion<Algorithm>({
+  ed25519: 0,
+  secp256k1: 1,
+  bls_normal: 2,
+  bls_small: 3,
+})
 export const Algorithm = (input: z.input<typeof Algorithm$schema>): Algorithm => Algorithm$schema.parse(input)
 export type Asset = z.infer<typeof Asset$schema>
 export const Asset$schema = z.object({ id: z.lazy(() => AssetId$schema), value: z.lazy(() => AssetValue$schema) })
@@ -526,12 +526,10 @@ export const BlockPayload$codec = core.struct([
 export const BlockPayload = (input: z.input<typeof BlockPayload$schema>): BlockPayload =>
   BlockPayload$schema.parse(input)
 export type BlockRejectionReason = z.infer<typeof BlockRejectionReason$schema>
-export const BlockRejectionReason$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('ConsensusBlockRejection') }),
-])
-export const BlockRejectionReason$codec: core.Codec<BlockRejectionReason> = core.enumeration([
-  [0, 'ConsensusBlockRejection'],
-])
+export const BlockRejectionReason$schema = z.literal('ConsensusBlockRejection')
+export const BlockRejectionReason$codec = core.enumerationSimpleUnion<BlockRejectionReason>({
+  ConsensusBlockRejection: 0,
+})
 export const BlockRejectionReason = (input: z.input<typeof BlockRejectionReason$schema>): BlockRejectionReason =>
   BlockRejectionReason$schema.parse(input)
 export type BlockSignature = z.infer<typeof BlockSignature$schema>
@@ -1497,42 +1495,42 @@ export const InstructionExecutionFail = (
   input: z.input<typeof InstructionExecutionFail$schema>,
 ): InstructionExecutionFail => InstructionExecutionFail$schema.parse(input)
 export type InstructionType = z.infer<typeof InstructionType$schema>
-export const InstructionType$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('Register') }),
-  z.object({ t: z.literal('Unregister') }),
-  z.object({ t: z.literal('Mint') }),
-  z.object({ t: z.literal('Burn') }),
-  z.object({ t: z.literal('Transfer') }),
-  z.object({ t: z.literal('SetKeyValue') }),
-  z.object({ t: z.literal('RemoveKeyValue') }),
-  z.object({ t: z.literal('Grant') }),
-  z.object({ t: z.literal('Revoke') }),
-  z.object({ t: z.literal('ExecuteTrigger') }),
-  z.object({ t: z.literal('SetParameter') }),
-  z.object({ t: z.literal('NewParameter') }),
-  z.object({ t: z.literal('Upgrade') }),
-  z.object({ t: z.literal('Log') }),
-  z.object({ t: z.literal('Custom') }),
-  z.object({ t: z.literal('Fail') }),
+export const InstructionType$schema = z.union([
+  z.literal('Register'),
+  z.literal('Unregister'),
+  z.literal('Mint'),
+  z.literal('Burn'),
+  z.literal('Transfer'),
+  z.literal('SetKeyValue'),
+  z.literal('RemoveKeyValue'),
+  z.literal('Grant'),
+  z.literal('Revoke'),
+  z.literal('ExecuteTrigger'),
+  z.literal('SetParameter'),
+  z.literal('NewParameter'),
+  z.literal('Upgrade'),
+  z.literal('Log'),
+  z.literal('Custom'),
+  z.literal('Fail'),
 ])
-export const InstructionType$codec: core.Codec<InstructionType> = core.enumeration([
-  [0, 'Register'],
-  [1, 'Unregister'],
-  [2, 'Mint'],
-  [3, 'Burn'],
-  [4, 'Transfer'],
-  [5, 'SetKeyValue'],
-  [6, 'RemoveKeyValue'],
-  [7, 'Grant'],
-  [8, 'Revoke'],
-  [9, 'ExecuteTrigger'],
-  [10, 'SetParameter'],
-  [11, 'NewParameter'],
-  [12, 'Upgrade'],
-  [13, 'Log'],
-  [14, 'Custom'],
-  [15, 'Fail'],
-])
+export const InstructionType$codec = core.enumerationSimpleUnion<InstructionType>({
+  Register: 0,
+  Unregister: 1,
+  Mint: 2,
+  Burn: 3,
+  Transfer: 4,
+  SetKeyValue: 5,
+  RemoveKeyValue: 6,
+  Grant: 7,
+  Revoke: 8,
+  ExecuteTrigger: 9,
+  SetParameter: 10,
+  NewParameter: 11,
+  Upgrade: 12,
+  Log: 13,
+  Custom: 14,
+  Fail: 15,
+})
 export const InstructionType = (input: z.input<typeof InstructionType$schema>): InstructionType =>
   InstructionType$schema.parse(input)
 export type InvalidParameterError = z.infer<typeof InvalidParameterError$schema>
@@ -1568,22 +1566,6 @@ export const LengthLimits$codec = core.struct([
 ])
 export const LengthLimits = (input: z.input<typeof LengthLimits$schema>): LengthLimits =>
   LengthLimits$schema.parse(input)
-export type Level = z.infer<typeof Level$schema>
-export const Level$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('TRACE') }),
-  z.object({ t: z.literal('DEBUG') }),
-  z.object({ t: z.literal('INFO') }),
-  z.object({ t: z.literal('WARN') }),
-  z.object({ t: z.literal('ERROR') }),
-])
-export const Level$codec: core.Codec<Level> = core.enumeration([
-  [0, 'TRACE'],
-  [1, 'DEBUG'],
-  [2, 'INFO'],
-  [3, 'WARN'],
-  [4, 'ERROR'],
-])
-export const Level = (input: z.input<typeof Level$schema>): Level => Level$schema.parse(input)
 export type Limits = z.infer<typeof Limits$schema>
 export const Limits$schema = z.object({ capacity: core.U32$schema, maxEntryLen: core.U32$schema })
 export const Limits$codec = core.struct([
@@ -1592,12 +1574,22 @@ export const Limits$codec = core.struct([
 ])
 export const Limits = (input: z.input<typeof Limits$schema>): Limits => Limits$schema.parse(input)
 export type Log = z.infer<typeof Log$schema>
-export const Log$schema = z.object({ level: z.lazy(() => Level$schema), msg: z.string() })
+export const Log$schema = z.object({ level: z.lazy(() => LogLevel$schema), msg: z.string() })
 export const Log$codec = core.struct([
-  ['level', core.lazy(() => Level$codec)],
+  ['level', core.lazy(() => LogLevel$codec)],
   ['msg', core.String$codec],
 ])
 export const Log = (input: z.input<typeof Log$schema>): Log => Log$schema.parse(input)
+export type LogLevel = z.infer<typeof LogLevel$schema>
+export const LogLevel$schema = z.union([
+  z.literal('TRACE'),
+  z.literal('DEBUG'),
+  z.literal('INFO'),
+  z.literal('WARN'),
+  z.literal('ERROR'),
+])
+export const LogLevel$codec = core.enumerationSimpleUnion<LogLevel>({ TRACE: 0, DEBUG: 1, INFO: 2, WARN: 3, ERROR: 4 })
+export const LogLevel = (input: z.input<typeof LogLevel$schema>): LogLevel => LogLevel$schema.parse(input)
 export type MathError = z.infer<typeof MathError$schema>
 export const MathError$schema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('Overflow') }),
@@ -1751,27 +1743,16 @@ export const MintBox$codec: core.Codec<MintBox> = core.enumeration([
 ])
 export const MintBox = (input: z.input<typeof MintBox$schema>): MintBox => MintBox$schema.parse(input)
 export type MintabilityError = z.infer<typeof MintabilityError$schema>
-export const MintabilityError$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('MintUnmintable') }),
-  z.object({ t: z.literal('ForbidMintOnMintable') }),
-])
-export const MintabilityError$codec: core.Codec<MintabilityError> = core.enumeration([
-  [0, 'MintUnmintable'],
-  [1, 'ForbidMintOnMintable'],
-])
+export const MintabilityError$schema = z.union([z.literal('MintUnmintable'), z.literal('ForbidMintOnMintable')])
+export const MintabilityError$codec = core.enumerationSimpleUnion<MintabilityError>({
+  MintUnmintable: 0,
+  ForbidMintOnMintable: 1,
+})
 export const MintabilityError = (input: z.input<typeof MintabilityError$schema>): MintabilityError =>
   MintabilityError$schema.parse(input)
 export type Mintable = z.infer<typeof Mintable$schema>
-export const Mintable$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('Infinitely') }),
-  z.object({ t: z.literal('Once') }),
-  z.object({ t: z.literal('Not') }),
-])
-export const Mintable$codec: core.Codec<Mintable> = core.enumeration([
-  [0, 'Infinitely'],
-  [1, 'Once'],
-  [2, 'Not'],
-])
+export const Mintable$schema = z.union([z.literal('Infinitely'), z.literal('Once'), z.literal('Not')])
+export const Mintable$codec = core.enumerationSimpleUnion<Mintable>({ Infinitely: 0, Once: 1, Not: 2 })
 export const Mintable = (input: z.input<typeof Mintable$schema>): Mintable => Mintable$schema.parse(input)
 export type NewAccount = z.infer<typeof NewAccount$schema>
 export const NewAccount$schema = z.object({
@@ -2863,14 +2844,11 @@ export const TriggerCompletedOutcome = (
   input: z.input<typeof TriggerCompletedOutcome$schema>,
 ): TriggerCompletedOutcome => TriggerCompletedOutcome$schema.parse(input)
 export type TriggerCompletedOutcomeType = z.infer<typeof TriggerCompletedOutcomeType$schema>
-export const TriggerCompletedOutcomeType$schema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('Success') }),
-  z.object({ t: z.literal('Failure') }),
-])
-export const TriggerCompletedOutcomeType$codec: core.Codec<TriggerCompletedOutcomeType> = core.enumeration([
-  [0, 'Success'],
-  [1, 'Failure'],
-])
+export const TriggerCompletedOutcomeType$schema = z.union([z.literal('Success'), z.literal('Failure')])
+export const TriggerCompletedOutcomeType$codec = core.enumerationSimpleUnion<TriggerCompletedOutcomeType>({
+  Success: 0,
+  Failure: 1,
+})
 export const TriggerCompletedOutcomeType = (
   input: z.input<typeof TriggerCompletedOutcomeType$schema>,
 ): TriggerCompletedOutcomeType => TriggerCompletedOutcomeType$schema.parse(input)

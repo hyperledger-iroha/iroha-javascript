@@ -94,6 +94,8 @@ export function enumeration<T extends DatamodelZodEnumGeneric>(schema: EnumCodec
   return codec(scale.createEnumEncoder(encoders), scale.createEnumDecoder(decoders)) as any
 }
 
+export function enumerationSimpleUnion<T extends string>(schema: { [K in T]: number }): Codec<T> {}
+
 /**
  * @internal
  */

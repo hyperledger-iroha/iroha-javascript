@@ -1,7 +1,8 @@
-import type { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
+import type { EnumVariantDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
 import { P, match } from 'ts-pattern'
 import invariant from 'tiny-invariant'
-import { camelCase } from 'change-case'
+import { camelCase, pascalCase } from 'change-case'
+import type { Algorithm } from '@iroha2/crypto-core'
 
 export function generate(schema: Schema): string {
   const transformed = transform(schema)
@@ -53,6 +54,8 @@ type LibCodec =
   | 'Bool'
   | 'U8Array'
   | 'U16Array'
+
+const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
 
 /**
  * Apply a number of transformations to the schema:
@@ -219,6 +222,22 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         },
       ]) => [{ t: 'alias', id, to: transformIdent(type) }],
     )
+    .with([{ id: 'Algorithm' }, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
+      const variantsParsed = variants.map<CodegenEnumVariant>((x, i) => {
+        invariant(x.tag === pascalCase(CRYPTO_ALGORITHMS[i]))
+        invariant(!x.type)
+        return { t: 'unit', tag: CRYPTO_ALGORITHMS[i], discriminant: x.discriminant }
+      })
+
+      return [
+        {
+          t: 'enum',
+          id,
+          mode: 'normal',
+          variants: variantsParsed,
+        },
+      ]
+    })
     .with([{ id: 'NonTrivial' }, 'Vec<GenericPredicateBox<QueryOutputPredicate>>'], () => [
       {
         t: 'alias',
@@ -465,6 +484,7 @@ function transformIdent(id: string | Ident): TypeIdent {
         } satisfies TypeIdent
       },
     )
+    .with({ id: 'Level', items: [] }, () => ({ t: 'ref', id: 'LogLevel' }))
     .otherwise(({ id, items }) => {
       return { t: 'ref', id, generics: items.length ? items.map(transformIdent) : undefined }
     })
@@ -588,13 +608,23 @@ function generateParseFn(id: string) {
  * - tx payload: creation time default new Date; time to live default to some value; default nonce
  * - query payload:
  *   - default pagination with nones
- * - Simple unions instead of discriminated: Minstability, Algorithm
  * - Discriminated unions: extend objects??
  * - unify Ids as BrandedStrings
  */
 function generateSingleEntry(item: CodegenEntry): string {
   return match(item)
     .returnType<string[]>()
+    .with({ t: 'enum', mode: 'normal', variants: P.array({ t: 'unit' }) }, ({ id, variants }) => {
+      const literals = variants.map((x) => `z.literal('${x.tag}')`)
+      const zodSchema = literals.length === 1 ? literals.at(0)! : `z.union([${literals.join(', ')}])`
+      const codecSchema = variants.map((x) => `${x.tag}: ${x.discriminant}`)
+      return [
+        `export type ${id} = z.infer<typeof ${id}$schema>`,
+        `export const ${id}$schema = ${zodSchema}`,
+        `export const ${id}$codec = core.enumerationSimpleUnion<${id}>({ ${codecSchema.join(', ')} })`,
+        generateParseFn(id),
+      ]
+    })
     .with({ t: 'enum', mode: 'normal' }, ({ variants, id }) => {
       return [
         `export type ${id} = z.infer<typeof ${id}$schema>`,
