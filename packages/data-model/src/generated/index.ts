@@ -263,10 +263,13 @@ export const AssetDefinitionEventSet = (
   input: z.input<typeof AssetDefinitionEventSet$schema>,
 ): AssetDefinitionEventSet => AssetDefinitionEventSet$schema.parse(input)
 export type AssetDefinitionId = z.infer<typeof AssetDefinitionId$schema>
-export const AssetDefinitionId$schema = z.object({ domain: z.lazy(() => DomainId$schema), name: z.string() })
+export const AssetDefinitionId$schema = z.object({
+  domain: z.lazy(() => DomainId$schema),
+  name: z.lazy(() => Name$schema),
+})
 export const AssetDefinitionId$codec = core.struct([
   ['domain', core.lazy(() => DomainId$codec)],
-  ['name', core.String$codec],
+  ['name', core.lazy(() => Name$codec)],
 ])
 export const AssetDefinitionId = (input: z.input<typeof AssetDefinitionId$schema>): AssetDefinitionId =>
   AssetDefinitionId$schema.parse(input)
@@ -618,6 +621,10 @@ export const BurnBox$codec: core.Codec<BurnBox> = core.enumeration([
   ],
 ])
 export const BurnBox = (input: z.input<typeof BurnBox$schema>): BurnBox => BurnBox$schema.parse(input)
+export type ChainId = z.infer<typeof ChainId$schema>
+export const ChainId$schema = z.string().brand<'ChainId'>()
+export const ChainId$codec = core.String$codec as core.Codec<ChainId>
+export const ChainId = (input: z.input<typeof ChainId$schema>): ChainId => ChainId$schema.parse(input)
 export type ClientQueryPayload = z.infer<typeof ClientQueryPayload$schema>
 export const ClientQueryPayload$schema = z.object({
   authority: z.lazy(() => AccountId$schema),
@@ -844,8 +851,8 @@ export const DomainEventSet$codec = core.bitmap<DomainEventSet extends Set<infer
 export const DomainEventSet = (input: z.input<typeof DomainEventSet$schema>): DomainEventSet =>
   DomainEventSet$schema.parse(input)
 export type DomainId = z.infer<typeof DomainId$schema>
-export const DomainId$schema = z.object({ name: z.string() })
-export const DomainId$codec = core.struct([['name', core.String$codec]])
+export const DomainId$schema = z.lazy(() => Name$schema).brand<'DomainId'>()
+export const DomainId$codec = core.lazy(() => Name$codec) as core.Codec<DomainId>
 export const DomainId = (input: z.input<typeof DomainId$schema>): DomainId => DomainId$schema.parse(input)
 export type DomainOwnerChanged = z.infer<typeof DomainOwnerChanged$schema>
 export const DomainOwnerChanged$schema = z.object({
@@ -1015,10 +1022,13 @@ export const FindAccountById$codec = core.struct([['id', core.lazy(() => Account
 export const FindAccountById = (input: z.input<typeof FindAccountById$schema>): FindAccountById =>
   FindAccountById$schema.parse(input)
 export type FindAccountKeyValueByIdAndKey = z.infer<typeof FindAccountKeyValueByIdAndKey$schema>
-export const FindAccountKeyValueByIdAndKey$schema = z.object({ id: z.lazy(() => AccountId$schema), key: z.string() })
+export const FindAccountKeyValueByIdAndKey$schema = z.object({
+  id: z.lazy(() => AccountId$schema),
+  key: z.lazy(() => Name$schema),
+})
 export const FindAccountKeyValueByIdAndKey$codec = core.struct([
   ['id', core.lazy(() => AccountId$codec)],
-  ['key', core.String$codec],
+  ['key', core.lazy(() => Name$codec)],
 ])
 export const FindAccountKeyValueByIdAndKey = (
   input: z.input<typeof FindAccountKeyValueByIdAndKey$schema>,
@@ -1049,20 +1059,23 @@ export const FindAssetDefinitionById = (
 export type FindAssetDefinitionKeyValueByIdAndKey = z.infer<typeof FindAssetDefinitionKeyValueByIdAndKey$schema>
 export const FindAssetDefinitionKeyValueByIdAndKey$schema = z.object({
   id: z.lazy(() => AssetDefinitionId$schema),
-  key: z.string(),
+  key: z.lazy(() => Name$schema),
 })
 export const FindAssetDefinitionKeyValueByIdAndKey$codec = core.struct([
   ['id', core.lazy(() => AssetDefinitionId$codec)],
-  ['key', core.String$codec],
+  ['key', core.lazy(() => Name$codec)],
 ])
 export const FindAssetDefinitionKeyValueByIdAndKey = (
   input: z.input<typeof FindAssetDefinitionKeyValueByIdAndKey$schema>,
 ): FindAssetDefinitionKeyValueByIdAndKey => FindAssetDefinitionKeyValueByIdAndKey$schema.parse(input)
 export type FindAssetKeyValueByIdAndKey = z.infer<typeof FindAssetKeyValueByIdAndKey$schema>
-export const FindAssetKeyValueByIdAndKey$schema = z.object({ id: z.lazy(() => AssetId$schema), key: z.string() })
+export const FindAssetKeyValueByIdAndKey$schema = z.object({
+  id: z.lazy(() => AssetId$schema),
+  key: z.lazy(() => Name$schema),
+})
 export const FindAssetKeyValueByIdAndKey$codec = core.struct([
   ['id', core.lazy(() => AssetId$codec)],
-  ['key', core.String$codec],
+  ['key', core.lazy(() => Name$codec)],
 ])
 export const FindAssetKeyValueByIdAndKey = (
   input: z.input<typeof FindAssetKeyValueByIdAndKey$schema>,
@@ -1105,8 +1118,8 @@ export const FindAssetsByDomainIdAndAssetDefinitionId = (
   input: z.input<typeof FindAssetsByDomainIdAndAssetDefinitionId$schema>,
 ): FindAssetsByDomainIdAndAssetDefinitionId => FindAssetsByDomainIdAndAssetDefinitionId$schema.parse(input)
 export type FindAssetsByName = z.infer<typeof FindAssetsByName$schema>
-export const FindAssetsByName$schema = z.object({ name: z.string() })
-export const FindAssetsByName$codec = core.struct([['name', core.String$codec]])
+export const FindAssetsByName$schema = z.object({ name: z.lazy(() => Name$schema) })
+export const FindAssetsByName$codec = core.struct([['name', core.lazy(() => Name$codec)]])
 export const FindAssetsByName = (input: z.input<typeof FindAssetsByName$schema>): FindAssetsByName =>
   FindAssetsByName$schema.parse(input)
 export type FindBlockHeaderByHash = z.infer<typeof FindBlockHeaderByHash$schema>
@@ -1120,10 +1133,13 @@ export const FindDomainById$codec = core.struct([['id', core.lazy(() => DomainId
 export const FindDomainById = (input: z.input<typeof FindDomainById$schema>): FindDomainById =>
   FindDomainById$schema.parse(input)
 export type FindDomainKeyValueByIdAndKey = z.infer<typeof FindDomainKeyValueByIdAndKey$schema>
-export const FindDomainKeyValueByIdAndKey$schema = z.object({ id: z.lazy(() => DomainId$schema), key: z.string() })
+export const FindDomainKeyValueByIdAndKey$schema = z.object({
+  id: z.lazy(() => DomainId$schema),
+  key: z.lazy(() => Name$schema),
+})
 export const FindDomainKeyValueByIdAndKey$codec = core.struct([
   ['id', core.lazy(() => DomainId$codec)],
-  ['key', core.String$codec],
+  ['key', core.lazy(() => Name$codec)],
 ])
 export const FindDomainKeyValueByIdAndKey = (
   input: z.input<typeof FindDomainKeyValueByIdAndKey$schema>,
@@ -1134,7 +1150,7 @@ export const FindError$schema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('AssetDefinition'), value: z.lazy(() => AssetDefinitionId$schema) }),
   z.object({ t: z.literal('Account'), value: z.lazy(() => AccountId$schema) }),
   z.object({ t: z.literal('Domain'), value: z.lazy(() => DomainId$schema) }),
-  z.object({ t: z.literal('MetadataKey'), value: z.string() }),
+  z.object({ t: z.literal('MetadataKey'), value: z.lazy(() => Name$schema) }),
   z.object({ t: z.literal('Block'), value: z.lazy(() => Hash$schema) }),
   z.object({ t: z.literal('Transaction'), value: z.lazy(() => Hash$schema) }),
   z.object({ t: z.literal('Peer'), value: z.lazy(() => PeerId$schema) }),
@@ -1149,7 +1165,7 @@ export const FindError$codec: core.Codec<FindError> = core.enumeration([
   [1, 'AssetDefinition', core.lazy(() => AssetDefinitionId$codec)],
   [2, 'Account', core.lazy(() => AccountId$codec)],
   [3, 'Domain', core.lazy(() => DomainId$codec)],
-  [4, 'MetadataKey', core.String$codec],
+  [4, 'MetadataKey', core.lazy(() => Name$codec)],
   [5, 'Block', core.lazy(() => Hash$codec)],
   [6, 'Transaction', core.lazy(() => Hash$codec)],
   [7, 'Peer', core.lazy(() => PeerId$codec)],
@@ -1201,10 +1217,13 @@ export const FindTriggerById$codec = core.struct([['id', core.lazy(() => Trigger
 export const FindTriggerById = (input: z.input<typeof FindTriggerById$schema>): FindTriggerById =>
   FindTriggerById$schema.parse(input)
 export type FindTriggerKeyValueByIdAndKey = z.infer<typeof FindTriggerKeyValueByIdAndKey$schema>
-export const FindTriggerKeyValueByIdAndKey$schema = z.object({ id: z.lazy(() => TriggerId$schema), key: z.string() })
+export const FindTriggerKeyValueByIdAndKey$schema = z.object({
+  id: z.lazy(() => TriggerId$schema),
+  key: z.lazy(() => Name$schema),
+})
 export const FindTriggerKeyValueByIdAndKey$codec = core.struct([
   ['id', core.lazy(() => TriggerId$codec)],
-  ['key', core.String$codec],
+  ['key', core.lazy(() => Name$codec)],
 ])
 export const FindTriggerKeyValueByIdAndKey = (
   input: z.input<typeof FindTriggerKeyValueByIdAndKey$schema>,
@@ -1306,9 +1325,9 @@ export const GrantBox$codec: core.Codec<GrantBox> = core.enumeration([
   ],
 ])
 export const GrantBox = (input: z.input<typeof GrantBox$schema>): GrantBox => GrantBox$schema.parse(input)
-export type Hash = core.U8Array<32>
-export const Hash$schema = core.U8Array$schema(32)
-export const Hash$codec = core.U8Array$codec(32)
+export type Hash = z.infer<typeof Hash$schema>
+export const Hash$schema = core.U8Array$schema(32).brand<'Hash'>()
+export const Hash$codec = core.U8Array$codec(32) as core.Codec<Hash>
 export const Hash = (input: z.input<typeof Hash$schema>): Hash => Hash$schema.parse(input)
 export type IdBox = z.infer<typeof IdBox$schema>
 export const IdBox$schema = z.discriminatedUnion('t', [
@@ -1547,16 +1566,16 @@ export const InvalidParameterError$codec: core.Codec<InvalidParameterError> = co
 export const InvalidParameterError = (input: z.input<typeof InvalidParameterError$schema>): InvalidParameterError =>
   InvalidParameterError$schema.parse(input)
 export type IpfsPath = z.infer<typeof IpfsPath$schema>
-export const IpfsPath$schema = z.object({ path: z.string() })
-export const IpfsPath$codec = core.struct([['path', core.String$codec]])
+export const IpfsPath$schema = z.string().brand<'IpfsPath'>()
+export const IpfsPath$codec = core.String$codec as core.Codec<IpfsPath>
 export const IpfsPath = (input: z.input<typeof IpfsPath$schema>): IpfsPath => IpfsPath$schema.parse(input)
-export type Ipv4Addr = core.U8Array<4>
-export const Ipv4Addr$schema = core.U8Array$schema(4)
-export const Ipv4Addr$codec = core.U8Array$codec(4)
+export type Ipv4Addr = z.infer<typeof Ipv4Addr$schema>
+export const Ipv4Addr$schema = core.U8Array$schema(4).brand<'Ipv4Addr'>()
+export const Ipv4Addr$codec = core.U8Array$codec(4) as core.Codec<Ipv4Addr>
 export const Ipv4Addr = (input: z.input<typeof Ipv4Addr$schema>): Ipv4Addr => Ipv4Addr$schema.parse(input)
-export type Ipv6Addr = core.U16Array<8>
-export const Ipv6Addr$schema = core.U16Array$schema(8)
-export const Ipv6Addr$codec = core.U16Array$codec(8)
+export type Ipv6Addr = z.infer<typeof Ipv6Addr$schema>
+export const Ipv6Addr$schema = core.U16Array$schema(8).brand<'Ipv6Addr'>()
+export const Ipv6Addr$codec = core.U16Array$codec(8) as core.Codec<Ipv6Addr>
 export const Ipv6Addr = (input: z.input<typeof Ipv6Addr$schema>): Ipv6Addr => Ipv6Addr$schema.parse(input)
 export type LengthLimits = z.infer<typeof LengthLimits$schema>
 export const LengthLimits$schema = z.object({ min: core.U32$schema, max: core.U32$schema })
@@ -1610,13 +1629,13 @@ export const MathError$codec: core.Codec<MathError> = core.enumeration([
   [6, 'FixedPointConversion', core.String$codec],
 ])
 export const MathError = (input: z.input<typeof MathError$schema>): MathError => MathError$schema.parse(input)
-export type Metadata = core.Map<core.String, MetadataValueBox>
+export type Metadata = core.Map<Name, MetadataValueBox>
 export const Metadata$schema = core.Map$schema(
-  z.string(),
+  z.lazy(() => Name$schema),
   z.lazy(() => MetadataValueBox$schema),
 )
 export const Metadata$codec = core.Map$codec(
-  core.String$codec,
+  core.lazy(() => Name$codec),
   core.lazy(() => MetadataValueBox$codec),
 )
 export const Metadata = (input: z.input<typeof Metadata$schema>): Metadata => Metadata$schema.parse(input)
@@ -1638,22 +1657,22 @@ export const MetadataError$schema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('EmptyPath') }),
   z.object({ t: z.literal('EntryTooBig'), value: z.lazy(() => SizeError$schema) }),
   z.object({ t: z.literal('MaxCapacity'), value: z.lazy(() => SizeError$schema) }),
-  z.object({ t: z.literal('MissingSegment'), value: z.string() }),
-  z.object({ t: z.literal('InvalidSegment'), value: z.string() }),
+  z.object({ t: z.literal('MissingSegment'), value: z.lazy(() => Name$schema) }),
+  z.object({ t: z.literal('InvalidSegment'), value: z.lazy(() => Name$schema) }),
 ])
 export const MetadataError$codec: core.Codec<MetadataError> = core.enumeration([
   [0, 'EmptyPath'],
   [1, 'EntryTooBig', core.lazy(() => SizeError$codec)],
   [2, 'MaxCapacity', core.lazy(() => SizeError$codec)],
-  [3, 'MissingSegment', core.String$codec],
-  [4, 'InvalidSegment', core.String$codec],
+  [3, 'MissingSegment', core.lazy(() => Name$codec)],
+  [4, 'InvalidSegment', core.lazy(() => Name$codec)],
 ])
 export const MetadataError = (input: z.input<typeof MetadataError$schema>): MetadataError =>
   MetadataError$schema.parse(input)
 export type MetadataValueBox =
   | { t: 'Bool'; value: core.Bool }
   | { t: 'String'; value: core.String }
-  | { t: 'Name'; value: core.String }
+  | { t: 'Name'; value: Name }
   | { t: 'Bytes'; value: core.BytesVec }
   | { t: 'Numeric'; value: Numeric }
   | { t: 'LimitedMetadata'; value: Metadata }
@@ -1661,7 +1680,7 @@ export type MetadataValueBox =
 type MetadataValueBox$input =
   | { t: 'Bool'; value: z.input<z.ZodBoolean> }
   | { t: 'String'; value: z.input<z.ZodString> }
-  | { t: 'Name'; value: z.input<z.ZodString> }
+  | { t: 'Name'; value: z.input<typeof Name$schema> }
   | { t: 'Bytes'; value: z.input<typeof core.BytesVec$schema> }
   | { t: 'Numeric'; value: z.input<typeof Numeric$schema> }
   | { t: 'LimitedMetadata'; value: z.input<typeof Metadata$schema> }
@@ -1670,7 +1689,7 @@ export const MetadataValueBox$schema: z.ZodType<MetadataValueBox, z.ZodTypeDef, 
   z.discriminatedUnion('t', [
     z.object({ t: z.literal('Bool'), value: z.boolean() }),
     z.object({ t: z.literal('String'), value: z.string() }),
-    z.object({ t: z.literal('Name'), value: z.string() }),
+    z.object({ t: z.literal('Name'), value: z.lazy(() => Name$schema) }),
     z.object({ t: z.literal('Bytes'), value: core.BytesVec$schema }),
     z.object({ t: z.literal('Numeric'), value: z.lazy(() => Numeric$schema) }),
     z.object({ t: z.literal('LimitedMetadata'), value: z.lazy(() => Metadata$schema) }),
@@ -1679,7 +1698,7 @@ export const MetadataValueBox$schema: z.ZodType<MetadataValueBox, z.ZodTypeDef, 
 export const MetadataValueBox$codec: core.Codec<MetadataValueBox> = core.enumeration([
   [0, 'Bool', core.Bool$codec],
   [1, 'String', core.String$codec],
-  [2, 'Name', core.String$codec],
+  [2, 'Name', core.lazy(() => Name$codec)],
   [3, 'Bytes', core.BytesVec$codec],
   [4, 'Numeric', core.lazy(() => Numeric$codec)],
   [5, 'LimitedMetadata', core.lazy(() => Metadata$codec)],
@@ -1754,6 +1773,10 @@ export type Mintable = z.infer<typeof Mintable$schema>
 export const Mintable$schema = z.union([z.literal('Infinitely'), z.literal('Once'), z.literal('Not')])
 export const Mintable$codec = core.enumerationSimpleUnion<Mintable>({ Infinitely: 0, Once: 1, Not: 2 })
 export const Mintable = (input: z.input<typeof Mintable$schema>): Mintable => Mintable$schema.parse(input)
+export type Name = z.infer<typeof Name$schema>
+export const Name$schema = z.string().brand<'Name'>()
+export const Name$codec = core.String$codec as core.Codec<Name>
+export const Name = (input: z.input<typeof Name$schema>): Name => Name$schema.parse(input)
 export type NewAccount = z.infer<typeof NewAccount$schema>
 export const NewAccount$schema = z.object({
   id: z.lazy(() => AccountId$schema),
@@ -1834,8 +1857,8 @@ export const Parameter$codec = core.struct([
 ])
 export const Parameter = (input: z.input<typeof Parameter$schema>): Parameter => Parameter$schema.parse(input)
 export type ParameterId = z.infer<typeof ParameterId$schema>
-export const ParameterId$schema = z.object({ name: z.string() })
-export const ParameterId$codec = core.struct([['name', core.String$codec]])
+export const ParameterId$schema = z.object({ name: z.lazy(() => Name$schema) })
+export const ParameterId$codec = core.struct([['name', core.lazy(() => Name$codec)]])
 export const ParameterId = (input: z.input<typeof ParameterId$schema>): ParameterId => ParameterId$schema.parse(input)
 export type ParameterValueBox = z.infer<typeof ParameterValueBox$schema>
 export const ParameterValueBox$schema = z.discriminatedUnion('t', [
@@ -1903,8 +1926,8 @@ export const Permission$codec = core.struct([
 ])
 export const Permission = (input: z.input<typeof Permission$schema>): Permission => Permission$schema.parse(input)
 export type PermissionId = z.infer<typeof PermissionId$schema>
-export const PermissionId$schema = z.object({ name: z.string() })
-export const PermissionId$codec = core.struct([['name', core.String$codec]])
+export const PermissionId$schema = z.lazy(() => Name$schema).brand<'PermissionId'>()
+export const PermissionId$codec = core.lazy(() => Name$codec) as core.Codec<PermissionId>
 export const PermissionId = (input: z.input<typeof PermissionId$schema>): PermissionId =>
   PermissionId$schema.parse(input)
 export type PipelineEventBox = z.infer<typeof PipelineEventBox$schema>
@@ -2171,13 +2194,13 @@ export const QueryOutputPredicate = (input: z.input<typeof QueryOutputPredicate$
   QueryOutputPredicate$schema.parse(input)
 export type RawGenesisTransaction = z.infer<typeof RawGenesisTransaction$schema>
 export const RawGenesisTransaction$schema = z.object({
-  chain: z.string(),
+  chain: z.lazy(() => ChainId$schema),
   executor: z.string(),
   instructions: core.Vec$schema(z.lazy(() => InstructionBox$schema)),
   topology: core.Vec$schema(z.lazy(() => PeerId$schema)),
 })
 export const RawGenesisTransaction$codec = core.struct([
-  ['chain', core.String$codec],
+  ['chain', core.lazy(() => ChainId$codec)],
   ['executor', core.String$codec],
   ['instructions', core.Vec$codec(core.lazy(() => InstructionBox$codec))],
   ['topology', core.Vec$codec(core.lazy(() => PeerId$codec))],
@@ -2394,8 +2417,8 @@ export const RoleEventSet$codec = core.bitmap<RoleEventSet extends Set<infer T> 
 export const RoleEventSet = (input: z.input<typeof RoleEventSet$schema>): RoleEventSet =>
   RoleEventSet$schema.parse(input)
 export type RoleId = z.infer<typeof RoleId$schema>
-export const RoleId$schema = z.object({ name: z.string() })
-export const RoleId$codec = core.struct([['name', core.String$codec]])
+export const RoleId$schema = z.lazy(() => Name$schema).brand<'RoleId'>()
+export const RoleId$codec = core.lazy(() => Name$codec) as core.Codec<RoleId>
 export const RoleId = (input: z.input<typeof RoleId$schema>): RoleId => RoleId$schema.parse(input)
 export type RolePermissionChanged = z.infer<typeof RolePermissionChanged$schema>
 export const RolePermissionChanged$schema = z.object({
@@ -2474,9 +2497,9 @@ export const SetParameter$schema = z.object({ parameter: z.lazy(() => Parameter$
 export const SetParameter$codec = core.struct([['parameter', core.lazy(() => Parameter$codec)]])
 export const SetParameter = (input: z.input<typeof SetParameter$schema>): SetParameter =>
   SetParameter$schema.parse(input)
-export type Signature = core.BytesVec
-export const Signature$schema = core.BytesVec$schema
-export const Signature$codec = core.BytesVec$codec
+export type Signature = z.infer<typeof Signature$schema>
+export const Signature$schema = core.BytesVec$schema.brand<'Signature'>()
+export const Signature$codec = core.BytesVec$codec as core.Codec<Signature>
 export const Signature = (input: z.input<typeof Signature$schema>): Signature => Signature$schema.parse(input)
 export type SignedBlock = z.infer<typeof SignedBlock$schema>
 export const SignedBlock$schema = z.discriminatedUnion('t', [
@@ -2580,8 +2603,8 @@ export const SocketAddrV6$codec = core.struct([
 export const SocketAddrV6 = (input: z.input<typeof SocketAddrV6$schema>): SocketAddrV6 =>
   SocketAddrV6$schema.parse(input)
 export type Sorting = z.infer<typeof Sorting$schema>
-export const Sorting$schema = z.object({ sortByMetadataKey: core.Option$schema(z.string()) })
-export const Sorting$codec = core.struct([['sortByMetadataKey', core.Option$codec(core.String$codec)]])
+export const Sorting$schema = z.object({ sortByMetadataKey: core.Option$schema(z.lazy(() => Name$schema)) })
+export const Sorting$codec = core.struct([['sortByMetadataKey', core.Option$codec(core.lazy(() => Name$codec))]])
 export const Sorting = (input: z.input<typeof Sorting$schema>): Sorting => Sorting$schema.parse(input)
 export type StringPredicate = z.infer<typeof StringPredicate$schema>
 export const StringPredicate$schema = z.discriminatedUnion('t', [
@@ -2663,19 +2686,19 @@ export const TransactionLimits = (input: z.input<typeof TransactionLimits$schema
   TransactionLimits$schema.parse(input)
 export type TransactionPayload = z.infer<typeof TransactionPayload$schema>
 export const TransactionPayload$schema = z.object({
-  chain: z.string(),
+  chain: z.lazy(() => ChainId$schema),
   authority: z.lazy(() => AccountId$schema),
   creationTimeMs: core.U64$schema,
   instructions: z.lazy(() => Executable$schema),
   timeToLiveMs: core.Option$schema(core.NonZero$schema(core.U64$schema)),
   nonce: core.Option$schema(core.NonZero$schema(core.U32$schema)),
   metadata: core.Map$schema(
-    z.string(),
+    z.lazy(() => Name$schema),
     z.lazy(() => MetadataValueBox$schema),
   ),
 })
 export const TransactionPayload$codec = core.struct([
-  ['chain', core.String$codec],
+  ['chain', core.lazy(() => ChainId$codec)],
   ['authority', core.lazy(() => AccountId$codec)],
   ['creationTimeMs', core.U64$codec],
   ['instructions', core.lazy(() => Executable$codec)],
@@ -2684,7 +2707,7 @@ export const TransactionPayload$codec = core.struct([
   [
     'metadata',
     core.Map$codec(
-      core.String$codec,
+      core.lazy(() => Name$codec),
       core.lazy(() => MetadataValueBox$codec),
     ),
   ],
@@ -2911,8 +2934,8 @@ export const TriggerEventSet$codec = core.bitmap<TriggerEventSet extends Set<inf
 export const TriggerEventSet = (input: z.input<typeof TriggerEventSet$schema>): TriggerEventSet =>
   TriggerEventSet$schema.parse(input)
 export type TriggerId = z.infer<typeof TriggerId$schema>
-export const TriggerId$schema = z.object({ name: z.string() })
-export const TriggerId$codec = core.struct([['name', core.String$codec]])
+export const TriggerId$schema = z.lazy(() => Name$schema).brand<'TriggerId'>()
+export const TriggerId$codec = core.lazy(() => Name$codec) as core.Codec<TriggerId>
 export const TriggerId = (input: z.input<typeof TriggerId$schema>): TriggerId => TriggerId$schema.parse(input)
 export type TriggerNumberOfExecutionsChanged = z.infer<typeof TriggerNumberOfExecutionsChanged$schema>
 export const TriggerNumberOfExecutionsChanged$schema = z.object({

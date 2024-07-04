@@ -126,6 +126,7 @@ function transform(schema: Schema): ActualCodegenSchema {
         { name: 'value', type: { t: 'ref', id: 'MetadataValueBox' } },
       ],
     },
+    // TODO: move to transform definition
     {
       t: 'struct',
       id: 'EventSubscriptionRequest',
@@ -171,7 +172,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
     })
     .with([{ id: 'Signature' }, { Struct: [{ name: 'payload', type: 'Vec<u8>' }] }], () => [
       {
-        t: 'alias',
+        t: 'branded-alias',
         id: 'Signature',
         to: transformIdent('Vec<u8>'),
       },
@@ -254,11 +255,24 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
     ])
     .with([{ id: 'IpfsPath' }, 'String'], ([{ id }]) => [
       {
-        t: 'struct',
+        t: 'branded-alias',
         id,
-        fields: [{ name: 'path', type: { t: 'lib', id: 'String' } }],
+        to: { t: 'lib', id: 'String' },
       },
     ])
+    .with(
+      [
+        { id: P.union('DomainId', 'PermissionId', 'TriggerId', 'RoleId').select() },
+        { Struct: [{ name: 'name', type: 'Name' }] },
+      ],
+      (id) => [
+        {
+          t: 'branded-alias',
+          id,
+          to: { t: 'ref', id: 'Name' },
+        },
+      ],
+    )
     .with([P._, { Struct: P._ }], ([{ id }, { Struct: fields }]) => {
       return [
         {
@@ -324,6 +338,13 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         },
       ],
     )
+    .with([{ id: P.union('ChainId', 'Name') }, 'String'], ([{ id }]) => [
+      {
+        t: 'branded-alias',
+        id,
+        to: { t: 'lib', id: 'String' },
+      },
+    ])
     .with([P._, P.string], ([type, aliasTo]) => {
       const aliasParsed = transformIdent(aliasTo)
 
@@ -331,9 +352,13 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         // it is a redundant self-alias. hard to formulate "why"... just is
         return []
 
+      const branded = match(type.id)
+        .with(P.union('Hash', 'Ipv4Addr', 'Ipv6Addr'), () => true)
+        .otherwise(() => false)
+
       return [
         {
-          t: 'alias',
+          t: branded ? 'branded-alias' : 'alias',
           id: type.id,
           to: aliasParsed,
         },
@@ -460,7 +485,7 @@ function transformIdent(id: string | Ident): TypeIdent {
     .with({ id: 'EventMessage', items: [] }, () => ({ t: 'ref', id: 'EventBox' }))
     .with({ id: 'Compact' }, () => ({ t: 'lib', id: 'Compact' }))
     .with({ id: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
-    .with({ id: P.union('Name', 'ChainId', 'String'), items: [] }, () => ({ t: 'lib', id: 'String' }))
+    .with({ id: P.union('String'), items: [] }, () => ({ t: 'lib', id: 'String' }))
     .with({ id: P.union('u8', 'u16', 'u32', 'u64', 'u128') }, ({ id }) => ({
       t: 'lib',
       id: upcase(id),
@@ -520,9 +545,12 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
     }))
     .with({ t: 'lib', generics: P.array() }, ({ id, generics }) => {
       const maybeRemoveDefault = (params?.removeDefault ?? false) && id === 'Vec' ? '.removeDefault()' : ''
+      const typeGenerics = match({ id, generics })
+        .with({ id: P.union('U8Array', 'U16Array'), generics: [{ t: 'lit' }] }, () => '')
+        .otherwise(() => `<${generics.map((x) => generateIdent(x).type).join(', ')}>`)
 
       return {
-        type: `core.${id}<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
+        type: `core.${id}${typeGenerics}`,
         codec: `core.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
         schema: `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
         typeofSchema: `ReturnType<typeof core.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
@@ -609,7 +637,8 @@ function generateParseFn(id: string) {
  * - query payload:
  *   - default pagination with nones
  * - Discriminated unions: extend objects??
- * - unify Ids as BrandedStrings
+ * - implement conversions between ids/names via zod transform!
+ * - ip adds with string inputs! and make them strict-sized numeric tuples
  */
 function generateSingleEntry(item: CodegenEntry): string {
   return match(item)
