@@ -13,7 +13,7 @@ export function generate(schema: Schema): string {
 type ActualCodegenSchema = CodegenEntry[]
 
 type CodegenEntry = { id: string } & (
-  | { t: 'enum'; breakRecursion: boolean; variants: CodegenEnumVariant[] }
+  | { t: 'enum'; mode: 'explicit' | 'normal'; variants: CodegenEnumVariant[] }
   | { t: 'struct'; fields: { name: string; type: TypeIdent }[] }
   | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: CodegenGenericTypeRef }[] }
   | { t: 'bitmap'; repr: LibCodec; masks: { name: string; mask: number }[] }
@@ -238,18 +238,19 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
       ]
     })
     .with([P._, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
-      const breakRecursion = match(id)
+      const mode = match(id)
+        .returnType<(CodegenEntry & { t: 'enum' })['mode']>()
         .with(
-          P.union('PredicateBox', 'QueryOutputPredicate', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox'),
-          () => true,
+          P.union('PredicateBox', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox', 'QueryOutputPredicate'),
+          () => 'explicit',
         )
-        .otherwise(() => false)
+        .otherwise(() => 'normal')
 
       return [
         {
           t: 'enum',
           id,
-          breakRecursion,
+          mode,
           variants: variants.map((x) =>
             match(x)
               .returnType<CodegenEnumVariant>()
@@ -465,7 +466,7 @@ interface IdentGenerated {
   typeofSchema: string
 }
 
-function generateIdent(ident: TypeIdent): IdentGenerated {
+function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): IdentGenerated {
   return match(ident)
     .returnType<IdentGenerated>()
     .with({ t: 'ref', generics: P.array() }, ({ id, generics }) => {
@@ -483,32 +484,39 @@ function generateIdent(ident: TypeIdent): IdentGenerated {
       typeofSchema: `typeof ${id}$schema`,
     }))
     .with({ t: 'lib', generics: P.array() }, ({ id, generics }) => {
+      const maybeRemoveDefault = (params?.removeDefault ?? false) && id === 'Vec' ? '.removeDefault()' : ''
+
       return {
         type: `core.${id}<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
         codec: `core.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
-        schema: `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})`,
+        schema: `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
         typeofSchema: `ReturnType<typeof core.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
-    .with({ t: 'lib' }, ({ id }) => ({
-      type: `core.${id}`,
-      codec: `core.${id}$codec`,
-      schema: match(id)
-        .with('String', () => `z.string()`)
-        .with('Bool', () => `z.boolean()`)
-        .otherwise(() => `core.${id}$schema`),
-      typeofSchema: `typeof core.${id}$schema`,
-    }))
+    .with({ t: 'lib' }, ({ id }) => {
+      return {
+        type: `core.${id}`,
+        codec: `core.${id}$codec`,
+        schema: match(id)
+          .with('String', () => `z.string()`)
+          .with('Bool', () => `z.boolean()`)
+          .otherwise(() => `core.${id}$schema`),
+        typeofSchema: match(id)
+          .with('String', () => `z.ZodString`)
+          .with('Bool', () => `z.ZodBoolean`)
+          .otherwise(() => `typeof core.${id}$schema`),
+      }
+    })
     .with({ t: 'lit' }, ({ literal }) => ({ type: literal, codec: literal, schema: literal, typeofSchema: literal }))
     .exhaustive()
 }
 
-function generateActualEnumSchema(variants: CodegenEnumVariant[]): string {
+function generateActualEnumSchema(variants: CodegenEnumVariant[], params?: { removeDefault?: boolean }): string {
   const options = variants.map((variant) => {
     return match(variant)
       .with(
         { t: 'with-type' },
-        ({ tag, type }) => `z.object({ t: z.literal('${tag}'), value: ${generateIdent(type).schema} })`,
+        ({ tag, type }) => `z.object({ t: z.literal('${tag}'), value: ${generateIdent(type, params).schema} })`,
       )
       .with({ t: 'unit' }, ({ tag }) => `z.object({ t: z.literal('${tag}') })`)
       .exhaustive()
@@ -531,41 +539,46 @@ function generateActualEnumCodec(variants: CodegenEnumVariant[]): string {
   return `core.enumeration([${options.join(', ')}])`
 }
 
+function generateActualEnumExplicitTypes(variants: CodegenEnumVariant[]) {
+  const typeInputOutput = variants
+    .map((variant) =>
+      match(variant)
+        .with({ t: 'unit' }, ({ tag }) => `{ t: '${tag}' }`)
+        .with({ t: 'with-type' }, ({ tag, type }) => ({
+          output: `{ t: '${tag}', value: ${generateIdent(type).type} }`,
+          input: `{ t: '${tag}', value: z.input<${generateIdent(type).typeofSchema}> }`,
+        }))
+        .exhaustive(),
+    )
+    .map((x) =>
+      match(x)
+        .with(P.string, (output) => ({ output, input: output }))
+        .otherwise((x) => x),
+    )
+
+  const output = typeInputOutput.map((x) => x.output).join(' | ')
+  const input = typeInputOutput.map((x) => x.input).join(' | ')
+
+  return { input, output }
+}
+
 function generateSingleEntry(item: CodegenEntry): string {
   return match(item)
     .returnType<string[]>()
-    .with({ t: 'enum', breakRecursion: false }, ({ variants, id }) => {
+    .with({ t: 'enum', mode: 'normal' }, ({ variants, id }) => {
       return [
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         `export const ${id}$schema  = ${generateActualEnumSchema(variants)}`,
         `export const ${id}$codec: core.Codec<${id}> = ${generateActualEnumCodec(variants)}`,
       ]
     })
-    .with({ t: 'enum', breakRecursion: true }, ({ id, variants }) => {
-      const typeInputOutput = variants
-        .map((variant) =>
-          match(variant)
-            .with({ t: 'unit' }, ({ tag }) => `{ t: '${tag}' }`)
-            .with({ t: 'with-type' }, ({ tag, type }) => ({
-              output: `{ t: '${tag}', value: ${generateIdent(type).type} }`,
-              input: `core.EnumOptionInput<'${tag}', ${generateIdent(type).typeofSchema}>`,
-            }))
-            .exhaustive(),
-        )
-        .map((x) =>
-          match(x)
-            .with(P.string, (output) => ({ output, input: output }))
-            .otherwise((x) => x),
-        )
-
-      const typeOutput = typeInputOutput.map((x) => x.output).join(' | ')
-      const typeInput = typeInputOutput.map((x) => x.input).join(' | ')
-
+    .with({ t: 'enum', mode: 'explicit' }, ({ id, variants }) => {
+      const type = generateActualEnumExplicitTypes(variants)
       return [
-        `export interface ${id} { enum: ${typeOutput} }`,
-        `interface ${id}$input { enum: ${typeInput} }`,
-        `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = z.object({ enum: ${generateActualEnumSchema(variants)} })`,
-        `export const ${id}$codec: core.Codec<${id}> = core.struct([['enum', ${generateActualEnumCodec(variants)}]])`,
+        `export type ${id} = ${type.output}`,
+        `type ${id}$input = ${type.input}`,
+        `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = ${generateActualEnumSchema(variants, { removeDefault: true })}`,
+        `export const ${id}$codec: core.Codec<${id}> = ${generateActualEnumCodec(variants)}`,
       ]
     })
     .with({ t: 'struct' }, ({ id, fields }) => {

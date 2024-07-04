@@ -1,20 +1,18 @@
-import { Compact, U32 } from './codecs'
-import { structCodec, toCodec, wrapCodec } from './core'
+import * as coreDatamodel from './core-datamodel'
+import { struct } from './core'
 
-export * from './__generated__'
-export * from './codecs'
+export * from './generated'
+export * from './core-datamodel'
 
 export interface Uptime {
   secs: bigint
   nanos: number
 }
 
-export const Uptime = wrapCodec(
-  structCodec<Uptime>([
-    ['secs', toCodec(Compact)],
-    ['nanos', toCodec(U32)],
-  ]),
-)
+export const Uptime$codec = struct<Uptime>([
+  ['secs', coreDatamodel.Compact$codec],
+  ['nanos', coreDatamodel.U32$codec],
+])
 
 /**
  * [`/status`](https://hyperledger.github.io/iroha-2-docs/reference/torii-endpoints.html#status) endpoint response
@@ -29,14 +27,12 @@ export interface Status {
   queueSize: bigint
 }
 
-export const Status = wrapCodec(
-  structCodec<Status>([
-    ['peers', toCodec(Compact)],
-    ['blocks', toCodec(Compact)],
-    ['txsAccepted', toCodec(Compact)],
-    ['txsRejected', toCodec(Compact)],
-    ['uptime', toCodec(Uptime)],
-    ['viewChanges', toCodec(Compact)],
-    ['queueSize', toCodec(Compact)],
-  ]),
-)
+export const Status = struct<Status>([
+  ['peers', coreDatamodel.Compact$codec],
+  ['blocks', coreDatamodel.Compact$codec],
+  ['txsAccepted', coreDatamodel.Compact$codec],
+  ['txsRejected', coreDatamodel.Compact$codec],
+  ['uptime', Uptime$codec],
+  ['viewChanges', coreDatamodel.Compact$codec],
+  ['queueSize', coreDatamodel.Compact$codec],
+])

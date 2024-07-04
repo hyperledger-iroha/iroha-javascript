@@ -1168,46 +1168,42 @@ export const IdentifiableBox$codec: core.Codec<IdentifiableBox> = core.enumerati
   [10, 'Role', core.lazy(() => Role$codec)],
   [11, 'Parameter', core.lazy(() => Parameter$codec)],
 ])
-export interface InstructionBox {
-  enum:
-    | { t: 'Register'; value: RegisterBox }
-    | { t: 'Unregister'; value: UnregisterBox }
-    | { t: 'Mint'; value: MintBox }
-    | { t: 'Burn'; value: BurnBox }
-    | { t: 'Transfer'; value: TransferBox }
-    | { t: 'SetKeyValue'; value: SetKeyValueBox }
-    | { t: 'RemoveKeyValue'; value: RemoveKeyValueBox }
-    | { t: 'Grant'; value: GrantBox }
-    | { t: 'Revoke'; value: RevokeBox }
-    | { t: 'ExecuteTrigger'; value: ExecuteTrigger }
-    | { t: 'SetParameter'; value: SetParameter }
-    | { t: 'NewParameter'; value: NewParameter }
-    | { t: 'Upgrade'; value: Upgrade }
-    | { t: 'Log'; value: Log }
-    | { t: 'Custom'; value: Custom }
-    | { t: 'Fail'; value: Fail }
-}
-interface InstructionBox$input {
-  enum:
-    | core.EnumOptionInput<'Register', typeof RegisterBox$schema>
-    | core.EnumOptionInput<'Unregister', typeof UnregisterBox$schema>
-    | core.EnumOptionInput<'Mint', typeof MintBox$schema>
-    | core.EnumOptionInput<'Burn', typeof BurnBox$schema>
-    | core.EnumOptionInput<'Transfer', typeof TransferBox$schema>
-    | core.EnumOptionInput<'SetKeyValue', typeof SetKeyValueBox$schema>
-    | core.EnumOptionInput<'RemoveKeyValue', typeof RemoveKeyValueBox$schema>
-    | core.EnumOptionInput<'Grant', typeof GrantBox$schema>
-    | core.EnumOptionInput<'Revoke', typeof RevokeBox$schema>
-    | core.EnumOptionInput<'ExecuteTrigger', typeof ExecuteTrigger$schema>
-    | core.EnumOptionInput<'SetParameter', typeof SetParameter$schema>
-    | core.EnumOptionInput<'NewParameter', typeof NewParameter$schema>
-    | core.EnumOptionInput<'Upgrade', typeof Upgrade$schema>
-    | core.EnumOptionInput<'Log', typeof Log$schema>
-    | core.EnumOptionInput<'Custom', typeof Custom$schema>
-    | core.EnumOptionInput<'Fail', typeof Fail$schema>
-}
-export const InstructionBox$schema: z.ZodType<InstructionBox, z.ZodTypeDef, InstructionBox$input> = z.object({
-  enum: z.discriminatedUnion('t', [
+export type InstructionBox =
+  | { t: 'Register'; value: RegisterBox }
+  | { t: 'Unregister'; value: UnregisterBox }
+  | { t: 'Mint'; value: MintBox }
+  | { t: 'Burn'; value: BurnBox }
+  | { t: 'Transfer'; value: TransferBox }
+  | { t: 'SetKeyValue'; value: SetKeyValueBox }
+  | { t: 'RemoveKeyValue'; value: RemoveKeyValueBox }
+  | { t: 'Grant'; value: GrantBox }
+  | { t: 'Revoke'; value: RevokeBox }
+  | { t: 'ExecuteTrigger'; value: ExecuteTrigger }
+  | { t: 'SetParameter'; value: SetParameter }
+  | { t: 'NewParameter'; value: NewParameter }
+  | { t: 'Upgrade'; value: Upgrade }
+  | { t: 'Log'; value: Log }
+  | { t: 'Custom'; value: Custom }
+  | { t: 'Fail'; value: Fail }
+type InstructionBox$input =
+  | { t: 'Register'; value: z.input<typeof RegisterBox$schema> }
+  | { t: 'Unregister'; value: z.input<typeof UnregisterBox$schema> }
+  | { t: 'Mint'; value: z.input<typeof MintBox$schema> }
+  | { t: 'Burn'; value: z.input<typeof BurnBox$schema> }
+  | { t: 'Transfer'; value: z.input<typeof TransferBox$schema> }
+  | { t: 'SetKeyValue'; value: z.input<typeof SetKeyValueBox$schema> }
+  | { t: 'RemoveKeyValue'; value: z.input<typeof RemoveKeyValueBox$schema> }
+  | { t: 'Grant'; value: z.input<typeof GrantBox$schema> }
+  | { t: 'Revoke'; value: z.input<typeof RevokeBox$schema> }
+  | { t: 'ExecuteTrigger'; value: z.input<typeof ExecuteTrigger$schema> }
+  | { t: 'SetParameter'; value: z.input<typeof SetParameter$schema> }
+  | { t: 'NewParameter'; value: z.input<typeof NewParameter$schema> }
+  | { t: 'Upgrade'; value: z.input<typeof Upgrade$schema> }
+  | { t: 'Log'; value: z.input<typeof Log$schema> }
+  | { t: 'Custom'; value: z.input<typeof Custom$schema> }
+  | { t: 'Fail'; value: z.input<typeof Fail$schema> }
+export const InstructionBox$schema: z.ZodType<InstructionBox, z.ZodTypeDef, InstructionBox$input> =
+  z.discriminatedUnion('t', [
     z.object({ t: z.literal('Register'), value: z.lazy(() => RegisterBox$schema) }),
     z.object({ t: z.literal('Unregister'), value: z.lazy(() => UnregisterBox$schema) }),
     z.object({ t: z.literal('Mint'), value: z.lazy(() => MintBox$schema) }),
@@ -1224,30 +1220,24 @@ export const InstructionBox$schema: z.ZodType<InstructionBox, z.ZodTypeDef, Inst
     z.object({ t: z.literal('Log'), value: z.lazy(() => Log$schema) }),
     z.object({ t: z.literal('Custom'), value: z.lazy(() => Custom$schema) }),
     z.object({ t: z.literal('Fail'), value: z.lazy(() => Fail$schema) }),
-  ]),
-})
-export const InstructionBox$codec: core.Codec<InstructionBox> = core.struct([
-  [
-    'enum',
-    core.enumeration([
-      [0, 'Register', core.lazy(() => RegisterBox$codec)],
-      [1, 'Unregister', core.lazy(() => UnregisterBox$codec)],
-      [2, 'Mint', core.lazy(() => MintBox$codec)],
-      [3, 'Burn', core.lazy(() => BurnBox$codec)],
-      [4, 'Transfer', core.lazy(() => TransferBox$codec)],
-      [5, 'SetKeyValue', core.lazy(() => SetKeyValueBox$codec)],
-      [6, 'RemoveKeyValue', core.lazy(() => RemoveKeyValueBox$codec)],
-      [7, 'Grant', core.lazy(() => GrantBox$codec)],
-      [8, 'Revoke', core.lazy(() => RevokeBox$codec)],
-      [9, 'ExecuteTrigger', core.lazy(() => ExecuteTrigger$codec)],
-      [10, 'SetParameter', core.lazy(() => SetParameter$codec)],
-      [11, 'NewParameter', core.lazy(() => NewParameter$codec)],
-      [12, 'Upgrade', core.lazy(() => Upgrade$codec)],
-      [13, 'Log', core.lazy(() => Log$codec)],
-      [14, 'Custom', core.lazy(() => Custom$codec)],
-      [15, 'Fail', core.lazy(() => Fail$codec)],
-    ]),
-  ],
+  ])
+export const InstructionBox$codec: core.Codec<InstructionBox> = core.enumeration([
+  [0, 'Register', core.lazy(() => RegisterBox$codec)],
+  [1, 'Unregister', core.lazy(() => UnregisterBox$codec)],
+  [2, 'Mint', core.lazy(() => MintBox$codec)],
+  [3, 'Burn', core.lazy(() => BurnBox$codec)],
+  [4, 'Transfer', core.lazy(() => TransferBox$codec)],
+  [5, 'SetKeyValue', core.lazy(() => SetKeyValueBox$codec)],
+  [6, 'RemoveKeyValue', core.lazy(() => RemoveKeyValueBox$codec)],
+  [7, 'Grant', core.lazy(() => GrantBox$codec)],
+  [8, 'Revoke', core.lazy(() => RevokeBox$codec)],
+  [9, 'ExecuteTrigger', core.lazy(() => ExecuteTrigger$codec)],
+  [10, 'SetParameter', core.lazy(() => SetParameter$codec)],
+  [11, 'NewParameter', core.lazy(() => NewParameter$codec)],
+  [12, 'Upgrade', core.lazy(() => Upgrade$codec)],
+  [13, 'Log', core.lazy(() => Log$codec)],
+  [14, 'Custom', core.lazy(() => Custom$codec)],
+  [15, 'Fail', core.lazy(() => Fail$codec)],
 ])
 export type InstructionEvaluationError = z.infer<typeof InstructionEvaluationError$schema>
 export const InstructionEvaluationError$schema = z.discriminatedUnion('t', [
@@ -1442,50 +1432,40 @@ export const MetadataError$codec: core.Codec<MetadataError> = core.enumeration([
   [3, 'MissingSegment', core.String$codec],
   [4, 'InvalidSegment', core.String$codec],
 ])
-export interface MetadataValueBox {
-  enum:
-    | { t: 'Bool'; value: core.Bool }
-    | { t: 'String'; value: core.String }
-    | { t: 'Name'; value: core.String }
-    | { t: 'Bytes'; value: core.BytesVec }
-    | { t: 'Numeric'; value: Numeric }
-    | { t: 'LimitedMetadata'; value: Metadata }
-    | { t: 'Vec'; value: core.Vec<MetadataValueBox> }
-}
-interface MetadataValueBox$input {
-  enum:
-    | core.EnumOptionInput<'Bool', typeof core.Bool$schema>
-    | core.EnumOptionInput<'String', typeof core.String$schema>
-    | core.EnumOptionInput<'Name', typeof core.String$schema>
-    | core.EnumOptionInput<'Bytes', typeof core.BytesVec$schema>
-    | core.EnumOptionInput<'Numeric', typeof Numeric$schema>
-    | core.EnumOptionInput<'LimitedMetadata', typeof Metadata$schema>
-    | core.EnumOptionInput<'Vec', ReturnType<typeof core.Vec$schema<typeof MetadataValueBox$schema>>>
-}
-export const MetadataValueBox$schema: z.ZodType<MetadataValueBox, z.ZodTypeDef, MetadataValueBox$input> = z.object({
-  enum: z.discriminatedUnion('t', [
+export type MetadataValueBox =
+  | { t: 'Bool'; value: core.Bool }
+  | { t: 'String'; value: core.String }
+  | { t: 'Name'; value: core.String }
+  | { t: 'Bytes'; value: core.BytesVec }
+  | { t: 'Numeric'; value: Numeric }
+  | { t: 'LimitedMetadata'; value: Metadata }
+  | { t: 'Vec'; value: core.Vec<MetadataValueBox> }
+type MetadataValueBox$input =
+  | { t: 'Bool'; value: z.input<z.ZodBoolean> }
+  | { t: 'String'; value: z.input<z.ZodString> }
+  | { t: 'Name'; value: z.input<z.ZodString> }
+  | { t: 'Bytes'; value: z.input<typeof core.BytesVec$schema> }
+  | { t: 'Numeric'; value: z.input<typeof Numeric$schema> }
+  | { t: 'LimitedMetadata'; value: z.input<typeof Metadata$schema> }
+  | { t: 'Vec'; value: z.input<ReturnType<typeof core.Vec$schema<typeof MetadataValueBox$schema>>> }
+export const MetadataValueBox$schema: z.ZodType<MetadataValueBox, z.ZodTypeDef, MetadataValueBox$input> =
+  z.discriminatedUnion('t', [
     z.object({ t: z.literal('Bool'), value: z.boolean() }),
     z.object({ t: z.literal('String'), value: z.string() }),
     z.object({ t: z.literal('Name'), value: z.string() }),
     z.object({ t: z.literal('Bytes'), value: core.BytesVec$schema }),
     z.object({ t: z.literal('Numeric'), value: z.lazy(() => Numeric$schema) }),
     z.object({ t: z.literal('LimitedMetadata'), value: z.lazy(() => Metadata$schema) }),
-    z.object({ t: z.literal('Vec'), value: core.Vec$schema(z.lazy(() => MetadataValueBox$schema)) }),
-  ]),
-})
-export const MetadataValueBox$codec: core.Codec<MetadataValueBox> = core.struct([
-  [
-    'enum',
-    core.enumeration([
-      [0, 'Bool', core.Bool$codec],
-      [1, 'String', core.String$codec],
-      [2, 'Name', core.String$codec],
-      [3, 'Bytes', core.BytesVec$codec],
-      [4, 'Numeric', core.lazy(() => Numeric$codec)],
-      [5, 'LimitedMetadata', core.lazy(() => Metadata$codec)],
-      [6, 'Vec', core.Vec$codec(core.lazy(() => MetadataValueBox$codec))],
-    ]),
-  ],
+    z.object({ t: z.literal('Vec'), value: core.Vec$schema(z.lazy(() => MetadataValueBox$schema)).removeDefault() }),
+  ])
+export const MetadataValueBox$codec: core.Codec<MetadataValueBox> = core.enumeration([
+  [0, 'Bool', core.Bool$codec],
+  [1, 'String', core.String$codec],
+  [2, 'Name', core.String$codec],
+  [3, 'Bytes', core.BytesVec$codec],
+  [4, 'Numeric', core.lazy(() => Numeric$codec)],
+  [5, 'LimitedMetadata', core.lazy(() => Metadata$codec)],
+  [6, 'Vec', core.Vec$codec(core.lazy(() => MetadataValueBox$codec))],
 ])
 export interface Mint<T0, T1> {
   object: T0
@@ -1708,38 +1688,30 @@ export const PipelineEventFilterBox$codec: core.Codec<PipelineEventFilterBox> = 
   [0, 'Transaction', core.lazy(() => TransactionEventFilter$codec)],
   [1, 'Block', core.lazy(() => BlockEventFilter$codec)],
 ])
-export interface PredicateBox {
-  enum:
-    | { t: 'And'; value: core.Vec<PredicateBox> }
-    | { t: 'Or'; value: core.Vec<PredicateBox> }
-    | { t: 'Not'; value: PredicateBox }
-    | { t: 'Raw'; value: QueryOutputPredicate }
-}
-interface PredicateBox$input {
-  enum:
-    | core.EnumOptionInput<'And', ReturnType<typeof core.Vec$schema<typeof PredicateBox$schema>>>
-    | core.EnumOptionInput<'Or', ReturnType<typeof core.Vec$schema<typeof PredicateBox$schema>>>
-    | core.EnumOptionInput<'Not', typeof PredicateBox$schema>
-    | core.EnumOptionInput<'Raw', typeof QueryOutputPredicate$schema>
-}
-export const PredicateBox$schema: z.ZodType<PredicateBox, z.ZodTypeDef, PredicateBox$input> = z.object({
-  enum: z.discriminatedUnion('t', [
-    z.object({ t: z.literal('And'), value: core.Vec$schema(z.lazy(() => PredicateBox$schema)) }),
-    z.object({ t: z.literal('Or'), value: core.Vec$schema(z.lazy(() => PredicateBox$schema)) }),
+export type PredicateBox =
+  | { t: 'And'; value: core.Vec<PredicateBox> }
+  | { t: 'Or'; value: core.Vec<PredicateBox> }
+  | { t: 'Not'; value: PredicateBox }
+  | { t: 'Raw'; value: QueryOutputPredicate }
+type PredicateBox$input =
+  | { t: 'And'; value: z.input<ReturnType<typeof core.Vec$schema<typeof PredicateBox$schema>>> }
+  | { t: 'Or'; value: z.input<ReturnType<typeof core.Vec$schema<typeof PredicateBox$schema>>> }
+  | { t: 'Not'; value: z.input<typeof PredicateBox$schema> }
+  | { t: 'Raw'; value: z.input<typeof QueryOutputPredicate$schema> }
+export const PredicateBox$schema: z.ZodType<PredicateBox, z.ZodTypeDef, PredicateBox$input> = z.discriminatedUnion(
+  't',
+  [
+    z.object({ t: z.literal('And'), value: core.Vec$schema(z.lazy(() => PredicateBox$schema)).removeDefault() }),
+    z.object({ t: z.literal('Or'), value: core.Vec$schema(z.lazy(() => PredicateBox$schema)).removeDefault() }),
     z.object({ t: z.literal('Not'), value: z.lazy(() => PredicateBox$schema) }),
     z.object({ t: z.literal('Raw'), value: z.lazy(() => QueryOutputPredicate$schema) }),
-  ]),
-})
-export const PredicateBox$codec: core.Codec<PredicateBox> = core.struct([
-  [
-    'enum',
-    core.enumeration([
-      [0, 'And', core.Vec$codec(core.lazy(() => PredicateBox$codec))],
-      [1, 'Or', core.Vec$codec(core.lazy(() => PredicateBox$codec))],
-      [2, 'Not', core.lazy(() => PredicateBox$codec)],
-      [3, 'Raw', core.lazy(() => QueryOutputPredicate$codec)],
-    ]),
   ],
+)
+export const PredicateBox$codec: core.Codec<PredicateBox> = core.enumeration([
+  [0, 'And', core.Vec$codec(core.lazy(() => PredicateBox$codec))],
+  [1, 'Or', core.Vec$codec(core.lazy(() => PredicateBox$codec))],
+  [2, 'Not', core.lazy(() => PredicateBox$codec)],
+  [3, 'Raw', core.lazy(() => QueryOutputPredicate$codec)],
 ])
 export type PublicKey = z.infer<typeof PublicKey$schema>
 export const PublicKey$schema = z.object({ algorithm: z.lazy(() => Algorithm$schema), payload: core.BytesVec$schema })
@@ -1868,34 +1840,30 @@ export const QueryExecutionFail$codec: core.Codec<QueryExecutionFail> = core.enu
   [3, 'FetchSizeTooBig'],
   [4, 'InvalidSingularParameters'],
 ])
-export interface QueryOutputBox {
-  enum:
-    | { t: 'Id'; value: IdBox }
-    | { t: 'Identifiable'; value: IdentifiableBox }
-    | { t: 'Transaction'; value: TransactionQueryOutput }
-    | { t: 'Permission'; value: Permission }
-    | { t: 'LimitedMetadata'; value: MetadataValueBox }
-    | { t: 'Numeric'; value: Numeric }
-    | { t: 'BlockHeader'; value: BlockHeader }
-    | { t: 'Block'; value: SignedBlock }
-    | { t: 'ExecutorDataModel'; value: ExecutorDataModel }
-    | { t: 'Vec'; value: core.Vec<QueryOutputBox> }
-}
-interface QueryOutputBox$input {
-  enum:
-    | core.EnumOptionInput<'Id', typeof IdBox$schema>
-    | core.EnumOptionInput<'Identifiable', typeof IdentifiableBox$schema>
-    | core.EnumOptionInput<'Transaction', typeof TransactionQueryOutput$schema>
-    | core.EnumOptionInput<'Permission', typeof Permission$schema>
-    | core.EnumOptionInput<'LimitedMetadata', typeof MetadataValueBox$schema>
-    | core.EnumOptionInput<'Numeric', typeof Numeric$schema>
-    | core.EnumOptionInput<'BlockHeader', typeof BlockHeader$schema>
-    | core.EnumOptionInput<'Block', typeof SignedBlock$schema>
-    | core.EnumOptionInput<'ExecutorDataModel', typeof ExecutorDataModel$schema>
-    | core.EnumOptionInput<'Vec', ReturnType<typeof core.Vec$schema<typeof QueryOutputBox$schema>>>
-}
-export const QueryOutputBox$schema: z.ZodType<QueryOutputBox, z.ZodTypeDef, QueryOutputBox$input> = z.object({
-  enum: z.discriminatedUnion('t', [
+export type QueryOutputBox =
+  | { t: 'Id'; value: IdBox }
+  | { t: 'Identifiable'; value: IdentifiableBox }
+  | { t: 'Transaction'; value: TransactionQueryOutput }
+  | { t: 'Permission'; value: Permission }
+  | { t: 'LimitedMetadata'; value: MetadataValueBox }
+  | { t: 'Numeric'; value: Numeric }
+  | { t: 'BlockHeader'; value: BlockHeader }
+  | { t: 'Block'; value: SignedBlock }
+  | { t: 'ExecutorDataModel'; value: ExecutorDataModel }
+  | { t: 'Vec'; value: core.Vec<QueryOutputBox> }
+type QueryOutputBox$input =
+  | { t: 'Id'; value: z.input<typeof IdBox$schema> }
+  | { t: 'Identifiable'; value: z.input<typeof IdentifiableBox$schema> }
+  | { t: 'Transaction'; value: z.input<typeof TransactionQueryOutput$schema> }
+  | { t: 'Permission'; value: z.input<typeof Permission$schema> }
+  | { t: 'LimitedMetadata'; value: z.input<typeof MetadataValueBox$schema> }
+  | { t: 'Numeric'; value: z.input<typeof Numeric$schema> }
+  | { t: 'BlockHeader'; value: z.input<typeof BlockHeader$schema> }
+  | { t: 'Block'; value: z.input<typeof SignedBlock$schema> }
+  | { t: 'ExecutorDataModel'; value: z.input<typeof ExecutorDataModel$schema> }
+  | { t: 'Vec'; value: z.input<ReturnType<typeof core.Vec$schema<typeof QueryOutputBox$schema>>> }
+export const QueryOutputBox$schema: z.ZodType<QueryOutputBox, z.ZodTypeDef, QueryOutputBox$input> =
+  z.discriminatedUnion('t', [
     z.object({ t: z.literal('Id'), value: z.lazy(() => IdBox$schema) }),
     z.object({ t: z.literal('Identifiable'), value: z.lazy(() => IdentifiableBox$schema) }),
     z.object({ t: z.literal('Transaction'), value: z.lazy(() => TransactionQueryOutput$schema) }),
@@ -1905,67 +1873,50 @@ export const QueryOutputBox$schema: z.ZodType<QueryOutputBox, z.ZodTypeDef, Quer
     z.object({ t: z.literal('BlockHeader'), value: z.lazy(() => BlockHeader$schema) }),
     z.object({ t: z.literal('Block'), value: z.lazy(() => SignedBlock$schema) }),
     z.object({ t: z.literal('ExecutorDataModel'), value: z.lazy(() => ExecutorDataModel$schema) }),
-    z.object({ t: z.literal('Vec'), value: core.Vec$schema(z.lazy(() => QueryOutputBox$schema)) }),
-  ]),
-})
-export const QueryOutputBox$codec: core.Codec<QueryOutputBox> = core.struct([
-  [
-    'enum',
-    core.enumeration([
-      [0, 'Id', core.lazy(() => IdBox$codec)],
-      [1, 'Identifiable', core.lazy(() => IdentifiableBox$codec)],
-      [2, 'Transaction', core.lazy(() => TransactionQueryOutput$codec)],
-      [3, 'Permission', core.lazy(() => Permission$codec)],
-      [4, 'LimitedMetadata', core.lazy(() => MetadataValueBox$codec)],
-      [5, 'Numeric', core.lazy(() => Numeric$codec)],
-      [6, 'BlockHeader', core.lazy(() => BlockHeader$codec)],
-      [7, 'Block', core.lazy(() => SignedBlock$codec)],
-      [8, 'ExecutorDataModel', core.lazy(() => ExecutorDataModel$codec)],
-      [9, 'Vec', core.Vec$codec(core.lazy(() => QueryOutputBox$codec))],
-    ]),
-  ],
+    z.object({ t: z.literal('Vec'), value: core.Vec$schema(z.lazy(() => QueryOutputBox$schema)).removeDefault() }),
+  ])
+export const QueryOutputBox$codec: core.Codec<QueryOutputBox> = core.enumeration([
+  [0, 'Id', core.lazy(() => IdBox$codec)],
+  [1, 'Identifiable', core.lazy(() => IdentifiableBox$codec)],
+  [2, 'Transaction', core.lazy(() => TransactionQueryOutput$codec)],
+  [3, 'Permission', core.lazy(() => Permission$codec)],
+  [4, 'LimitedMetadata', core.lazy(() => MetadataValueBox$codec)],
+  [5, 'Numeric', core.lazy(() => Numeric$codec)],
+  [6, 'BlockHeader', core.lazy(() => BlockHeader$codec)],
+  [7, 'Block', core.lazy(() => SignedBlock$codec)],
+  [8, 'ExecutorDataModel', core.lazy(() => ExecutorDataModel$codec)],
+  [9, 'Vec', core.Vec$codec(core.lazy(() => QueryOutputBox$codec))],
 ])
-export interface QueryOutputPredicate {
-  enum:
-    | { t: 'Identifiable'; value: StringPredicate }
-    | { t: 'Container'; value: Container }
-    | { t: 'Display'; value: StringPredicate }
-    | { t: 'Numerical'; value: SemiRange }
-    | { t: 'TimeStamp'; value: SemiInterval<core.U128> }
-    | { t: 'Pass' }
-}
-interface QueryOutputPredicate$input {
-  enum:
-    | core.EnumOptionInput<'Identifiable', typeof StringPredicate$schema>
-    | core.EnumOptionInput<'Container', typeof Container$schema>
-    | core.EnumOptionInput<'Display', typeof StringPredicate$schema>
-    | core.EnumOptionInput<'Numerical', typeof SemiRange$schema>
-    | core.EnumOptionInput<'TimeStamp', ReturnType<typeof SemiInterval$schema<typeof core.U128$schema>>>
-    | { t: 'Pass' }
-}
+export type QueryOutputPredicate =
+  | { t: 'Identifiable'; value: StringPredicate }
+  | { t: 'Container'; value: Container }
+  | { t: 'Display'; value: StringPredicate }
+  | { t: 'Numerical'; value: SemiRange }
+  | { t: 'TimeStamp'; value: SemiInterval<core.U128> }
+  | { t: 'Pass' }
+type QueryOutputPredicate$input =
+  | { t: 'Identifiable'; value: z.input<typeof StringPredicate$schema> }
+  | { t: 'Container'; value: z.input<typeof Container$schema> }
+  | { t: 'Display'; value: z.input<typeof StringPredicate$schema> }
+  | { t: 'Numerical'; value: z.input<typeof SemiRange$schema> }
+  | { t: 'TimeStamp'; value: z.input<ReturnType<typeof SemiInterval$schema<typeof core.U128$schema>>> }
+  | { t: 'Pass' }
 export const QueryOutputPredicate$schema: z.ZodType<QueryOutputPredicate, z.ZodTypeDef, QueryOutputPredicate$input> =
-  z.object({
-    enum: z.discriminatedUnion('t', [
-      z.object({ t: z.literal('Identifiable'), value: z.lazy(() => StringPredicate$schema) }),
-      z.object({ t: z.literal('Container'), value: z.lazy(() => Container$schema) }),
-      z.object({ t: z.literal('Display'), value: z.lazy(() => StringPredicate$schema) }),
-      z.object({ t: z.literal('Numerical'), value: z.lazy(() => SemiRange$schema) }),
-      z.object({ t: z.literal('TimeStamp'), value: z.lazy(() => SemiInterval$schema(core.U128$schema)) }),
-      z.object({ t: z.literal('Pass') }),
-    ]),
-  })
-export const QueryOutputPredicate$codec: core.Codec<QueryOutputPredicate> = core.struct([
-  [
-    'enum',
-    core.enumeration([
-      [0, 'Identifiable', core.lazy(() => StringPredicate$codec)],
-      [1, 'Container', core.lazy(() => Container$codec)],
-      [2, 'Display', core.lazy(() => StringPredicate$codec)],
-      [3, 'Numerical', core.lazy(() => SemiRange$codec)],
-      [4, 'TimeStamp', core.lazy(() => SemiInterval$codec(core.U128$codec))],
-      [5, 'Pass'],
-    ]),
-  ],
+  z.discriminatedUnion('t', [
+    z.object({ t: z.literal('Identifiable'), value: z.lazy(() => StringPredicate$schema) }),
+    z.object({ t: z.literal('Container'), value: z.lazy(() => Container$schema) }),
+    z.object({ t: z.literal('Display'), value: z.lazy(() => StringPredicate$schema) }),
+    z.object({ t: z.literal('Numerical'), value: z.lazy(() => SemiRange$schema) }),
+    z.object({ t: z.literal('TimeStamp'), value: z.lazy(() => SemiInterval$schema(core.U128$schema)) }),
+    z.object({ t: z.literal('Pass') }),
+  ])
+export const QueryOutputPredicate$codec: core.Codec<QueryOutputPredicate> = core.enumeration([
+  [0, 'Identifiable', core.lazy(() => StringPredicate$codec)],
+  [1, 'Container', core.lazy(() => Container$codec)],
+  [2, 'Display', core.lazy(() => StringPredicate$codec)],
+  [3, 'Numerical', core.lazy(() => SemiRange$codec)],
+  [4, 'TimeStamp', core.lazy(() => SemiInterval$codec(core.U128$codec))],
+  [5, 'Pass'],
 ])
 export type RawGenesisTransaction = z.infer<typeof RawGenesisTransaction$schema>
 export const RawGenesisTransaction$schema = z.object({
