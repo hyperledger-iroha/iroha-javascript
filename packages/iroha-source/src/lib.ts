@@ -4,7 +4,7 @@ import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
 
-export type Binary = 'irohad' | 'kagami'
+export type Binary = 'irohad' | 'kagami' | 'parity_scale_cli'
 
 /**
  * Resolves path to the release build of the binary.

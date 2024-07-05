@@ -322,9 +322,6 @@ importers:
       '@scale-codec/core':
         specifier: ^2.0.1
         version: 2.0.1
-      '@scale-codec/definition-runtime':
-        specifier: ^4.0.1
-        version: 4.0.1
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -335,9 +332,9 @@ importers:
       '@iroha2/data-model-schema':
         specifier: workspace:*
         version: link:../data-model-schema
-      '@scale-codec/definition-compiler':
-        specifier: ^4.0.1
-        version: 4.0.1
+      '@iroha2/iroha-source':
+        specifier: workspace:*
+        version: link:../iroha-source
       '@scale-codec/util':
         specifier: ^1.1.2
         version: 1.1.2
@@ -1447,13 +1444,6 @@ packages:
   '@scale-codec/core@2.0.1':
     resolution: {integrity: sha512-3Ei7Gf3wNDrP5l7W/dEF9Q7Py1ttdNTFulzNNdFrqBw8v1khyC7SZIcYpsbAJ5uo/PDIhhK4FKOrK467I0vv4Q==}
     engines: {node: '>=14.5.0'}
-
-  '@scale-codec/definition-compiler@4.0.1':
-    resolution: {integrity: sha512-qXdFD7MvcPXRtGRF5dRqoF/yvhInYYsvS0haynGbcx26g29/f9cQoWqS/e+9YYnOJJKMPg3RCxF7/2OgXUfqKw==}
-    engines: {node: '>16.8'}
-
-  '@scale-codec/definition-runtime@4.0.1':
-    resolution: {integrity: sha512-fu+zVJYB5qp6CXZofPNANsJQlb6jYYDNIuGnSPEyngP4u5rdN8bK0GUiOgXDJDtOtb1aeD8gRira1+YFHydpUw==}
 
   '@scale-codec/enum@2.1.1':
     resolution: {integrity: sha512-n5mTWxc4wbeIBn+HlIXjeU7PtzUAY1hqX3Y+BTd5OOCds83+DA/qB+bikKCDZ+NjDHBMZo1667vXudxjMTIW3g==}
@@ -2761,9 +2751,6 @@ packages:
 
   flatted@3.3.1:
     resolution: {integrity: sha512-X8cqMLLie7KsNUDSdzeN8FYK9rEt4Dt67OsG/DNGnYTSDBG4uFAJFBnUeiV+zCVAvwFy56IjM9sH51jVaEhNxw==}
-
-  fmt-subs@1.1.1:
-    resolution: {integrity: sha512-11qUMl76/5d/gYAtvoBZacQ94DPRKtip989wKVbSb0JD1LWzNg16u47+hLVxmzDqPH74ljlxIyQlbPCAP4XEGQ==}
 
   focus-trap@7.5.4:
     resolution: {integrity: sha512-N7kHdlgsO/v+iD/dMoJKtsSqs5Dz/dXZVebRgJw23LDk+jMi/974zyiOYDziY2JPp8xivq9BmUGwIJMiuSBi7w==}
@@ -4201,9 +4188,6 @@ packages:
   sonic-boom@3.3.0:
     resolution: {integrity: sha512-LYxp34KlZ1a2Jb8ZQgFCK3niIHzibdwtwNUWKg0qQRzsDoJ3Gfgkf8KdBTFU3SkejDEIlWwnSnpVdOZIhFMl/g==}
 
-  sort-es@1.6.6:
-    resolution: {integrity: sha512-28+kv5wXehxePLk0SQ51qNCegiaBCH+o1QIPkdfkLqhfxovPbw/a0eLy8rdW11VSkZq2U10cwIVhwGoIM6xfAQ==}
-
   source-map-js@1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
@@ -4370,9 +4354,6 @@ packages:
   tabbable@6.2.0:
     resolution: {integrity: sha512-Cat63mxsVJlzYvN51JmVXIgNoUokrIaT2zLclCXjRd8boZ0004U4KCs/sToJ75C6sdlByWxpYnb5Boif1VSFew==}
 
-  tarjan-graph@3.0.0:
-    resolution: {integrity: sha512-sM1+1ZKnnCtTP9W0DHTMHTlej9buusVHaKiBVecc6tZpBffBeEpE4XdFz7WNs9H1zaYkcgm6MzfyXFxSV2S1rA==}
-
   temp-dir@3.0.0:
     resolution: {integrity: sha512-nHc6S/bwIilKHNRgK/3jlhDoIHcp45YgyiwcAk46Tr0LfEqGBVpmiAyuiuxeVE44m3mXnEeVhaipLOEWmH+Njw==}
     engines: {node: '>=14.16'}
@@ -4444,9 +4425,6 @@ packages:
     engines: {node: '>=16'}
     peerDependencies:
       typescript: '>=4.2.0'
-
-  ts-pattern@4.2.1:
-    resolution: {integrity: sha512-lXCmHZb01QOM9HdCLvisCGUH9ATdKPON9UaUvwe007gJAhuSBhRWIAIowys5QqNxEq6odWctfMIdI96vzjnOMQ==}
 
   ts-pattern@5.0.1:
     resolution: {integrity: sha512-ZyNm28Lsg34Co5DS3e9DVyjlX2Y+2exkI4jqTKyU+9/OL6Y2fKOOuL8i+7no71o74C6mVS+UFoP3ekM3iCT1HQ==}
@@ -5784,21 +5762,6 @@ snapshots:
     dependencies:
       '@scale-codec/enum': 2.1.1
       '@scale-codec/util': 1.1.2
-
-  '@scale-codec/definition-compiler@4.0.1':
-    dependencies:
-      '@scale-codec/enum': 2.1.1
-      '@scale-codec/util': 1.1.2
-      immutable: 4.2.4
-      sort-es: 1.6.6
-      tarjan-graph: 3.0.0
-      ts-pattern: 4.2.1
-
-  '@scale-codec/definition-runtime@4.0.1':
-    dependencies:
-      '@scale-codec/core': 2.0.1
-      '@scale-codec/util': 1.1.2
-      fmt-subs: 1.1.1
 
   '@scale-codec/enum@2.1.1': {}
 
@@ -7422,8 +7385,6 @@ snapshots:
 
   flatted@3.3.1: {}
 
-  fmt-subs@1.1.1: {}
-
   focus-trap@7.5.4:
     dependencies:
       tabbable: 6.2.0
@@ -8909,8 +8870,6 @@ snapshots:
     dependencies:
       atomic-sleep: 1.0.0
 
-  sort-es@1.6.6: {}
-
   source-map-js@1.0.2: {}
 
   source-map-js@1.2.0: {}
@@ -9095,8 +9054,6 @@ snapshots:
 
   tabbable@6.2.0: {}
 
-  tarjan-graph@3.0.0: {}
-
   temp-dir@3.0.0: {}
 
   tempy@3.1.0:
@@ -9152,8 +9109,6 @@ snapshots:
   ts-api-utils@1.3.0(typescript@5.4.5):
     dependencies:
       typescript: 5.4.5
-
-  ts-pattern@4.2.1: {}
 
   ts-pattern@5.0.1: {}
 

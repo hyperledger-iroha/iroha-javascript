@@ -155,29 +155,30 @@ export class Json<T extends JsonValue = JsonValue> {
   }
 
   public static fromJsonString<T extends JsonValue = JsonValue>(value: string): Json<T> {
+    if (!value) throw new Error('JSON string cannot be empty')
     return new Json(null, value)
   }
 
-  #value: null | { some: T }
-  #str: null | string
+  private _value: null | { some: T }
+  private _str: null | string
 
   public constructor(asValue: null | { some: T }, asString: string | null) {
-    this.#value = asValue
-    this.#str = asString
+    this._value = asValue
+    this._str = asString
   }
 
   public asValue(): T {
-    if (!this.#value) {
-      this.#value = { some: JSON.parse(this.#str!) }
+    if (!this._value) {
+      this._value = { some: JSON.parse(this._str!) }
     }
-    return this.#value.some
+    return this._value.some
   }
 
   public asJsonString(): string {
-    if (!this.#str) {
-      this.#str = JSON.stringify(this.#value!.some)
+    if (typeof this._str !== 'string') {
+      this._str = JSON.stringify(this._value!.some)
     }
-    return this.#str
+    return this._str
   }
 
   /**
