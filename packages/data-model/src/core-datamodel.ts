@@ -35,6 +35,9 @@ export const U32$codec: Codec<U32> = codec(scale.encodeU32 as scale.Encode<U32>,
 
 export type U64 = z.infer<typeof U64$schema>
 
+// TODO: add to other core types
+export const U64 = (int: bigint | number) => U64$schema.parse(int)
+
 export const U64$schema = z
   .bigint()
   .min(0n)
@@ -202,4 +205,16 @@ export const Json$schema = z.instanceof(Json).or(jsonValueSchema.transform((valu
 export const Json$codec: Codec<Json> = String$codec.wrap(
   (json) => json.asJsonString(),
   (str) => Json.fromJsonString(str),
+)
+
+export type DateU64 = Date
+
+export const DateU64$schema = z.date()
+
+export const DateU64$codec = U64$codec.wrap<Date>(
+  (date) => U64(date.getTime()),
+  (int) => {
+    // TODO: perform bounds validation
+    return new Date(Number(int))
+  },
 )

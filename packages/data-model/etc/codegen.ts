@@ -33,11 +33,9 @@ type CodegenGenericTypeRef = TypeIdent | { t: 'gen'; genericIndex: number }
  * Identifier of a type, either a local one or from the "library"
  */
 type TypeIdent =
-  | { t: 'ref'; id: string; generics?: TypeIdent[]; extendSchema?: ExtendSchemaFn }
-  | { t: 'lib'; id: LibCodec; generics?: TypeIdent[]; extendSchema?: ExtendSchemaFn }
+  | { t: 'ref'; id: string; generics?: TypeIdent[]; schema?: string }
+  | { t: 'lib'; id: LibCodec; generics?: TypeIdent[]; schema?: string }
   | { t: 'lit'; literal: string }
-
-type ExtendSchemaFn = (schema: string) => string
 
 type LibCodec =
   | 'BytesVec'
@@ -57,6 +55,7 @@ type LibCodec =
   | 'Bool'
   | 'U8Array'
   | 'U16Array'
+  | 'DateU64'
 
 const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
 
@@ -177,10 +176,13 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
       {
         t: 'branded-alias',
         id: 'Signature',
-        to: {
-          ...transformIdent('Vec<u8>'),
-          extendSchema: (schema) => `z.instanceof(crypto.Signature).transform(x => x.payload()).or(${schema})`,
-        },
+        to: (() => {
+          const bytes = transformIdent('Vec<u8>')
+          return {
+            ...bytes,
+            schema: `z.instanceof(crypto.Signature).transform(x => x.payload()).or(${generateIdent(bytes).schema})`,
+          }
+        })(),
       },
     ])
     .with([{ id: 'BlockSignature' }, { Tuple: ['u64', P.string.startsWith('Signature')] }], () => [
@@ -284,10 +286,22 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         {
           t: 'struct',
           id,
-          fields: fields.map((x) => ({
-            name: x.name,
-            type: transformIdent(x.type),
-          })),
+          fields: fields.map((x) =>
+            match({ id, field: x })
+              .returnType<(CodegenEntry & { t: 'struct' })['fields'][number]>()
+              .with({ id: 'BlockHeader', field: { name: 'timestamp_ms', type: 'u64' } }, () => ({
+                name: 'timestamp',
+                type: { t: 'lib', id: 'DateU64' },
+              }))
+              .with({ id: 'TransactionPayload', field: { name: 'creation_time_ms', type: 'u64' } }, () => ({
+                name: 'creation_time',
+                type: { t: 'lib', id: 'DateU64', schema: `core.DateU64$schema.default(() => new Date())` },
+              }))
+              .otherwise(() => ({
+                name: x.name,
+                type: transformIdent(x.type),
+              })),
+          ),
         } satisfies CodegenEntry,
       ]
     })
@@ -400,7 +414,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
             id: type.id,
             to: {
               ...aliasParsed,
-              extendSchema: (s) => `z.instanceof(crypto.Hash).transform(x => x.payload()).or(${s})`,
+              schema: `z.instanceof(crypto.Hash).transform(x => x.payload()).or(${generateIdent(aliasParsed).schema})`,
             },
           },
         ]
@@ -577,23 +591,23 @@ interface IdentGenerated {
 }
 
 function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): IdentGenerated {
-  const generated = match(ident)
+  return match(ident)
     .returnType<IdentGenerated>()
-    .with({ t: 'ref', generics: P.array() }, ({ id, generics }) => {
+    .with({ t: 'ref', generics: P.array() }, ({ id, generics, schema }) => {
       return {
         type: id + `<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
         codec: `core.lazyCodec(() => ${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')}))`,
-        schema: `z.lazy(() => ${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')}))`,
+        schema: schema ?? `z.lazy(() => ${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')}))`,
         typeofSchema: `ReturnType<typeof ${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
-    .with({ t: 'ref' }, ({ id }) => ({
+    .with({ t: 'ref' }, ({ id, schema }) => ({
       type: id,
       codec: `core.lazyCodec(() => ${id}$codec)`,
-      schema: `z.lazy(() => ${id}$schema)`,
+      schema: schema ?? `z.lazy(() => ${id}$schema)`,
       typeofSchema: `typeof ${id}$schema`,
     }))
-    .with({ t: 'lib', generics: P.array() }, ({ id, generics }) => {
+    .with({ t: 'lib', generics: P.array() }, ({ id, generics, schema }) => {
       const maybeRemoveDefault = (params?.removeDefault ?? false) && id === 'Vec' ? '.removeDefault()' : ''
       const typeGenerics = match({ id, generics })
         .with({ id: P.union('U8Array', 'U16Array'), generics: [{ t: 'lit' }] }, () => '')
@@ -602,18 +616,22 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
       return {
         type: `core.${id}${typeGenerics}`,
         codec: `core.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
-        schema: `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
+        schema:
+          schema ??
+          `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
         typeofSchema: `ReturnType<typeof core.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
-    .with({ t: 'lib' }, ({ id }) => {
+    .with({ t: 'lib' }, ({ id, schema }) => {
       return {
         type: `core.${id}`,
         codec: `core.${id}$codec`,
-        schema: match(id)
-          .with('String', () => `z.string()`)
-          .with('Bool', () => `z.boolean()`)
-          .otherwise(() => `core.${id}$schema`),
+        schema:
+          schema ??
+          match(id)
+            .with('String', () => `z.string()`)
+            .with('Bool', () => `z.boolean()`)
+            .otherwise(() => `core.${id}$schema`),
         typeofSchema: match(id)
           .with('String', () => `z.ZodString`)
           .with('Bool', () => `z.ZodBoolean`)
@@ -622,13 +640,6 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
     })
     .with({ t: 'lit' }, ({ literal }) => ({ type: literal, codec: literal, schema: literal, typeofSchema: literal }))
     .exhaustive()
-
-  return {
-    ...generated,
-    schema: match(ident)
-      .with({ extendSchema: P.not(P.nullish).select() }, (fn) => fn(generated.schema))
-      .otherwise(() => generated.schema),
-  }
 }
 
 function generateZodDiscriminatedUnion(variants: CodegenEnumVariant[], params?: { removeDefault?: boolean }): string {
@@ -694,8 +705,7 @@ function generateParseFn(id: string) {
 /**
  * TODO:
  *
- * - extend signature/hash schema: z.instanceof(crypto.Hash).transform(x => x.bytes).or(actualArraySchema)
- * - tx payload: creation time default new Date; time to live default to some value; default nonce
+ * - tx payload: time to live default to some value
  * - query payload:
  *   - default pagination with nones
  * - Discriminated unions: extend objects??

@@ -542,7 +542,7 @@ export const BlockHeader$schema = z.object({
   height: core.U64$schema,
   prevBlockHash: core.Option$schema(z.lazy(() => Hash$schema)),
   transactionsHash: z.lazy(() => Hash$schema),
-  timestampMs: core.U64$schema,
+  timestamp: core.DateU64$schema,
   viewChangeIndex: core.U32$schema,
   consensusEstimationMs: core.U64$schema,
 })
@@ -550,7 +550,7 @@ export const BlockHeader$codec = core.structCodec([
   ['height', core.U64$codec],
   ['prevBlockHash', core.Option$codec(core.lazyCodec(() => Hash$codec))],
   ['transactionsHash', core.lazyCodec(() => Hash$codec)],
-  ['timestampMs', core.U64$codec],
+  ['timestamp', core.DateU64$codec],
   ['viewChangeIndex', core.U32$codec],
   ['consensusEstimationMs', core.U64$codec],
 ])
@@ -3129,7 +3129,7 @@ export const TransactionPayload = (input: z.input<typeof TransactionPayload$sche
 export const TransactionPayload$schema = z.object({
   chain: z.lazy(() => ChainId$schema),
   authority: z.lazy(() => AccountId$schema),
-  creationTimeMs: core.U64$schema,
+  creationTime: core.DateU64$schema.default(() => new Date()),
   instructions: z.lazy(() => Executable$schema),
   timeToLiveMs: core.Option$schema(core.NonZero$schema(core.U64$schema)),
   nonce: core.Option$schema(core.NonZero$schema(core.U32$schema)),
@@ -3141,7 +3141,7 @@ export const TransactionPayload$schema = z.object({
 export const TransactionPayload$codec = core.structCodec([
   ['chain', core.lazyCodec(() => ChainId$codec)],
   ['authority', core.lazyCodec(() => AccountId$codec)],
-  ['creationTimeMs', core.U64$codec],
+  ['creationTime', core.DateU64$codec],
   ['instructions', core.lazyCodec(() => Executable$codec)],
   ['timeToLiveMs', core.Option$codec(core.NonZero$codec(core.U64$codec))],
   ['nonce', core.Option$codec(core.NonZero$codec(core.U32$codec))],
