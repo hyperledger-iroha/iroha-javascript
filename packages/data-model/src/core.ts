@@ -2,23 +2,76 @@ import * as scale from '@scale-codec/core'
 import type { z } from 'zod'
 import { type U32, U32$codec, U32$schema } from './core-datamodel'
 
-export interface Codec<T> {
+export interface RawScaleCodec<T> {
   encode: scale.Encode<T>
   decode: scale.Decode<T>
 }
 
-export function codec<T>(encode: scale.Encode<T>, decode: scale.Decode<T>): Codec<T> {
-  return { encode, decode }
+export class Codec<T> {
+  public static lazy<T>(f: () => Codec<T>): Codec<T> {
+    return new Codec(
+      scale.encodeFactory(
+        (v, w) => f().rawEncode(v, w),
+        (v) => f().rawEncode.sizeHint(v),
+      ),
+      (w) => f().rawDecode(w),
+    )
+  }
+
+  public rawEncode: scale.Encode<T>
+  public rawDecode: scale.Decode<T>
+
+  public constructor(encode: scale.Encode<T>, decode: scale.Decode<T>) {}
+
+  public encode(value: T): Uint8Array {}
+
+  public decode(data: ArrayBufferView): T {}
+
+  public wrap<U>(toBase: (value: U) => T, fromBase: (value: T) => U): Codec<U> {
+    // return new Codec({
+    //   encode: scale.encodeFactory(
+    //     (value, walker )
+    //   )
+    // })
+  }
 }
 
-export function lazy<T>(f: () => Codec<T>): Codec<T> {
-  return codec(
-    scale.encodeFactory(
-      (v, w) => f().encode(v, w),
-      (v) => f().encode.sizeHint(v),
-    ),
-    (w) => f().decode(w),
-  )
+export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate<E>> {
+  public discriminated<
+    T extends {
+      [Tag in keyof E]: E[Tag] extends [] ? { t: Tag } : E[Tag] extends [infer Value] ? { t: Tag; value: Value } : never
+    }[keyof E],
+  >(): Codec<T> {
+    return this.wrap<{ t: string; value?: any }>(
+      (value) => scale.variant<any>(value.t, value.value),
+      (value) => ({ t: value.tag, value: value.content }),
+    ) as any
+  }
+
+  public literalUnion(): {
+    [Tag in keyof E]: E[Tag] extends [] ? Codec<Tag> : never
+  }[keyof E] {
+    return null
+  }
+}
+
+// const a: Codec<z.infer<typeof b>> = rawEnumCodec<scale.RustOption<string>>().discriminated()
+// const b = z.discriminatedUnion('t', [
+//   z.object({ t: z.literal('None') }),
+//   z.object({
+//     t: z.literal('Some'),
+//     value: z.string(),
+//   }),
+// ])
+// const c = rawEnumCodec<scale.RustOption<string>>().literalUnion()
+export function codec<T>(encode: scale.Encode<T>, decode: scale.Decode<T>): Codec<T> {
+  return new Codec(encode, decode)
+}
+
+// export function extendCodec<T, U>(base: Codec<T>, toBase: ())
+
+export function lazyCodec<T>(f: () => Codec<T>): Codec<T> {
+  return Codec.lazy(f)
 }
 
 // export class CodecHighLevel<T extends z.ZodType> {
@@ -44,9 +97,7 @@ export function lazy<T>(f: () => Codec<T>): Codec<T> {
 //   }
 // }
 
-export function encode<T>(value: T, codec: Codec<T>): Uint8Array {
-  return scale.WalkerImpl.encode(value, codec.encode)
-}
+// function rawEnumCodec<T extends scale.Enumerate<any>>(schema: EnumCodecSchema): EnumCodec<T> {}
 
 export type EnumCodecSchema = [discriminant: number, tag: string, codec?: Codec<any>][]
 
@@ -63,7 +114,7 @@ function fromScaleEnum({ tag, content }: scale.Enumerate<any>): DatamodelZodEnum
   return { t: tag, value: content }
 }
 
-export function enumeration<T extends DatamodelZodEnumGeneric>(schema: EnumCodecSchema): Codec<T> {
+export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): EnumCodec<E> {
   const encoders: scale.EnumEncoders<any> = {} as any
   const decoders: scale.EnumDecoders<any> = {}
 
@@ -94,15 +145,13 @@ export function enumeration<T extends DatamodelZodEnumGeneric>(schema: EnumCodec
   return codec(scale.createEnumEncoder(encoders), scale.createEnumDecoder(decoders)) as any
 }
 
-export function enumerationSimpleUnion<T extends string>(schema: { [K in T]: number }): Codec<T> {}
-
 type TupleFromCodecs<T> = T extends [Codec<infer Head>, ...infer Tail]
   ? [Head, ...TupleFromCodecs<Tail>]
   : T extends []
     ? []
     : never
 
-export function tuple<T extends [Codec<any>, ...Codec<any>[]]>(codecs: T): Codec<TupleFromCodecs<T>> {}
+export function tupleCodec<T extends [Codec<any>, ...Codec<any>[]]>(codecs: T): Codec<TupleFromCodecs<T>> {}
 
 /**
  * @internal
@@ -114,7 +163,7 @@ export declare type StructCodecsSchema<T> = {
   [K in keyof T]: [K, Codec<T[K]>]
 }[keyof T][]
 
-export function struct<T>(schema: StructCodecsSchema<T>): Codec<T> {
+export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
   const encoders: scale.StructEncoders<any> = []
   const decoders: scale.StructDecoders<any> = []
 
@@ -159,11 +208,5 @@ export function bitmap<Name extends string>(masks: { [K in Name]: number }): Cod
     return set
   }
 
-  return codec(
-    scale.encodeFactory(
-      (value, walker) => reprCodec.encode(toMask(value), walker),
-      (value) => reprCodec.encode.sizeHint(toMask(value)),
-    ),
-    (walker) => fromMask(reprCodec.decode(walker)),
-  )
+  return reprCodec.wrap(toMask, fromMask)
 }

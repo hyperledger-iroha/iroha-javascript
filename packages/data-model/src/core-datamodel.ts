@@ -1,6 +1,6 @@
 import * as scale from '@scale-codec/core'
 import { z } from 'zod'
-import { type Codec, codec, enumeration } from './core'
+import { type Codec, codec, EnumCodec } from './core'
 import type { JsonValue } from 'type-fest'
 
 export type U8 = z.infer<typeof U8$schema>
@@ -97,38 +97,35 @@ export const NonZero$codec = <T extends number | bigint>(int: Codec<T>): Codec<N
   return int as Codec<NonZero<T>>
 }
 
-export type Option<T> = { t: 'None' } | { t: 'Some'; value: T }
+export type Option<T> = null | { Some: T }
 
-export const Option$schema = <T extends z.ZodType>(some: T) => {
-  return z
-    .discriminatedUnion('t', [z.object({ t: z.literal('None') }), z.object({ t: z.literal('Some'), value: some })])
-    .default({ t: 'None' })
-}
+export const Option$schema = <T extends z.ZodType>(some: T) =>
+  z
+    .null()
+    .or(z.object({ Some: some }))
+    .default(null)
 
 export const Option$codec = <T>(some: Codec<T>): Codec<Option<T>> => {
-  return enumeration([
-    [0, 'None'],
-    [1, 'Some', some],
-  ])
+  return new EnumCodec(scale.createOptionEncoder(some.rawEncode), scale.createOptionDecoder(some.rawDecode)).wrap(
+    (value) => (value ? scale.variant('Some', value.Some) : scale.variant('None')),
+    (value) => (value.tag === 'None' ? null : { Some: value.content }),
+  )
 }
 
 export type Map<K, V> = globalThis.Map<K, V>
 
-export const Map$schema = <K extends z.ZodType, V extends z.ZodType>(key: K, value: V) => {
-  return z.map(key, value).default(new globalThis.Map())
-}
+export const Map$schema = <K extends z.ZodType, V extends z.ZodType>(key: K, value: V) =>
+  z.map(key, value).default(new globalThis.Map())
 
-export const Map$codec = <K, V>(key: Codec<K>, value: Codec<V>): Codec<Map<K, V>> => {
-  return codec(scale.createMapEncoder(key.encode, value.encode), scale.createMapDecoder(key.decode, value.decode))
-}
+export const Map$codec = <K, V>(key: Codec<K>, value: Codec<V>): Codec<Map<K, V>> =>
+  codec(scale.createMapEncoder(key.rawEncode, value.rawEncode), scale.createMapDecoder(key.rawDecode, value.rawDecode))
 
 export type Vec<T> = globalThis.Array<T>
 
 export const Vec$schema = <T extends z.ZodType>(item: T) => z.array(item).default(() => [])
 
-export const Vec$codec = <T>(item: Codec<T>): Codec<T[]> => {
-  return codec(scale.createVecEncoder(item.encode), scale.createVecDecoder(item.decode))
-}
+export const Vec$codec = <T>(item: Codec<T>): Codec<T[]> =>
+  codec(scale.createVecEncoder(item.rawEncode), scale.createVecDecoder(item.rawDecode))
 
 export type U8Array<_T extends number> = globalThis.Uint8Array
 
@@ -140,16 +137,16 @@ export const U8Array$schema = (length: number) =>
 export const U8Array$codec = (length: number) =>
   codec(scale.createUint8ArrayEncoder(length), scale.createUint8ArrayDecoder(length))
 
-export type U16Array<_T extends number> = globalThis.Uint16Array
+// export type U16Array<_T extends number> = globalThis.Uint16Array
 
-export const U16Array$schema = (length: number) =>
-  z
-    .instanceof(Uint16Array)
-    .refine((arr) => arr.length === length, { message: `Uint16Array length should be exactly ${length}` })
+// export const U16Array$schema = (length: number) =>
+//   z
+//     .instanceof(Uint16Array)
+//     .refine((arr) => arr.length === length, { message: `Uint16Array length should be exactly ${length}` })
 
-// FIXME
-export const U16Array$codec = (length: number) =>
-  codec(scale.createUint8ArrayEncoder(length), scale.createUint8ArrayDecoder(length))
+// // FIXME
+// export const U16Array$codec = (length: number) =>
+//   codec(scale.createUint8ArrayEncoder(length), scale.createUint8ArrayDecoder(length))
 
 // TODO docs parse/stringify json lazily when needed
 export class Json<T extends JsonValue = JsonValue> {
@@ -201,17 +198,7 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 
 export const Json$schema = z.instanceof(Json).or(jsonValueSchema.transform((value) => Json.fromValue(value)))
 
-export const Json$codec: Codec<Json> = codec(
-  scale.encodeFactory(
-    (value, walker) => {
-      return scale.encodeStr(value.asJsonString(), walker)
-    },
-    (value) => {
-      return scale.encodeStr.sizeHint(value.asJsonString())
-    },
-  ),
-  (walker) => {
-    const str = scale.decodeStr(walker)
-    return Json.fromJsonString(str)
-  },
+export const Json$codec: Codec<Json> = String$codec.wrap(
+  (json) => json.asJsonString(),
+  (str) => Json.fromJsonString(str),
 )

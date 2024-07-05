@@ -25,7 +25,7 @@ class SingleFreeWrap<T extends Free> implements Free, GetInnerTrackObject {
    */
   public __guard: FreeGuard<T>
 
-  protected constructor(object: T) {
+  public constructor(object: T) {
     this.__guard = new FreeGuard(object)
   }
 
@@ -66,9 +66,10 @@ export class Hash extends SingleFreeWrap<wasmPkg.Hash> {
     return new Hash(new (getWASM(true).Hash)(payload.wasm))
   }
 
-  public bytes(): Uint8Array
-  public bytes(mode: 'hex'): string
-  public bytes(mode?: 'hex'): Uint8Array | string {
+  public payload(): Uint8Array
+  public payload(mode: 'hex'): string
+  public payload(mode?: 'hex'): Uint8Array | string {
+    // TODO: rename `bytes` to `payload` in wasm
     return mode === 'hex' ? this.inner.bytes_hex() : this.inner.bytes()
   }
 }

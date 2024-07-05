@@ -128,7 +128,7 @@ export class Client {
     const tx = freeScope(() => signTransaction(payload, this.params.accountKeyPair.privateKey()))
 
     if (params?.verify) {
-      const hash = freeScope(() => transactionHash(tx).bytes())
+      const hash = freeScope(() => transactionHash(tx).payload())
       const stream = await this.eventsStream({
         filters: [
           datamodel.EventFilterBox.Pipeline(

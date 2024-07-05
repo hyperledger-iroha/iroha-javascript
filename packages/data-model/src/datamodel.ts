@@ -1,5 +1,5 @@
 import * as coreDatamodel from './core-datamodel'
-import { struct } from './core'
+import { structCodec } from './core'
 
 export * from './generated'
 export * from './core-datamodel'
@@ -9,7 +9,7 @@ export interface Uptime {
   nanos: number
 }
 
-export const Uptime$codec = struct<Uptime>([
+export const Uptime$codec = structCodec<Uptime>([
   ['secs', coreDatamodel.Compact$codec],
   ['nanos', coreDatamodel.U32$codec],
 ])
@@ -27,7 +27,7 @@ export interface Status {
   queueSize: bigint
 }
 
-export const Status = struct<Status>([
+export const Status = structCodec<Status>([
   ['peers', coreDatamodel.Compact$codec],
   ['blocks', coreDatamodel.Compact$codec],
   ['txsAccepted', coreDatamodel.Compact$codec],
