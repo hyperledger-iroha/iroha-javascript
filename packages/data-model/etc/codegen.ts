@@ -1,3 +1,4 @@
+/* eslint-disable max-nested-callbacks */
 import type { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
 import { P, match } from 'ts-pattern'
 import invariant from 'tiny-invariant'
@@ -55,7 +56,8 @@ type LibCodec =
   | 'Bool'
   | 'U8Array'
   | 'U16Array'
-  | 'DateU64'
+  | 'Timestamp'
+  | 'Duration'
 
 const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
 
@@ -289,14 +291,48 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
           fields: fields.map((x) =>
             match({ id, field: x })
               .returnType<(CodegenEntry & { t: 'struct' })['fields'][number]>()
-              .with({ id: 'BlockHeader', field: { name: 'timestamp_ms', type: 'u64' } }, () => ({
-                name: 'timestamp',
-                type: { t: 'lib', id: 'DateU64' },
-              }))
+              .with(
+                {
+                  id: P.union('BlockHeader', 'TimeInterval', 'Schedule'),
+                  field: { name: P.union('creation_time_ms', 'since_ms', 'start_ms').select(), type: 'u64' },
+                },
+                (name) => ({
+                  name: name.slice(0, -3),
+                  type: { t: 'lib', id: 'Timestamp' },
+                }),
+              )
+              .with(
+                {
+                  id: P.union('BlockHeader', 'TimeInterval', 'SumeragiParameters'),
+                  field: {
+                    name: P.union('consensus_estimation_ms', 'length_ms', 'block_time_ms', 'commit_time_ms').select(),
+                    type: 'u64',
+                  },
+                },
+                (name) => ({
+                  name: name.slice(0, -3),
+                  type: { t: 'lib', id: 'Duration' },
+                }),
+              )
               .with({ id: 'TransactionPayload', field: { name: 'creation_time_ms', type: 'u64' } }, () => ({
                 name: 'creation_time',
-                type: { t: 'lib', id: 'DateU64', schema: `core.DateU64$schema.default(() => new Date())` },
+                type: { t: 'lib', id: 'Timestamp', schema: `core.Timestamp$schema.default(() => new Date())` },
               }))
+              .with({ id: 'Schedule', field: { name: 'period_ms', type: 'Option<u64>' } }, () => ({
+                name: 'period',
+                type: { t: 'lib', id: 'Option', generics: [{ t: 'lib', id: 'Duration' }] },
+              }))
+              .with(
+                { id: 'TransactionPayload', field: { name: 'time_to_live_ms', type: 'Option<NonZero<u64>>' } },
+                () => ({
+                  name: 'time_to_live',
+                  type: {
+                    t: 'lib',
+                    id: 'Option',
+                    generics: [{ t: 'lib', id: 'NonZero', generics: [{ t: 'lib', id: 'Duration', schema: 'TODO' }] }],
+                  },
+                }),
+              )
               .otherwise(() => ({
                 name: x.name,
                 type: transformIdent(x.type),
@@ -320,24 +356,39 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
           id,
           mode,
           variants: variants.map((x) =>
-            match(x)
+            match([id, x])
               .returnType<CodegenEnumVariant>()
-              .with({ type: P.when((x) => x && nullTypes.has(x)) }, ({ discriminant, tag }) => ({
-                t: 'unit',
-                discriminant,
-                tag,
-              }))
-              .with({ type: P.string }, ({ type, discriminant, tag }) => ({
-                t: 'with-type',
-                type: transformIdent(type),
-                tag,
-                discriminant,
-              }))
-              .otherwise(({ discriminant, tag }) => ({
-                t: 'unit',
-                discriminant,
-                tag,
-              })),
+              .with(
+                ['SumeragiParameter', { tag: P.union('BlockTimeMs', 'CommitTimeMs'), type: 'u64' }],
+                ([, { tag, discriminant }]) => ({
+                  t: 'with-type',
+                  type: { t: 'lib', id: 'Duration' },
+                  tag:
+                    // remove `Ms`
+                    tag.slice(0, -2),
+                  discriminant,
+                }),
+              )
+              .otherwise(() =>
+                match(x)
+                  .returnType<CodegenEnumVariant>()
+                  .with({ type: P.when((x) => x && nullTypes.has(x)) }, ({ discriminant, tag }) => ({
+                    t: 'unit',
+                    discriminant,
+                    tag,
+                  }))
+                  .with({ type: P.string }, ({ type, discriminant, tag }) => ({
+                    t: 'with-type',
+                    type: transformIdent(type),
+                    tag,
+                    discriminant,
+                  }))
+                  .otherwise(({ discriminant, tag }) => ({
+                    t: 'unit',
+                    discriminant,
+                    tag,
+                  })),
+              ),
           ),
         } satisfies CodegenEntry,
       ]
@@ -485,7 +536,7 @@ function transformIdent(id: string | Ident): TypeIdent {
       generics: [transformIdent(some)],
     }))
     .with({ id: 'TimeEventFilter', items: [] }, () => ({ t: 'ref', id: 'ExecutionTime' }))
-    .with({ id: 'Mismatch', items: [{ id: 'AssetValueType' }] }, () => ({ t: 'ref', id: 'AssetValueTypeMismatch' }))
+    .with({ id: 'Mismatch', items: [{ id: 'AssetType' }] }, () => ({ t: 'ref', id: 'AssetTypeMismatch' }))
     .with(
       { id: 'Transfer', items: [{ items: [] }, { items: [] }, { items: [] }] },
       ({ items: [{ id: source }, { id: object }, { id: destination }] }) => ({
