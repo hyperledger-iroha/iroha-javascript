@@ -95,7 +95,7 @@ function transform(schema: Schema): ActualCodegenSchema {
         fields: [
           { name: 'object', type: { t: 'gen', genericIndex: 0 } },
           { name: 'key', type: { t: 'lib', id: 'String' } },
-          { name: 'value', type: { t: 'ref', id: 'MetadataValueBox' } },
+          { name: 'value', type: { t: 'lib', id: 'Json' } },
         ],
       }),
     ),
@@ -127,7 +127,7 @@ function transform(schema: Schema): ActualCodegenSchema {
       fields: [
         { name: 'target', type: { t: 'gen', genericIndex: 0 } },
         { name: 'key', type: { t: 'lib', id: 'String' } },
-        { name: 'value', type: { t: 'ref', id: 'MetadataValueBox' } },
+        { name: 'value', type: { t: 'lib', id: 'Json' } },
       ],
     },
     // TODO: move to transform definition
@@ -329,7 +329,19 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
                   type: {
                     t: 'lib',
                     id: 'Option',
-                    generics: [{ t: 'lib', id: 'NonZero', generics: [{ t: 'lib', id: 'Duration', schema: 'TODO' }] }],
+                    generics: [
+                      {
+                        t: 'lib',
+                        id: 'NonZero',
+                        generics: [
+                          {
+                            t: 'lib',
+                            id: 'Duration',
+                            // TODO: add default value as 100 seconds?
+                          },
+                        ],
+                      },
+                    ],
                   },
                 }),
               )
@@ -619,7 +631,7 @@ function transformIdent(id: string | Ident): TypeIdent {
         invariant(!Number.isNaN(len))
         return {
           t: 'lib',
-          id: `${upcase(int)}Array`,
+          id: `${upcase(int)}Array` satisfies LibCodec,
           generics: [{ t: 'lit', literal: lenStr }],
         } satisfies TypeIdent
       },

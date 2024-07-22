@@ -2030,15 +2030,15 @@ export const Metadata$codec = core.Map$codec(
 export interface MetadataChanged<T0> {
   target: T0
   key: core.String
-  value: MetadataValueBox
+  value: core.Json
 }
 export const MetadataChanged$schema = <T0 extends z.ZodType>(t0: T0) =>
-  z.object({ target: t0, key: z.string(), value: z.lazy(() => MetadataValueBox$schema) })
+  z.object({ target: t0, key: z.string(), value: core.Json$schema })
 export const MetadataChanged$codec = <T0,>(t0: core.Codec<T0>) =>
   core.structCodec([
     ['target', t0],
     ['key', core.String$codec],
-    ['value', core.lazyCodec(() => MetadataValueBox$codec)],
+    ['value', core.Json$codec],
   ])
 export interface Mint<T0, T1> {
   object: T0
@@ -2719,15 +2719,15 @@ export const RegisterBox$codec: core.Codec<RegisterBox> = core
 export interface RemoveKeyValue<T0> {
   object: T0
   key: core.String
-  value: MetadataValueBox
+  value: core.Json
 }
 export const RemoveKeyValue$schema = <T0 extends z.ZodType>(t0: T0) =>
-  z.object({ object: t0, key: z.string(), value: z.lazy(() => MetadataValueBox$schema) })
+  z.object({ object: t0, key: z.string(), value: core.Json$schema })
 export const RemoveKeyValue$codec = <T0,>(t0: core.Codec<T0>) =>
   core.structCodec([
     ['object', t0],
     ['key', core.String$codec],
-    ['value', core.lazyCodec(() => MetadataValueBox$codec)],
+    ['value', core.Json$codec],
   ])
 export type RemoveKeyValueBox = z.infer<typeof RemoveKeyValueBox$schema>
 export const RemoveKeyValueBox = (input: z.input<typeof RemoveKeyValueBox$schema>): RemoveKeyValueBox =>
@@ -2968,15 +2968,15 @@ export const SemiRange$codec: core.Codec<SemiRange> = core
 export interface SetKeyValue<T0> {
   object: T0
   key: core.String
-  value: MetadataValueBox
+  value: core.Json
 }
 export const SetKeyValue$schema = <T0 extends z.ZodType>(t0: T0) =>
-  z.object({ object: t0, key: z.string(), value: z.lazy(() => MetadataValueBox$schema) })
+  z.object({ object: t0, key: z.string(), value: core.Json$schema })
 export const SetKeyValue$codec = <T0,>(t0: core.Codec<T0>) =>
   core.structCodec([
     ['object', t0],
     ['key', core.String$codec],
-    ['value', core.lazyCodec(() => MetadataValueBox$codec)],
+    ['value', core.Json$codec],
   ])
 export type SetKeyValueBox = z.infer<typeof SetKeyValueBox$schema>
 export const SetKeyValueBox = (input: z.input<typeof SetKeyValueBox$schema>): SetKeyValueBox =>
@@ -3265,7 +3265,7 @@ export const TransactionPayload$schema = z.object({
   authority: z.lazy(() => AccountId$schema),
   creationTime: core.Timestamp$schema.default(() => new Date()),
   instructions: z.lazy(() => Executable$schema),
-  timeToLive: core.Option$schema(core.NonZero$schema(TODO)),
+  timeToLive: core.Option$schema(core.NonZero$schema(core.Duration$schema)),
   nonce: core.Option$schema(core.NonZero$schema(core.U32$schema)),
   metadata: z.lazy(() => Metadata$schema),
 })
