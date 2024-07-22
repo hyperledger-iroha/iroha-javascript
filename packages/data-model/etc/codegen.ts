@@ -57,6 +57,7 @@ type LibCodec =
   | 'U8Array'
   | 'U16Array'
   | 'Timestamp'
+  | 'TimestampU128'
   | 'Duration'
 
 const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
@@ -378,6 +379,15 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
                   tag:
                     // remove `Ms`
                     tag.slice(0, -2),
+                  discriminant,
+                }),
+              )
+              .with(
+                ['QueryOutputPredicate', { tag: 'TimeStamp', type: 'SemiInterval<u128>' }],
+                ([, { tag, discriminant }]) => ({
+                  t: 'with-type',
+                  type: { t: 'ref', id: 'SemiInterval', generics: [{ t: 'lib', id: 'TimestampU128' }] },
+                  tag,
                   discriminant,
                 }),
               )

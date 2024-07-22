@@ -2624,7 +2624,7 @@ export type QueryOutputPredicate =
   | { t: 'Container'; value: Container }
   | { t: 'Display'; value: StringPredicate }
   | { t: 'Numerical'; value: SemiRange }
-  | { t: 'TimeStamp'; value: SemiInterval<core.U128> }
+  | { t: 'TimeStamp'; value: SemiInterval<core.TimestampU128> }
   | { t: 'Pass' }
 export const QueryOutputPredicate = (input: z.input<typeof QueryOutputPredicate$schema>): QueryOutputPredicate =>
   QueryOutputPredicate$schema.parse(input)
@@ -2633,7 +2633,7 @@ type QueryOutputPredicate$input =
   | { t: 'Container'; value: z.input<typeof Container$schema> }
   | { t: 'Display'; value: z.input<typeof StringPredicate$schema> }
   | { t: 'Numerical'; value: z.input<typeof SemiRange$schema> }
-  | { t: 'TimeStamp'; value: z.input<ReturnType<typeof SemiInterval$schema<typeof core.U128$schema>>> }
+  | { t: 'TimeStamp'; value: z.input<ReturnType<typeof SemiInterval$schema<typeof core.TimestampU128$schema>>> }
   | { t: 'Pass' }
 export const QueryOutputPredicate$schema: z.ZodType<QueryOutputPredicate, z.ZodTypeDef, QueryOutputPredicate$input> =
   z.discriminatedUnion('t', [
@@ -2641,7 +2641,7 @@ export const QueryOutputPredicate$schema: z.ZodType<QueryOutputPredicate, z.ZodT
     z.object({ t: z.literal('Container'), value: z.lazy(() => Container$schema) }),
     z.object({ t: z.literal('Display'), value: z.lazy(() => StringPredicate$schema) }),
     z.object({ t: z.literal('Numerical'), value: z.lazy(() => SemiRange$schema) }),
-    z.object({ t: z.literal('TimeStamp'), value: z.lazy(() => SemiInterval$schema(core.U128$schema)) }),
+    z.object({ t: z.literal('TimeStamp'), value: z.lazy(() => SemiInterval$schema(core.TimestampU128$schema)) }),
     z.object({ t: z.literal('Pass') }),
   ])
 export const QueryOutputPredicate$codec: core.Codec<QueryOutputPredicate> = core
@@ -2650,14 +2650,14 @@ export const QueryOutputPredicate$codec: core.Codec<QueryOutputPredicate> = core
     Container: [Container]
     Display: [StringPredicate]
     Numerical: [SemiRange]
-    TimeStamp: [SemiInterval<core.U128>]
+    TimeStamp: [SemiInterval<core.TimestampU128>]
     Pass: []
   }>([
     [0, 'Identifiable', core.lazyCodec(() => StringPredicate$codec)],
     [1, 'Container', core.lazyCodec(() => Container$codec)],
     [2, 'Display', core.lazyCodec(() => StringPredicate$codec)],
     [3, 'Numerical', core.lazyCodec(() => SemiRange$codec)],
-    [4, 'TimeStamp', core.lazyCodec(() => SemiInterval$codec(core.U128$codec))],
+    [4, 'TimeStamp', core.lazyCodec(() => SemiInterval$codec(core.TimestampU128$codec))],
     [5, 'Pass'],
   ])
   .discriminated()

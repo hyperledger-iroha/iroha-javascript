@@ -229,6 +229,23 @@ export const Timestamp$codec = U64$codec.wrap<Timestamp>(
   (value) => Timestamp.fromMilliseconds(value),
 )
 
+export { Timestamp as TimestampU128 }
+
+export const TimestampU128$schema = Timestamp$schema
+
+// FIXME: remove after fix in Iroha
+export const TimestampU128$codec = U128$codec.wrap<Timestamp>(
+  (timestamp) => U128(timestamp.asMilliseconds()),
+  (ms) => {
+    const MAX = 2n ** 64n
+    if (ms > MAX) {
+      console.warn(`logic error: ${ms} exceeds u64::MAX, which doesn't make sense in Iroha`)
+      return Timestamp.fromMilliseconds(U64(MAX))
+    }
+    return Timestamp.fromMilliseconds(U64(ms))
+  },
+)
+
 export type Duration = z.infer<typeof Duration$schema>
 
 export const Duration = (input: z.input<typeof Duration$schema>): Duration => Duration$schema.parse(input)
