@@ -207,14 +207,35 @@ export const Json$codec: Codec<Json> = String$codec.wrap(
   (str) => Json.fromJsonString(str),
 )
 
-export type DateU64 = Date
+export class Timestamp {
+  public static fromDate(value: Date): Timestamp {}
 
-export const DateU64$schema = z.date()
+  public static fromMilliseconds(value: U64): Timestamp {}
 
-export const DateU64$codec = U64$codec.wrap<Date>(
-  (date) => U64(date.getTime()),
-  (int) => {
-    // TODO: perform bounds validation
-    return new Date(Number(int))
-  },
+  public constructor(milliseconds: U64) {}
+
+  public asDate(): Date {}
+
+  public asMilliseconds(): U64 {}
+}
+
+export const Timestamp$schema = z
+  .instanceof(Timestamp)
+  .or(z.date().transform((x) => Timestamp.fromDate(x)))
+  .or(U64$schema.transform((x) => Timestamp.fromMilliseconds(x)))
+
+export const Timestamp$codec = U64$codec.wrap<Timestamp>(
+  (value) => value.asMilliseconds(),
+  (value) => Timestamp.fromMilliseconds(value),
+)
+
+export type Duration = z.infer<typeof Duration$schema>
+
+export const Duration = (input: z.input<typeof Duration$schema>): Duration => Duration$schema.parse(input)
+
+export const Duration$schema = U64$schema.brand('DurationMilliseconds')
+
+export const Duration$codec = U64$codec.wrap<Duration>(
+  (x) => x,
+  (x) => Duration(x),
 )
