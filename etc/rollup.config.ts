@@ -73,9 +73,6 @@ async function readWasmPkgAssets(target: WasmPackTarget): Promise<{ fileName: st
 
 /**
  * Virtual `@iroha2/crypto-{...}~rollup-wasm` import
- * @param target
- * @param mode
- * @returns
  */
 function PluginRollupCryptoWasm(
   params:

@@ -75,7 +75,7 @@ describe('Conversion', () => {
       },
       ['Created', 'Deleted'],
       ['Deleted', 'Created'],
-      new Set(['Deleted', 'Created']),
+      new Set(['Deleted', 'Created'] as const),
     ),
     defCase({
       type: 'Level',
@@ -93,6 +93,55 @@ describe('Conversion', () => {
       },
       { whatever: ['foo', 'bar'] },
       datamodel.Json.fromJsonString(`{"whatever":["foo","bar"]}`),
+    ),
+    ...defMultipleValues(
+      {
+        type: 'AccountId',
+        json: 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+        schema: datamodel.AccountId$schema,
+        codec: datamodel.AccountId$codec,
+      },
+      {
+        domain: 'badland',
+        signatory: {
+          algorithm: 'ed25519',
+          payload: 'B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',
+        },
+      },
+      'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+    ),
+    ...defMultipleValues(
+      {
+        type: 'AssetDefinitionId',
+        json: 'rose#badland',
+        schema: datamodel.AssetDefinitionId$schema,
+        codec: datamodel.AssetDefinitionId$codec,
+      },
+      { domain: 'badland', name: 'rose' },
+      'rose#badland',
+    ),
+    ...defMultipleValues(
+      {
+        type: 'AssetId',
+        json: 'rose##ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+        schema: datamodel.AssetId$schema,
+        codec: datamodel.AssetId$codec,
+      },
+      'rose##ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+      'rose#badland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+      {
+        account: {
+          signatory: {
+            algorithm: 'ed25519',
+            payload: 'B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',
+          },
+          domain: 'badland',
+        },
+        definition: {
+          name: 'rose',
+          domain: 'badland',
+        },
+      },
     ),
   ])(`Convert $type: $value`, async (data: Case<any>) => {
     const parsed = data.schema.parse(data.value)
@@ -126,4 +175,61 @@ describe('Validation', () => {
       `[Error: JSON string cannot be empty]`,
     )
   })
+
+  test.each(['  alice  ', 'ali ce', 'ali@ce', '', 'ali#ce'])('Name validation fails for %o', (sample) => {
+    expect(() => datamodel.Name(sample)).toThrowError()
+  })
+})
+
+test('Parse AssetId with different domains', () => {
+  expect(
+    datamodel.AssetId('rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
+  ).toMatchInlineSnapshot(`
+    {
+      "account": {
+        "domain": "badland",
+        "signatory": {
+          "algorithm": "ed25519",
+          "payload": Uint8Array [
+            178,
+            62,
+            20,
+            246,
+            89,
+            185,
+            23,
+            54,
+            170,
+            185,
+            128,
+            182,
+            173,
+            220,
+            228,
+            177,
+            219,
+            138,
+            19,
+            138,
+            176,
+            38,
+            126,
+            4,
+            156,
+            8,
+            42,
+            116,
+            68,
+            113,
+            113,
+            78,
+          ],
+        },
+      },
+      "definition": {
+        "domain": "wonderland",
+        "name": "rose",
+      },
+    }
+  `)
 })

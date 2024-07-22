@@ -2,6 +2,7 @@ import * as scale from '@scale-codec/core'
 import { z } from 'zod'
 import { type Codec, codec, EnumCodec } from './core'
 import type { JsonValue } from 'type-fest'
+import { parseHex } from './util'
 
 export type U8 = z.infer<typeof U8$schema>
 
@@ -59,11 +60,13 @@ export const U128$codec: Codec<U128> = codec(
   scale.decodeU128 as scale.Decode<U128>,
 )
 
+export const hex$schema = z.string().transform((hex) => Uint8Array.from(parseHex(hex)))
+
 export type BytesVec = Uint8Array
 
-export const BytesVec$schema = z.instanceof(Uint8Array)
+export const BytesVec$schema = z.instanceof(Uint8Array).or(hex$schema)
 
-export const BytesVec$codec = codec(scale.encodeUint8Vec, scale.decodeUint8Vec)
+export const BytesVec$codec: Codec<BytesVec> = codec(scale.encodeUint8Vec, scale.decodeUint8Vec)
 
 export type Bool = boolean
 
@@ -256,3 +259,21 @@ export const Duration$codec = U64$codec.wrap<Duration>(
   (x) => x,
   (x) => Duration(x),
 )
+
+export type Name = z.infer<typeof Name$schema>
+export const Name = (input: z.input<typeof Name$schema>): Name => Name$schema.parse(input)
+export const Name$schema = z
+  .string()
+  .brand<'Name'>()
+  .superRefine((value, ctx) => {
+    if (!value.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'empty name is not allowed' })
+    if (/[\s#@]/.test(value))
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'name should not contain whitespace characters, ' +
+          '`@` (reserved for `account@domain` constructs), ' +
+          'and `#` (reserved for `asset#domain` constructs)',
+      })
+  })
+export const Name$codec = String$codec as Codec<Name>

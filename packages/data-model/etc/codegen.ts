@@ -9,14 +9,14 @@ export function generate(schema: Schema): string {
   const transformed = transform(schema)
   transformed.sort((a, b) => (a.id < b.id ? -1 : a.id === b.id ? 0 : 1))
 
-  return [`import { z, core, crypto } from './prelude'`, ...transformed.map((x) => generateSingleEntry(x))].join('\n')
+  return [`import { core, crypto, z } from './prelude'`, ...transformed.map((x) => generateSingleEntry(x))].join('\n')
 }
 
 type ActualCodegenSchema = CodegenEntry[]
 
 type CodegenEntry = { id: string } & (
   | { t: 'enum'; mode: 'explicit' | 'normal'; variants: CodegenEnumVariant[] }
-  | { t: 'struct'; fields: { name: string; type: TypeIdent }[] }
+  | { t: 'struct'; fields: { name: string; type: TypeIdent }[]; schema?: (base: string) => string }
   | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: CodegenGenericTypeRef }[] }
   | { t: 'tuple'; elements: TypeIdent[] }
   | { t: 'bitmap'; repr: LibCodec; masks: { name: string; mask: number }[] }
@@ -59,6 +59,7 @@ type LibCodec =
   | 'Timestamp'
   | 'TimestampU128'
   | 'Duration'
+  | 'Name'
 
 const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
 
@@ -181,9 +182,10 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         id: 'Signature',
         to: (() => {
           const bytes = transformIdent('Vec<u8>')
+          const schemaBase = generateIdent(bytes).schema
           return {
             ...bytes,
-            schema: `z.instanceof(crypto.Signature).transform(x => x.payload()).or(${generateIdent(bytes).schema})`,
+            schema: `${schemaBase}.or(z.instanceof(crypto.Signature).transform(x => x.payload()).pipe(${schemaBase}))`,
           }
         })(),
       },
@@ -280,7 +282,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         {
           t: 'branded-alias',
           id,
-          to: { t: 'ref', id: 'Name' },
+          to: { t: 'lib', id: 'Name' },
         },
       ],
     )
@@ -351,6 +353,15 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
                 type: transformIdent(x.type),
               })),
           ),
+          schema: match(id)
+            .returnType<undefined | ((base: string) => string)>()
+            .with('AccountId', () => (base) => `z.string().transform(core.parseAccountId).pipe(${base}).or(${base})`)
+            .with(
+              'AssetDefinitionId',
+              () => (base) => `z.string().transform(core.parseAssetDefinitionId).pipe(${base}).or(${base})`,
+            )
+            .with('AssetId', () => (base) => `z.string().transform(core.parseAssetId).pipe(${base}).or(${base})`)
+            .otherwise(() => undefined),
         } satisfies CodegenEntry,
       ]
     })
@@ -481,13 +492,16 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         ]
       }
       if (type.id === 'Hash') {
+        const schemaBase = generateIdent(aliasParsed).schema
+        const schemaCrypto = `z.instanceof(crypto.Hash).transform(x => x.payload()).pipe(${schemaBase})`
+        const schemaHex = `core.hex$schema.pipe(${schemaBase})`
         return [
           {
             t: 'branded-alias',
             id: type.id,
             to: {
               ...aliasParsed,
-              schema: `z.instanceof(crypto.Hash).transform(x => x.payload()).or(${generateIdent(aliasParsed).schema})`,
+              schema: `${schemaBase}.or(${schemaCrypto}).or(${schemaHex})`,
             },
           },
         ]
@@ -647,6 +661,7 @@ function transformIdent(id: string | Ident): TypeIdent {
       },
     )
     .with({ id: 'Level', items: [] }, () => ({ t: 'ref', id: 'LogLevel' }))
+    .with({ id: 'Name', items: [] }, () => ({ t: 'lib', id: 'Name' }))
     .otherwise(({ id, items }) => {
       return { t: 'ref', id, generics: items.length ? items.map(transformIdent) : undefined }
     })
@@ -816,15 +831,17 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
       ]
     })
-    .with({ t: 'struct' }, ({ id, fields }) => {
+    .with({ t: 'struct' }, ({ id, fields, schema: schemaFn }) => {
       const schemaFields = fields.map((x) => `${camelCase(x.name)}: ${generateIdent(x.type).schema}`).join(', ')
+      const schemaBase = `z.object({ ${schemaFields} })`
+      const schema = schemaFn?.(schemaBase) ?? schemaBase
       const codecFields = fields.map((x) => `['${camelCase(x.name)}', ${generateIdent(x.type).codec}]`).join(', ')
 
       return [
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         generateParseFn(id),
-        `export const ${id}$schema = z.object({ ${schemaFields} })`,
-        `export const ${id}$codec = core.structCodec([${codecFields}])`,
+        `export const ${id}$schema = ${schema}`,
+        `export const ${id}$codec = core.structCodec<${id}>([${codecFields}])`,
       ]
     })
     .with({ t: 'tuple' }, ({ id, elements }) => {
