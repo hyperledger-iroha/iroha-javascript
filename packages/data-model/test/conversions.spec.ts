@@ -2,9 +2,11 @@ import type { Except, JsonValue } from 'type-fest'
 import { Codec, datamodel } from '../src/lib'
 import { resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, onTestFinished, test, vi } from 'vitest'
 import type { SCHEMA } from '@iroha2/data-model-schema'
 import { z } from 'zod'
+
+const SAMPLE_ACCOUNT_ID = 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'
 
 async function encodeWithTool(type: keyof typeof SCHEMA, data: JsonValue): Promise<Uint8Array> {
   const tool = await resolveBinary('parity_scale_cli')
@@ -59,6 +61,49 @@ describe('Conversion', () => {
       defCase({ ...base, json: { start_ms: start.getTime() }, value: { start } }),
       defCase({ ...base, json: { start_ms: 500 }, value: { start: 500n } }),
       defCase({ ...base, json: { start_ms: 400, period_ms: 100 }, value: { start: 400, period: { Some: 100 } } }),
+    ]
+  }
+
+  // TODO: support strings as user inputs?
+  function casesAddrs() {
+    const base = { type: 'SocketAddr', codec: datamodel.SocketAddr$codec, schema: datamodel.SocketAddr$schema } as const
+    return [
+      defCase({ ...base, json: '127.0.0.1:8080', value: { t: 'Ipv4', value: { ip: [127, 0, 0, 1], port: 8080 } } }),
+      defCase({ ...base, json: 'localhost:8080', value: { t: 'Host', value: { host: 'localhost', port: 8080 } } }),
+      defCase({
+        ...base,
+        json: '[84d5:51a0:9114:1855:4cfa:f2d7:1f12:7003]:4000',
+        value: {
+          t: 'Ipv6',
+          value: { ip: [0x84d5, 0x51a0, 0x9114, 0x1855, 0x4cfa, 0xf2d7, 0x1f12, 0x7003], port: 4000 },
+        },
+      }),
+    ]
+  }
+
+  function casesTxPayload() {
+    const base = {
+      type: 'TransactionPayload',
+      codec: datamodel.TransactionPayload$codec,
+      schema: datamodel.TransactionPayload$schema,
+    } as const
+    return [
+      defCase({
+        ...base,
+        json: {
+          chain: 'test',
+          authority: SAMPLE_ACCOUNT_ID,
+          instructions: { Instructions: [] },
+          creation_time_ms: 505050,
+          metadata: {},
+        },
+        value: {
+          chain: 'test',
+          authority: SAMPLE_ACCOUNT_ID,
+          instructions: { t: 'Instructions' },
+          creationTime: new Date(505050),
+        },
+      }),
     ]
   }
 
@@ -153,6 +198,32 @@ describe('Conversion', () => {
       },
     ),
     ...casesSchedule(),
+    ...casesAddrs(),
+    defCase({
+      type: 'QueryOutputPredicate',
+      json: { TimeStamp: { start: 15_000, limit: 18_000 } },
+      codec: datamodel.QueryOutputPredicate$codec,
+      schema: datamodel.QueryOutputPredicate$schema,
+      value: { t: 'TimeStamp', value: { start: 15_000, limit: 18_000 } },
+    }),
+    ...casesTxPayload(),
+    defCase({
+      type: 'ClientQueryPayload',
+      json: {
+        authority: SAMPLE_ACCOUNT_ID,
+        query: { FindAllAccounts: null },
+        filter: { Raw: 'Pass' },
+        sorting: {},
+        pagination: {},
+        fetch_size: { fetch_size: null },
+      },
+      codec: datamodel.ClientQueryPayload$codec,
+      schema: datamodel.ClientQueryPayload$schema,
+      value: {
+        authority: SAMPLE_ACCOUNT_ID,
+        query: { t: 'FindAllAccounts' },
+      },
+    }),
   ])(`Convert $type: $value`, async (data: Case<any>) => {
     const parsed = data.schema.parse(data.value)
     const referenceEncoded = await encodeWithTool(data.type, data.json)
@@ -242,4 +313,46 @@ test('Parse AssetId with different domains', () => {
       },
     }
   `)
+})
+
+test('Fails to parse invalid account id with bad signatory', () => {
+  expect(() => datamodel.AccountId('test@test')).toThrowErrorMatchingInlineSnapshot(`
+    [ZodError: [
+      {
+        "code": "custom",
+        "message": "Failed to parse PublicKey from a multihash hex: Error: Invalid character 't' at position 0\\n\\n invalid input: \\"test\\"",
+        "path": [
+          "signatory"
+        ]
+      }
+    ]]
+  `)
+})
+
+test('Fails to parse account id with multiple @', () => {
+  expect(() => datamodel.AccountId('a@b@c')).toThrowErrorMatchingInlineSnapshot(`
+    [ZodError: [
+      {
+        "code": "custom",
+        "message": "account id should have format \`signatory@domain\`",
+        "path": []
+      }
+    ]]
+  `)
+})
+
+test('tx payload default creation time', () => {
+  const DATE = new Date()
+  vi.setSystemTime(DATE)
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
+
+  const txPayload = datamodel.TransactionPayload({
+    chain: 'whatever',
+    authority: SAMPLE_ACCOUNT_ID,
+    instructions: { t: 'Instructions' },
+  })
+
+  expect(txPayload.creationTime.asDate().getTime()).toEqual(DATE.getTime())
 })

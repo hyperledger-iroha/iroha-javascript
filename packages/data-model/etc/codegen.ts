@@ -16,6 +16,7 @@ type ActualCodegenSchema = CodegenEntry[]
 
 type CodegenEntry = { id: string } & (
   | { t: 'enum'; mode: 'explicit' | 'normal'; variants: CodegenEnumVariant[] }
+  | { t: 'enum'; mode: 'explicit-default'; variants: CodegenEnumVariant[]; default: string }
   | { t: 'struct'; fields: { name: string; type: TypeIdent }[]; schema?: (base: string) => string }
   | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: CodegenGenericTypeRef }[] }
   | { t: 'tuple'; elements: TypeIdent[] }
@@ -36,7 +37,8 @@ type CodegenGenericTypeRef = TypeIdent | { t: 'gen'; genericIndex: number }
 type TypeIdent =
   | { t: 'ref'; id: string; generics?: TypeIdent[]; schema?: string }
   | { t: 'lib'; id: LibCodec; generics?: TypeIdent[]; schema?: string }
-  | { t: 'lit'; literal: string }
+  | { t: 'special-predicate-box-not-value' }
+  | { t: 'special-array-generic-len'; len: number }
 
 type LibCodec =
   | 'BytesVec'
@@ -169,7 +171,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
   const id = transformIdent(name)
 
   // has been resolved to a lib type, can exclude from schema
-  if (id.t === 'lib' || id.t === 'lit') return []
+  if (id.t === 'lib' || id.t !== 'ref') return []
 
   return (
     match([id, item])
@@ -367,69 +369,84 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
                 'PublicKey',
                 () => (base) => `${base}.or(z.string().transform(core.parseMultihashPublicKey).pipe(${base}))`,
               )
+              .with('Sorting', 'Pagination', () => (base) => `${base}.default(() => ({}))`)
               .otherwise(() => undefined),
           } satisfies CodegenEntry,
         ]
       })
-      .with([P._, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
-        const mode = match(id)
-          .returnType<(CodegenEntry & { t: 'enum' })['mode']>()
-          .with(
-            P.union('PredicateBox', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox', 'QueryOutputPredicate'),
-            () => 'explicit',
-          )
-          .otherwise(() => 'normal')
+      // just plain enum
+      .with([P._, { Enum: P._ }], ([{ id }, { Enum: variantsRaw }]) => {
+        const variants = variantsRaw.map((x) =>
+          match([id, x])
+            .returnType<CodegenEnumVariant>()
+            .with(
+              ['SumeragiParameter', { tag: P.union('BlockTimeMs', 'CommitTimeMs'), type: 'u64' }],
+              ([, { tag, discriminant }]) => ({
+                t: 'with-type',
+                type: { t: 'lib', id: 'Duration' },
+                tag:
+                  // remove `Ms`
+                  tag.slice(0, -2),
+                discriminant,
+              }),
+            )
+            .with(
+              ['QueryOutputPredicate', { tag: 'TimeStamp', type: 'SemiInterval<u128>' }],
+              ([, { tag, discriminant }]) => ({
+                t: 'with-type',
+                type: { t: 'ref', id: 'SemiInterval', generics: [{ t: 'lib', id: 'TimestampU128' }] },
+                tag,
+                discriminant,
+              }),
+            )
+            .with(['PredicateBox', { tag: 'Not' }], ([, { tag, discriminant }]) => ({
+              t: 'with-type',
+              tag,
+              discriminant,
+              type: { t: 'special-predicate-box-not-value' },
+            }))
+            .otherwise(() =>
+              match(x)
+                .returnType<CodegenEnumVariant>()
+                .with({ type: P.when((x) => x && nullTypes.has(x)) }, ({ discriminant, tag }) => ({
+                  t: 'unit',
+                  discriminant,
+                  tag,
+                }))
+                .with({ type: P.string }, ({ type, discriminant, tag }) => ({
+                  t: 'with-type',
+                  type: transformIdent(type),
+                  tag,
+                  discriminant,
+                }))
+                .otherwise(({ discriminant, tag }) => ({
+                  t: 'unit',
+                  discriminant,
+                  tag,
+                })),
+            ),
+        )
 
         return [
-          {
-            t: 'enum',
-            id,
-            mode,
-            variants: variants.map((x) =>
-              match([id, x])
-                .returnType<CodegenEnumVariant>()
-                .with(
-                  ['SumeragiParameter', { tag: P.union('BlockTimeMs', 'CommitTimeMs'), type: 'u64' }],
-                  ([, { tag, discriminant }]) => ({
-                    t: 'with-type',
-                    type: { t: 'lib', id: 'Duration' },
-                    tag:
-                      // remove `Ms`
-                      tag.slice(0, -2),
-                    discriminant,
-                  }),
-                )
-                .with(
-                  ['QueryOutputPredicate', { tag: 'TimeStamp', type: 'SemiInterval<u128>' }],
-                  ([, { tag, discriminant }]) => ({
-                    t: 'with-type',
-                    type: { t: 'ref', id: 'SemiInterval', generics: [{ t: 'lib', id: 'TimestampU128' }] },
-                    tag,
-                    discriminant,
-                  }),
-                )
-                .otherwise(() =>
-                  match(x)
-                    .returnType<CodegenEnumVariant>()
-                    .with({ type: P.when((x) => x && nullTypes.has(x)) }, ({ discriminant, tag }) => ({
-                      t: 'unit',
-                      discriminant,
-                      tag,
-                    }))
-                    .with({ type: P.string }, ({ type, discriminant, tag }) => ({
-                      t: 'with-type',
-                      type: transformIdent(type),
-                      tag,
-                      discriminant,
-                    }))
-                    .otherwise(({ discriminant, tag }) => ({
-                      t: 'unit',
-                      discriminant,
-                      tag,
-                    })),
-                ),
-            ),
-          } satisfies CodegenEntry,
+          match(id)
+            .returnType<CodegenEntry>()
+            .with(P.union('QueryOutputBox', 'MetadataValueBox', 'InstructionBox', 'QueryOutputPredicate'), () => ({
+              t: 'enum',
+              mode: 'explicit',
+              id,
+              variants,
+            }))
+            .with(
+              'PredicateBox',
+              (): CodegenEntry => ({
+                t: 'enum',
+                mode: 'explicit-default',
+                id,
+                variants,
+                default: `() => ({ t: 'Raw', value: {t: 'Pass'}} as const)`,
+              }),
+            )
+            .otherwise(() => ({ t: 'enum', mode: 'normal', id, variants })),
         ]
       })
       .with(
@@ -466,7 +483,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
           const LEN = 4
 
           match(aliasParsed)
-            .with({ t: 'lib', id: 'U8Array', generics: [{ literal: String(LEN) }] }, () => {})
+            .with({ t: 'lib', id: 'U8Array', generics: [{ t: 'special-array-generic-len', len: LEN }] }, () => {})
             .otherwise(() => {
               throw new Error('unexpected shape')
             })
@@ -484,7 +501,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
           const LEN = 8
 
           match(aliasParsed)
-            .with({ t: 'lib', id: 'U16Array', generics: [{ literal: String(LEN) }] }, () => {})
+            .with({ t: 'lib', id: 'U16Array', generics: [{ t: 'special-array-generic-len', len: LEN }] }, () => {})
             .otherwise(() => {
               throw new Error('unexpected shape')
             })
@@ -663,7 +680,7 @@ function transformIdent(id: string | Ident): TypeIdent {
         return {
           t: 'lib',
           id: `${upcase(int)}Array` satisfies LibCodec,
-          generics: [{ t: 'lit', literal: lenStr }],
+          generics: [{ t: 'special-array-generic-len', len }],
         } satisfies TypeIdent
       },
     )
@@ -705,7 +722,7 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
     .with({ t: 'lib', generics: P.array() }, ({ id, generics, schema }) => {
       const maybeRemoveDefault = (params?.removeDefault ?? false) && id === 'Vec' ? '.removeDefault()' : ''
       const typeGenerics = match({ id, generics })
-        .with({ id: P.union('U8Array', 'U16Array'), generics: [{ t: 'lit' }] }, () => '')
+        .with({ id: P.union('U8Array', 'U16Array'), generics: [{ t: 'special-array-generic-len' }] }, () => '')
         .otherwise(() => `<${generics.map((x) => generateIdent(x).type).join(', ')}>`)
 
       return {
@@ -733,7 +750,17 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
           .otherwise(() => `typeof core.${id}$schema`),
       }
     })
-    .with({ t: 'lit' }, ({ literal }) => ({ type: literal, codec: literal, schema: literal, typeofSchema: literal }))
+    .with({ t: 'special-array-generic-len' }, ({ len }) => ({
+      type: String(len),
+      codec: String(len),
+      schema: String(len),
+      typeofSchema: String(len),
+    }))
+    .with({ t: 'special-predicate-box-not-value' }, () => {
+      const base = generateIdent({ t: 'ref', id: 'PredicateBox' })
+      // need to remove default here
+      return { ...base, schema: `z.lazy(() => PredicateBox$schema.removeDefault())` }
+    })
     .exhaustive()
 }
 
@@ -835,6 +862,18 @@ function generateSingleEntry(item: CodegenEntry): string {
         generateParseFn(id),
         `type ${id}$input = ${type.input}`,
         `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = ${generateZodDiscriminatedUnion(variants, { removeDefault: true })}`,
+        `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
+      ]
+    })
+    .with({ t: 'enum', mode: 'explicit-default' }, ({ id, variants, default: _default }) => {
+      const type = generateDiscriminatedUnionExplicitTypes(variants)
+      return [
+        `export type ${id} = ${type.output}`,
+        generateParseFn(id),
+        `type ${id}$input = ${type.input}`,
+        `export const ${id}$schema: z.ZodDefault<z.ZodType<${id}, z.ZodTypeDef, ${id}$input>> = ` +
+          generateZodDiscriminatedUnion(variants, { removeDefault: true }) +
+          `.default(${_default})`,
         `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
       ]
     })

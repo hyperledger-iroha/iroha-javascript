@@ -57,8 +57,17 @@ export function parseAssetId(str: string, ctx: z.RefinementCtx) {
   }
 }
 
-export function parseMultihashPublicKey(hex: string) {
-  const key = PublicKey.fromMultihash(hex)
+export function parseMultihashPublicKey(hex: string, ctx: z.RefinementCtx) {
+  let key: PublicKey
+  try {
+    key = PublicKey.fromMultihash(hex)
+  } catch (err) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Failed to parse PublicKey from a multihash hex: ${err}\n\n invalid input: "${hex}"`,
+    })
+    return z.NEVER
+  }
   const result = { algorithm: key.algorithm, payload: key.payload() }
   key.free()
   return result

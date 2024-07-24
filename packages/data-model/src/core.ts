@@ -52,7 +52,10 @@ export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate
     }[keyof E],
   >(): Codec<T> {
     return this.wrap<{ t: string; value?: any }>(
-      (value) => scale.variant<any>(value.t, value.value),
+      (value) => {
+        if (value.value !== undefined) return scale.variant<any>(value.t, value.value)
+        return scale.variant<any>(value.t)
+      },
       (value) => ({ t: value.tag, value: value.content }),
     ) as any
   }

@@ -2240,10 +2240,12 @@ export const NumericSpec$schema = z.object({ scale: core.Option$schema(core.U32$
 export const NumericSpec$codec = core.structCodec<NumericSpec>([['scale', core.Option$codec(core.U32$codec)]])
 export type Pagination = z.infer<typeof Pagination$schema>
 export const Pagination = (input: z.input<typeof Pagination$schema>): Pagination => Pagination$schema.parse(input)
-export const Pagination$schema = z.object({
-  limit: core.Option$schema(core.NonZero$schema(core.U32$schema)),
-  start: core.Option$schema(core.NonZero$schema(core.U64$schema)),
-})
+export const Pagination$schema = z
+  .object({
+    limit: core.Option$schema(core.NonZero$schema(core.U32$schema)),
+    start: core.Option$schema(core.NonZero$schema(core.U64$schema)),
+  })
+  .default(() => ({}))
 export const Pagination$codec = core.structCodec<Pagination>([
   ['limit', core.Option$codec(core.NonZero$codec(core.U32$codec))],
   ['start', core.Option$codec(core.NonZero$codec(core.U64$codec))],
@@ -2403,15 +2405,14 @@ type PredicateBox$input =
   | { t: 'Or'; value: z.input<ReturnType<typeof core.Vec$schema<typeof PredicateBox$schema>>> }
   | { t: 'Not'; value: z.input<typeof PredicateBox$schema> }
   | { t: 'Raw'; value: z.input<typeof QueryOutputPredicate$schema> }
-export const PredicateBox$schema: z.ZodType<PredicateBox, z.ZodTypeDef, PredicateBox$input> = z.discriminatedUnion(
-  't',
-  [
+export const PredicateBox$schema: z.ZodDefault<z.ZodType<PredicateBox, z.ZodTypeDef, PredicateBox$input>> = z
+  .discriminatedUnion('t', [
     z.object({ t: z.literal('And'), value: core.Vec$schema(z.lazy(() => PredicateBox$schema)).removeDefault() }),
     z.object({ t: z.literal('Or'), value: core.Vec$schema(z.lazy(() => PredicateBox$schema)).removeDefault() }),
-    z.object({ t: z.literal('Not'), value: z.lazy(() => PredicateBox$schema) }),
+    z.object({ t: z.literal('Not'), value: z.lazy(() => PredicateBox$schema.removeDefault()) }),
     z.object({ t: z.literal('Raw'), value: z.lazy(() => QueryOutputPredicate$schema) }),
-  ],
-)
+  ])
+  .default(() => ({ t: 'Raw', value: { t: 'Pass' } }) as const)
 export const PredicateBox$codec: core.Codec<PredicateBox> = core
   .enumCodec<{
     And: [core.Vec<PredicateBox>]
@@ -3213,7 +3214,7 @@ export const SocketAddrV6$codec = core.structCodec<SocketAddrV6>([
 ])
 export type Sorting = z.infer<typeof Sorting$schema>
 export const Sorting = (input: z.input<typeof Sorting$schema>): Sorting => Sorting$schema.parse(input)
-export const Sorting$schema = z.object({ sortByMetadataKey: core.Option$schema(core.Name$schema) })
+export const Sorting$schema = z.object({ sortByMetadataKey: core.Option$schema(core.Name$schema) }).default(() => ({}))
 export const Sorting$codec = core.structCodec<Sorting>([['sortByMetadataKey', core.Option$codec(core.Name$codec)]])
 export type StringPredicate = z.infer<typeof StringPredicate$schema>
 export const StringPredicate = (input: z.input<typeof StringPredicate$schema>): StringPredicate =>
