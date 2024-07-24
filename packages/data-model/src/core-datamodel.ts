@@ -6,6 +6,8 @@ import { parseHex } from './util'
 
 export type U8 = z.infer<typeof U8$schema>
 
+export const U8 = (int: z.input<typeof U8$schema>) => U8$schema.parse(int)
+
 export const U8$schema = z
   .number()
   .min(0)
@@ -15,6 +17,8 @@ export const U8$schema = z
 export const U8$codec: Codec<U8> = codec(scale.encodeU8 as scale.Encode<U8>, scale.decodeU8 as scale.Decode<U8>)
 
 export type U16 = z.infer<typeof U16$schema>
+
+export const U16 = (int: z.input<typeof U16$schema>) => U16$schema.parse(int)
 
 export const U16$schema = z
   .number()
@@ -26,6 +30,8 @@ export const U16$codec: Codec<U16> = codec(scale.encodeU16 as scale.Encode<U16>,
 
 export type U32 = z.infer<typeof U32$schema>
 
+export const U32 = (int: z.input<typeof U32$schema>) => U32$schema.parse(int)
+
 export const U32$schema = z
   .number()
   .min(0)
@@ -36,23 +42,34 @@ export const U32$codec: Codec<U32> = codec(scale.encodeU32 as scale.Encode<U32>,
 
 export type U64 = z.infer<typeof U64$schema>
 
-// TODO: add to other core types
-export const U64 = (int: bigint | number) => U64$schema.parse(int)
+export const U64 = (int: z.input<typeof U64$schema>) => U64$schema.parse(int)
 
 export const U64$schema = z
   .bigint()
-  .min(0n)
-  .max(2n ** 64n)
+  .or(z.number().pipe(z.coerce.bigint()))
+  .pipe(
+    z
+      .bigint()
+      .min(0n)
+      .max(2n ** 64n),
+  )
   .brand('U64')
 
 export const U64$codec: Codec<U64> = codec(scale.encodeU64 as scale.Encode<U64>, scale.decodeU64 as scale.Decode<U64>)
 
 export type U128 = z.infer<typeof U128$schema>
 
+export const U128 = (int: z.input<typeof U128$schema>) => U128$schema.parse(int)
+
 export const U128$schema = z
   .bigint()
-  .min(0n)
-  .max(2n ** 128n)
+  .or(z.number().pipe(z.coerce.bigint()))
+  .pipe(
+    z
+      .bigint()
+      .min(0n)
+      .max(2n ** 128n),
+  )
   .brand('U128')
 
 export const U128$codec: Codec<U128> = codec(
@@ -64,23 +81,23 @@ export const hex$schema = z.string().transform((hex) => Uint8Array.from(parseHex
 
 export type BytesVec = Uint8Array
 
+export const BytesVec = (input: z.input<typeof BytesVec$schema>): BytesVec => BytesVec$schema.parse(input)
+
 export const BytesVec$schema = z.instanceof(Uint8Array).or(hex$schema)
 
 export const BytesVec$codec: Codec<BytesVec> = codec(scale.encodeUint8Vec, scale.decodeUint8Vec)
 
 export type Bool = boolean
 
-// export const Bool$schema = z.boolean()
-
 export const Bool$codec = codec(scale.encodeBool, scale.decodeBool)
 
 export type String = string
 
-// export const String$schema = z.string()
-
 export const String$codec: Codec<string> = codec(scale.encodeStr, scale.decodeStr)
 
 export type Compact = z.infer<typeof Compact$schema>
+
+export const Compact = (input: z.input<typeof Compact$schema>): Compact => Compact$schema.parse(input)
 
 // TODO: specify max?
 export const Compact$schema = z.bigint().min(0n).brand('Compact')
@@ -143,17 +160,6 @@ export const U8Array$schema = (length: number) =>
 export const U8Array$codec = (length: number) =>
   codec(scale.createUint8ArrayEncoder(length), scale.createUint8ArrayDecoder(length))
 
-// export type U16Array<_T extends number> = globalThis.Uint16Array
-
-// export const U16Array$schema = (length: number) =>
-//   z
-//     .instanceof(Uint16Array)
-//     .refine((arr) => arr.length === length, { message: `Uint16Array length should be exactly ${length}` })
-
-// // FIXME
-// export const U16Array$codec = (length: number) =>
-//   codec(scale.createUint8ArrayEncoder(length), scale.createUint8ArrayDecoder(length))
-
 // TODO docs parse/stringify json lazily when needed
 export class Json<T extends JsonValue = JsonValue> {
   public static fromValue<T extends JsonValue>(value: T): Json<T> {
@@ -211,15 +217,28 @@ export const Json$codec: Codec<Json> = String$codec.wrap(
 )
 
 export class Timestamp {
-  public static fromDate(value: Date): Timestamp {}
+  public static fromDate(value: Date): Timestamp {
+    return new Timestamp(U64(value.getTime()))
+  }
 
-  public static fromMilliseconds(value: U64): Timestamp {}
+  public static fromMilliseconds(value: U64): Timestamp {
+    return new Timestamp(value)
+  }
 
-  public constructor(milliseconds: U64) {}
+  private _ms: U64
 
-  public asDate(): Date {}
+  public constructor(milliseconds: U64) {
+    this._ms = milliseconds
+  }
 
-  public asMilliseconds(): U64 {}
+  public asDate(): Date {
+    // TODO check correct bounds
+    return new Date(Number(this._ms))
+  }
+
+  public asMilliseconds(): U64 {
+    return this._ms
+  }
 }
 
 export const Timestamp$schema = z

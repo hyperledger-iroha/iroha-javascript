@@ -50,6 +50,18 @@ describe('Conversion', () => {
     })
   }
 
+  // checks durations & timestamps
+  function casesSchedule() {
+    const base = { type: 'Schedule', codec: datamodel.Schedule$codec, schema: datamodel.Schedule$schema } as const
+    const start = new Date('2024-07-24T04:26:38.736Z')
+    return [
+      defCase({ ...base, json: { start_ms: 400 }, value: { start: 400 } }),
+      defCase({ ...base, json: { start_ms: start.getTime() }, value: { start } }),
+      defCase({ ...base, json: { start_ms: 500 }, value: { start: 500n } }),
+      defCase({ ...base, json: { start_ms: 400, period_ms: 100 }, value: { start: 400, period: { Some: 100 } } }),
+    ]
+  }
+
   test.each([
     defCase({
       type: 'SocketAddr',
@@ -140,6 +152,7 @@ describe('Conversion', () => {
         },
       },
     ),
+    ...casesSchedule(),
   ])(`Convert $type: $value`, async (data: Case<any>) => {
     const parsed = data.schema.parse(data.value)
     const referenceEncoded = await encodeWithTool(data.type, data.json)
