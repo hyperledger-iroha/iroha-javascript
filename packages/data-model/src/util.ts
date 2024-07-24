@@ -21,9 +21,7 @@ export function parseAccountId(str: string, ctx: z.RefinementCtx) {
     return z.NEVER
   }
   const [signatory, domain] = parts
-  const pk = PublicKey.fromMultihash(signatory)
-  const result = { domain, signatory: { algorithm: pk.algorithm, payload: pk.payload() } }
-  pk.free()
+  const result = { domain, signatory }
   return result
 }
 
@@ -57,4 +55,11 @@ export function parseAssetId(str: string, ctx: z.RefinementCtx) {
     account: parseAccountId(`${account}@${domain2}`, ctx),
     definition: { domain: domain1 ?? domain2, name: asset },
   }
+}
+
+export function parseMultihashPublicKey(hex: string) {
+  const key = PublicKey.fromMultihash(hex)
+  const result = { algorithm: key.algorithm, payload: key.payload() }
+  key.free()
+  return result
 }

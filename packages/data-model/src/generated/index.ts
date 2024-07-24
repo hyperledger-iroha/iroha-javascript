@@ -2427,7 +2427,14 @@ export const PredicateBox$codec: core.Codec<PredicateBox> = core
   .discriminated()
 export type PublicKey = z.infer<typeof PublicKey$schema>
 export const PublicKey = (input: z.input<typeof PublicKey$schema>): PublicKey => PublicKey$schema.parse(input)
-export const PublicKey$schema = z.object({ algorithm: z.lazy(() => Algorithm$schema), payload: core.BytesVec$schema })
+export const PublicKey$schema = z
+  .object({ algorithm: z.lazy(() => Algorithm$schema), payload: core.BytesVec$schema })
+  .or(
+    z
+      .string()
+      .transform(core.parseMultihashPublicKey)
+      .pipe(z.object({ algorithm: z.lazy(() => Algorithm$schema), payload: core.BytesVec$schema })),
+  )
 export const PublicKey$codec = core.structCodec<PublicKey>([
   ['algorithm', core.lazyCodec(() => Algorithm$codec)],
   ['payload', core.BytesVec$codec],

@@ -171,354 +171,361 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
   // has been resolved to a lib type, can exclude from schema
   if (id.t === 'lib' || id.t === 'lit') return []
 
-  return match([id, item])
-    .returnType<CodegenEntry[]>()
-    .with([{ generics: P.array() }, P._], () => {
-      throw new Error(`don't know how to transform the definition of "${name}"`)
-    })
-    .with([{ id: 'Signature' }, { Struct: [{ name: 'payload', type: 'Vec<u8>' }] }], () => [
-      {
-        t: 'branded-alias',
-        id: 'Signature',
-        to: (() => {
-          const bytes = transformIdent('Vec<u8>')
-          const schemaBase = generateIdent(bytes).schema
-          return {
-            ...bytes,
-            schema: `${schemaBase}.or(z.instanceof(crypto.Signature).transform(x => x.payload()).pipe(${schemaBase}))`,
-          }
-        })(),
-      },
-    ])
-    .with([{ id: 'BlockSignature' }, { Tuple: ['u64', P.string.startsWith('Signature')] }], () => [
-      {
-        t: 'struct',
-        id: 'BlockSignature',
-        fields: [
-          { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
-          { name: 'signature', type: { t: 'ref', id: 'Signature' } },
-        ],
-      },
-    ])
-    .with([{ id: 'BlockSubscriptionRequest' }, 'NonZero<u64>'], ([{ id }, type]) => {
-      return [{ t: 'struct', id, fields: [{ name: 'from_block_height', type: transformIdent(type) }] }]
-    })
-    .with(
-      [{ id: 'Duration' }, { Tuple: ['u64', 'u32'] }],
-      ([
-        { id },
+  return (
+    match([id, item])
+      .returnType<CodegenEntry[]>()
+      .with([{ generics: P.array() }, P._], () => {
+        throw new Error(`don't know how to transform the definition of "${name}"`)
+      })
+      .with([{ id: 'Signature' }, { Struct: [{ name: 'payload', type: 'Vec<u8>' }] }], () => [
         {
-          Tuple: [secs, nanos],
+          t: 'branded-alias',
+          id: 'Signature',
+          to: (() => {
+            const bytes = transformIdent('Vec<u8>')
+            const schemaBase = generateIdent(bytes).schema
+            return {
+              ...bytes,
+              schema: `${schemaBase}.or(z.instanceof(crypto.Signature).transform(x => x.payload()).pipe(${schemaBase}))`,
+            }
+          })(),
         },
-      ]) => [
+      ])
+      .with([{ id: 'BlockSignature' }, { Tuple: ['u64', P.string.startsWith('Signature')] }], () => [
+        {
+          t: 'struct',
+          id: 'BlockSignature',
+          fields: [
+            { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
+            { name: 'signature', type: { t: 'ref', id: 'Signature' } },
+          ],
+        },
+      ])
+      .with([{ id: 'BlockSubscriptionRequest' }, 'NonZero<u64>'], ([{ id }, type]) => {
+        return [{ t: 'struct', id, fields: [{ name: 'from_block_height', type: transformIdent(type) }] }]
+      })
+      .with(
+        [{ id: 'Duration' }, { Tuple: ['u64', 'u32'] }],
+        ([
+          { id },
+          {
+            Tuple: [secs, nanos],
+          },
+        ]) => [
+          {
+            t: 'struct',
+            id,
+            fields: [
+              {
+                name: 'secs',
+                type: { t: 'lib', id: upcase(secs) },
+              },
+              {
+                name: 'nanos',
+                type: { t: 'lib', id: upcase(nanos) },
+              },
+            ],
+          } satisfies CodegenEntry,
+        ],
+      )
+      .with(
+        [{ id: 'FetchSize' }, { Struct: [{ name: 'fetch_size' }] }],
+        ([
+          { id },
+          {
+            Struct: [{ type }],
+          },
+        ]) => [{ t: 'alias', id, to: transformIdent(type) }],
+      )
+      .with([{ id: 'Algorithm' }, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
+        const variantsParsed = variants.map<CodegenEnumVariant>((x, i) => {
+          invariant(x.tag === pascalCase(CRYPTO_ALGORITHMS[i]))
+          invariant(!x.type)
+          return { t: 'unit', tag: CRYPTO_ALGORITHMS[i], discriminant: x.discriminant }
+        })
+
+        return [
+          {
+            t: 'enum',
+            id,
+            mode: 'normal',
+            variants: variantsParsed,
+          },
+        ]
+      })
+      .with([{ id: 'NonTrivial' }, 'Vec<GenericPredicateBox<QueryOutputPredicate>>'], () => [
+        {
+          t: 'alias',
+          id: 'NonTrivial',
+          to: transformIdent('Vec<PredicateBox>'),
+        },
+      ])
+      .with([{ id: 'WasmSmartContract' }, 'Vec<u8>'], ([{ id }]) => [
         {
           t: 'struct',
           id,
-          fields: [
-            {
-              name: 'secs',
-              type: { t: 'lib', id: upcase(secs) },
-            },
-            {
-              name: 'nanos',
-              type: { t: 'lib', id: upcase(nanos) },
-            },
-          ],
-        } satisfies CodegenEntry,
-      ],
-    )
-    .with(
-      [{ id: 'FetchSize' }, { Struct: [{ name: 'fetch_size' }] }],
-      ([
-        { id },
-        {
-          Struct: [{ type }],
+          fields: [{ name: 'blob', type: { t: 'lib', id: 'BytesVec' } }],
         },
-      ]) => [{ t: 'alias', id, to: transformIdent(type) }],
-    )
-    .with([{ id: 'Algorithm' }, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
-      const variantsParsed = variants.map<CodegenEnumVariant>((x, i) => {
-        invariant(x.tag === pascalCase(CRYPTO_ALGORITHMS[i]))
-        invariant(!x.type)
-        return { t: 'unit', tag: CRYPTO_ALGORITHMS[i], discriminant: x.discriminant }
-      })
-
-      return [
-        {
-          t: 'enum',
-          id,
-          mode: 'normal',
-          variants: variantsParsed,
-        },
-      ]
-    })
-    .with([{ id: 'NonTrivial' }, 'Vec<GenericPredicateBox<QueryOutputPredicate>>'], () => [
-      {
-        t: 'alias',
-        id: 'NonTrivial',
-        to: transformIdent('Vec<PredicateBox>'),
-      },
-    ])
-    .with([{ id: 'WasmSmartContract' }, 'Vec<u8>'], ([{ id }]) => [
-      {
-        t: 'struct',
-        id,
-        fields: [{ name: 'blob', type: { t: 'lib', id: 'BytesVec' } }],
-      },
-    ])
-    .with([{ id: 'IpfsPath' }, 'String'], ([{ id }]) => [
-      {
-        t: 'branded-alias',
-        id,
-        to: { t: 'lib', id: 'String' },
-      },
-    ])
-    .with(
-      [
-        { id: P.union('DomainId', 'PermissionId', 'TriggerId', 'RoleId').select() },
-        { Struct: [{ name: 'name', type: 'Name' }] },
-      ],
-      (id) => [
+      ])
+      .with([{ id: 'IpfsPath' }, 'String'], ([{ id }]) => [
         {
           t: 'branded-alias',
           id,
-          to: { t: 'lib', id: 'Name' },
+          to: { t: 'lib', id: 'String' },
         },
-      ],
-    )
-    .with([P._, { Struct: P._ }], ([{ id }, { Struct: fields }]) => {
-      return [
-        {
-          t: 'struct',
-          id,
-          fields: fields.map((x) =>
-            match({ id, field: x })
-              .returnType<(CodegenEntry & { t: 'struct' })['fields'][number]>()
-              .with(
-                {
-                  id: P.union('BlockHeader', 'TimeInterval', 'Schedule'),
-                  field: { name: P.union('creation_time_ms', 'since_ms', 'start_ms').select(), type: 'u64' },
-                },
-                (name) => ({
-                  name: name.slice(0, -3),
-                  type: { t: 'lib', id: 'Timestamp' },
-                }),
-              )
-              .with(
-                {
-                  id: P.union('BlockHeader', 'TimeInterval', 'SumeragiParameters'),
-                  field: {
-                    name: P.union('consensus_estimation_ms', 'length_ms', 'block_time_ms', 'commit_time_ms').select(),
-                    type: 'u64',
-                  },
-                },
-                (name) => ({
-                  name: name.slice(0, -3),
-                  type: { t: 'lib', id: 'Duration' },
-                }),
-              )
-              .with({ id: 'TransactionPayload', field: { name: 'creation_time_ms', type: 'u64' } }, () => ({
-                name: 'creation_time',
-                type: { t: 'lib', id: 'Timestamp', schema: `core.Timestamp$schema.default(() => new Date())` },
-              }))
-              .with({ id: 'Schedule', field: { name: 'period_ms', type: 'Option<u64>' } }, () => ({
-                name: 'period',
-                type: { t: 'lib', id: 'Option', generics: [{ t: 'lib', id: 'Duration' }] },
-              }))
-              .with(
-                { id: 'TransactionPayload', field: { name: 'time_to_live_ms', type: 'Option<NonZero<u64>>' } },
-                () => ({
-                  name: 'time_to_live',
-                  type: {
-                    t: 'lib',
-                    id: 'Option',
-                    generics: [
-                      {
-                        t: 'lib',
-                        id: 'NonZero',
-                        generics: [
-                          {
-                            t: 'lib',
-                            id: 'Duration',
-                            // TODO: add default value as 100 seconds?
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                }),
-              )
-              .otherwise(() => ({
-                name: x.name,
-                type: transformIdent(x.type),
-              })),
-          ),
-          schema: match(id)
-            .returnType<undefined | ((base: string) => string)>()
-            .with('AccountId', () => (base) => `z.string().transform(core.parseAccountId).pipe(${base}).or(${base})`)
-            .with(
-              'AssetDefinitionId',
-              () => (base) => `z.string().transform(core.parseAssetDefinitionId).pipe(${base}).or(${base})`,
-            )
-            .with('AssetId', () => (base) => `z.string().transform(core.parseAssetId).pipe(${base}).or(${base})`)
-            .otherwise(() => undefined),
-        } satisfies CodegenEntry,
-      ]
-    })
-    .with([P._, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
-      const mode = match(id)
-        .returnType<(CodegenEntry & { t: 'enum' })['mode']>()
-        .with(
-          P.union('PredicateBox', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox', 'QueryOutputPredicate'),
-          () => 'explicit',
-        )
-        .otherwise(() => 'normal')
-
-      return [
-        {
-          t: 'enum',
-          id,
-          mode,
-          variants: variants.map((x) =>
-            match([id, x])
-              .returnType<CodegenEnumVariant>()
-              .with(
-                ['SumeragiParameter', { tag: P.union('BlockTimeMs', 'CommitTimeMs'), type: 'u64' }],
-                ([, { tag, discriminant }]) => ({
-                  t: 'with-type',
-                  type: { t: 'lib', id: 'Duration' },
-                  tag:
-                    // remove `Ms`
-                    tag.slice(0, -2),
-                  discriminant,
-                }),
-              )
-              .with(
-                ['QueryOutputPredicate', { tag: 'TimeStamp', type: 'SemiInterval<u128>' }],
-                ([, { tag, discriminant }]) => ({
-                  t: 'with-type',
-                  type: { t: 'ref', id: 'SemiInterval', generics: [{ t: 'lib', id: 'TimestampU128' }] },
-                  tag,
-                  discriminant,
-                }),
-              )
-              .otherwise(() =>
-                match(x)
-                  .returnType<CodegenEnumVariant>()
-                  .with({ type: P.when((x) => x && nullTypes.has(x)) }, ({ discriminant, tag }) => ({
-                    t: 'unit',
-                    discriminant,
-                    tag,
-                  }))
-                  .with({ type: P.string }, ({ type, discriminant, tag }) => ({
-                    t: 'with-type',
-                    type: transformIdent(type),
-                    tag,
-                    discriminant,
-                  }))
-                  .otherwise(({ discriminant, tag }) => ({
-                    t: 'unit',
-                    discriminant,
-                    tag,
-                  })),
-              ),
-          ),
-        } satisfies CodegenEntry,
-      ]
-    })
-    .with(
-      [P._, { Bitmap: { repr: 'u32' } }],
-      ([
-        { id },
-        {
-          Bitmap: { masks, repr },
-        },
-      ]) => [
-        {
-          t: 'bitmap',
-          id,
-          repr: upcase(repr),
-          masks,
-        },
-      ],
-    )
-    .with([{ id: P.union('ChainId', 'Name') }, 'String'], ([{ id }]) => [
-      {
-        t: 'branded-alias',
-        id,
-        to: { t: 'lib', id: 'String' },
-      },
-    ])
-    .with([P._, P.string], ([type, aliasTo]) => {
-      const aliasParsed = transformIdent(aliasTo)
-
-      if (aliasParsed.t === 'ref' && !aliasParsed.generics && aliasParsed.id === type.id)
-        // it is a redundant self-alias. hard to formulate "why"... just is
-        return []
-
-      if (type.id === 'Ipv4Addr') {
-        const LEN = 4
-
-        match(aliasParsed)
-          .with({ t: 'lib', id: 'U8Array', generics: [{ literal: String(LEN) }] }, () => {})
-          .otherwise(() => {
-            throw new Error('unexpected shape')
-          })
-
-        return [
-          {
-            t: 'tuple',
-            id: type.id,
-            elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U8' })),
-          } satisfies CodegenEntry,
-        ]
-      }
-
-      if (type.id === 'Ipv6Addr') {
-        const LEN = 8
-
-        match(aliasParsed)
-          .with({ t: 'lib', id: 'U16Array', generics: [{ literal: String(LEN) }] }, () => {})
-          .otherwise(() => {
-            throw new Error('unexpected shape')
-          })
-
-        return [
-          {
-            t: 'tuple',
-            id: type.id,
-            elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U16' })),
-          } satisfies CodegenEntry,
-        ]
-      }
-      if (type.id === 'Hash') {
-        const schemaBase = generateIdent(aliasParsed).schema
-        const schemaCrypto = `z.instanceof(crypto.Hash).transform(x => x.payload()).pipe(${schemaBase})`
-        const schemaHex = `core.hex$schema.pipe(${schemaBase})`
-        return [
+      ])
+      .with(
+        [
+          { id: P.union('DomainId', 'PermissionId', 'TriggerId', 'RoleId').select() },
+          { Struct: [{ name: 'name', type: 'Name' }] },
+        ],
+        (id) => [
           {
             t: 'branded-alias',
-            id: type.id,
-            to: {
-              ...aliasParsed,
-              schema: `${schemaBase}.or(${schemaCrypto}).or(${schemaHex})`,
+            id,
+            to: { t: 'lib', id: 'Name' },
+          },
+        ],
+      )
+      // just plain struct
+      .with([P._, { Struct: P._ }], ([{ id }, { Struct: fields }]) => {
+        return [
+          {
+            t: 'struct',
+            id,
+            fields: fields.map((x) =>
+              match({ id, field: x })
+                .returnType<(CodegenEntry & { t: 'struct' })['fields'][number]>()
+                .with(
+                  {
+                    id: P.union('BlockHeader', 'TimeInterval', 'Schedule'),
+                    field: { name: P.union('creation_time_ms', 'since_ms', 'start_ms').select(), type: 'u64' },
+                  },
+                  (name) => ({
+                    name: name.slice(0, -3),
+                    type: { t: 'lib', id: 'Timestamp' },
+                  }),
+                )
+                .with(
+                  {
+                    id: P.union('BlockHeader', 'TimeInterval', 'SumeragiParameters'),
+                    field: {
+                      name: P.union('consensus_estimation_ms', 'length_ms', 'block_time_ms', 'commit_time_ms').select(),
+                      type: 'u64',
+                    },
+                  },
+                  (name) => ({
+                    name: name.slice(0, -3),
+                    type: { t: 'lib', id: 'Duration' },
+                  }),
+                )
+                .with({ id: 'TransactionPayload', field: { name: 'creation_time_ms', type: 'u64' } }, () => ({
+                  name: 'creation_time',
+                  type: { t: 'lib', id: 'Timestamp', schema: `core.Timestamp$schema.default(() => new Date())` },
+                }))
+                .with({ id: 'Schedule', field: { name: 'period_ms', type: 'Option<u64>' } }, () => ({
+                  name: 'period',
+                  type: { t: 'lib', id: 'Option', generics: [{ t: 'lib', id: 'Duration' }] },
+                }))
+                .with(
+                  { id: 'TransactionPayload', field: { name: 'time_to_live_ms', type: 'Option<NonZero<u64>>' } },
+                  () => ({
+                    name: 'time_to_live',
+                    type: {
+                      t: 'lib',
+                      id: 'Option',
+                      generics: [
+                        {
+                          t: 'lib',
+                          id: 'NonZero',
+                          generics: [
+                            {
+                              t: 'lib',
+                              id: 'Duration',
+                              // TODO: add default value as 100 seconds?
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  }),
+                )
+                .otherwise(() => ({
+                  name: x.name,
+                  type: transformIdent(x.type),
+                })),
+            ),
+            schema: match(id)
+              .returnType<undefined | ((base: string) => string)>()
+              .with('AccountId', () => (base) => `z.string().transform(core.parseAccountId).pipe(${base}).or(${base})`)
+              .with(
+                'AssetDefinitionId',
+                () => (base) => `z.string().transform(core.parseAssetDefinitionId).pipe(${base}).or(${base})`,
+              )
+              .with('AssetId', () => (base) => `z.string().transform(core.parseAssetId).pipe(${base}).or(${base})`)
+              .with(
+                'PublicKey',
+                () => (base) => `${base}.or(z.string().transform(core.parseMultihashPublicKey).pipe(${base}))`,
+              )
+              .otherwise(() => undefined),
+          } satisfies CodegenEntry,
+        ]
+      })
+      .with([P._, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
+        const mode = match(id)
+          .returnType<(CodegenEntry & { t: 'enum' })['mode']>()
+          .with(
+            P.union('PredicateBox', 'QueryOutputBox', 'MetadataValueBox', 'InstructionBox', 'QueryOutputPredicate'),
+            () => 'explicit',
+          )
+          .otherwise(() => 'normal')
+
+        return [
+          {
+            t: 'enum',
+            id,
+            mode,
+            variants: variants.map((x) =>
+              match([id, x])
+                .returnType<CodegenEnumVariant>()
+                .with(
+                  ['SumeragiParameter', { tag: P.union('BlockTimeMs', 'CommitTimeMs'), type: 'u64' }],
+                  ([, { tag, discriminant }]) => ({
+                    t: 'with-type',
+                    type: { t: 'lib', id: 'Duration' },
+                    tag:
+                      // remove `Ms`
+                      tag.slice(0, -2),
+                    discriminant,
+                  }),
+                )
+                .with(
+                  ['QueryOutputPredicate', { tag: 'TimeStamp', type: 'SemiInterval<u128>' }],
+                  ([, { tag, discriminant }]) => ({
+                    t: 'with-type',
+                    type: { t: 'ref', id: 'SemiInterval', generics: [{ t: 'lib', id: 'TimestampU128' }] },
+                    tag,
+                    discriminant,
+                  }),
+                )
+                .otherwise(() =>
+                  match(x)
+                    .returnType<CodegenEnumVariant>()
+                    .with({ type: P.when((x) => x && nullTypes.has(x)) }, ({ discriminant, tag }) => ({
+                      t: 'unit',
+                      discriminant,
+                      tag,
+                    }))
+                    .with({ type: P.string }, ({ type, discriminant, tag }) => ({
+                      t: 'with-type',
+                      type: transformIdent(type),
+                      tag,
+                      discriminant,
+                    }))
+                    .otherwise(({ discriminant, tag }) => ({
+                      t: 'unit',
+                      discriminant,
+                      tag,
+                    })),
+                ),
+            ),
+          } satisfies CodegenEntry,
+        ]
+      })
+      .with(
+        [P._, { Bitmap: { repr: 'u32' } }],
+        ([
+          { id },
+          {
+            Bitmap: { masks, repr },
+          },
+        ]) => [
+          {
+            t: 'bitmap',
+            id,
+            repr: upcase(repr),
+            masks,
+          },
+        ],
+      )
+      .with([{ id: P.union('ChainId', 'Name') }, 'String'], ([{ id }]) => [
+        {
+          t: 'branded-alias',
+          id,
+          to: { t: 'lib', id: 'String' },
+        },
+      ])
+      .with([P._, P.string], ([type, aliasTo]) => {
+        const aliasParsed = transformIdent(aliasTo)
+
+        if (aliasParsed.t === 'ref' && !aliasParsed.generics && aliasParsed.id === type.id)
+          // it is a redundant self-alias. hard to formulate "why"... just is
+          return []
+
+        if (type.id === 'Ipv4Addr') {
+          const LEN = 4
+
+          match(aliasParsed)
+            .with({ t: 'lib', id: 'U8Array', generics: [{ literal: String(LEN) }] }, () => {})
+            .otherwise(() => {
+              throw new Error('unexpected shape')
+            })
+
+          return [
+            {
+              t: 'tuple',
+              id: type.id,
+              elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U8' })),
+            } satisfies CodegenEntry,
+          ]
+        }
+
+        if (type.id === 'Ipv6Addr') {
+          const LEN = 8
+
+          match(aliasParsed)
+            .with({ t: 'lib', id: 'U16Array', generics: [{ literal: String(LEN) }] }, () => {})
+            .otherwise(() => {
+              throw new Error('unexpected shape')
+            })
+
+          return [
+            {
+              t: 'tuple',
+              id: type.id,
+              elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U16' })),
+            } satisfies CodegenEntry,
+          ]
+        }
+        if (type.id === 'Hash') {
+          const schemaBase = generateIdent(aliasParsed).schema
+          const schemaCrypto = `z.instanceof(crypto.Hash).transform(x => x.payload()).pipe(${schemaBase})`
+          const schemaHex = `core.hex$schema.pipe(${schemaBase})`
+          return [
+            {
+              t: 'branded-alias',
+              id: type.id,
+              to: {
+                ...aliasParsed,
+                schema: `${schemaBase}.or(${schemaCrypto}).or(${schemaHex})`,
+              },
             },
+          ]
+        }
+
+        return [
+          {
+            t: 'alias',
+            id: type.id,
+            to: aliasParsed,
           },
         ]
-      }
-
-      return [
-        {
-          t: 'alias',
-          id: type.id,
-          to: aliasParsed,
-        },
-      ]
-    })
-    .otherwise((what) => {
-      console.log(what)
-      throw new Error(`unexpected format of type "${name}"`)
-    })
+      })
+      .otherwise((what) => {
+        console.log(what)
+        throw new Error(`unexpected format of type "${name}"`)
+      })
+  )
 }
 
 /**

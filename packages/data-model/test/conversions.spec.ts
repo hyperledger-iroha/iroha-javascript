@@ -15,41 +15,41 @@ async function encodeWithTool(type: keyof typeof SCHEMA, data: JsonValue): Promi
   return new Uint8Array(result.stdout)
 }
 
-function toHex(bytes: Uint8Array) {
-  return [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('')
-}
-
-interface Case<T extends z.ZodType> {
-  type: keyof typeof SCHEMA
-  json: JsonValue
-  schema: T
-  value: z.input<T>
-  codec: Codec<z.infer<T>>
-}
-
-function defCase<T extends z.ZodType>(data: Case<T>) {
-  return data
-}
-
-function* defMultipleValues<T extends z.ZodType>(data: Except<Case<T>, 'value'>, ...values: z.input<T>[]) {
-  for (const value of values) {
-    yield { ...data, value }
-  }
-}
-
-function caseHash() {
-  const bytes = Uint8Array.from({ length: 32 }, (_v, i) => i)
-  const hex = toHex(bytes)
-  return defCase({
-    type: 'Hash',
-    json: hex,
-    schema: datamodel.Hash$schema,
-    codec: datamodel.Hash$codec,
-    value: bytes,
-  })
-}
-
 describe('Conversion', () => {
+  function toHex(bytes: Uint8Array) {
+    return [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('')
+  }
+
+  interface Case<T extends z.ZodType> {
+    type: keyof typeof SCHEMA
+    json: JsonValue
+    schema: T
+    value: z.input<T>
+    codec: Codec<z.infer<T>>
+  }
+
+  function defCase<T extends z.ZodType>(data: Case<T>) {
+    return data
+  }
+
+  function* defMultipleValues<T extends z.ZodType>(data: Except<Case<T>, 'value'>, ...values: z.input<T>[]) {
+    for (const value of values) {
+      yield { ...data, value }
+    }
+  }
+
+  function caseHash() {
+    const bytes = Uint8Array.from({ length: 32 }, (_v, i) => i)
+    const hex = toHex(bytes)
+    return defCase({
+      type: 'Hash',
+      json: hex,
+      schema: datamodel.Hash$schema,
+      codec: datamodel.Hash$codec,
+      value: bytes,
+    })
+  }
+
   test.each([
     defCase({
       type: 'SocketAddr',
@@ -131,10 +131,7 @@ describe('Conversion', () => {
       'rose#badland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
       {
         account: {
-          signatory: {
-            algorithm: 'ed25519',
-            payload: 'B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',
-          },
+          signatory: 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',
           domain: 'badland',
         },
         definition: {
