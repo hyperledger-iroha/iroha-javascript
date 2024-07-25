@@ -27,7 +27,7 @@ export interface Status {
   queueSize: bigint
 }
 
-export const Status = structCodec<Status>([
+export const Status$codec = structCodec<Status>([
   ['peers', coreDatamodel.Compact$codec],
   ['blocks', coreDatamodel.Compact$codec],
   ['txsAccepted', coreDatamodel.Compact$codec],

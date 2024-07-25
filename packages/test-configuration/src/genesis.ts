@@ -10,14 +10,14 @@ const RAW_GENESIS_FOR_KAGAMI = {
   chain: CHAIN,
   executor: EXECUTOR_WASM_PATH,
   instructions: [
-    { Register: { Domain: { id: DOMAIN.name, metadata: {} } } },
-    { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.name}`, metadata: {} } } },
+    { Register: { Domain: { id: DOMAIN, metadata: {} } } },
+    { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`, metadata: {} } } },
     {
       Transfer: {
         Domain: {
           source: `${GENESIS_KEY_PAIR.publicKey}@genesis`,
-          object: DOMAIN.name,
-          destination: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.name}`,
+          object: DOMAIN,
+          destination: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`,
         },
       },
     },

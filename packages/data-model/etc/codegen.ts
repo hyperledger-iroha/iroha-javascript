@@ -367,7 +367,9 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
               .with('AssetId', () => (base) => `z.string().transform(core.parseAssetId).pipe(${base}).or(${base})`)
               .with(
                 'PublicKey',
-                () => (base) => `${base}.or(z.string().transform(core.parseMultihashPublicKey).pipe(${base}))`,
+                () => (base) =>
+                  `${base}.or(z.string().transform(core.parseMultihashPublicKey).or(` +
+                  `z.instanceof(crypto.PublicKey).transform((x) => ({ algorithm: x.algorithm, payload: x.payload() }))).pipe(${base}))`,
               )
               .with('Sorting', 'Pagination', () => (base) => `${base}.default(() => ({}))`)
               .otherwise(() => undefined),

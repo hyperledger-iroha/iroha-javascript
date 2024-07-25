@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "*.json": "jsonc"
-    },
-    "rust-analyzer.linkedProjects": [
-        "packages/data-model-rust-samples/Cargo.toml"
-    ]
-}

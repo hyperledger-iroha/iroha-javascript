@@ -4,5 +4,5 @@ dist-tsc
 
 /packages/crypto/crypto-rs/wasm-pkg-*
 /packages/crypto/crypto-rs/target
-/packages/data-model-rust-samples/target
+
 

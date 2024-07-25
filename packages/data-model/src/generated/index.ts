@@ -2434,6 +2434,7 @@ export const PublicKey$schema = z
     z
       .string()
       .transform(core.parseMultihashPublicKey)
+      .or(z.instanceof(crypto.PublicKey).transform((x) => ({ algorithm: x.algorithm, payload: x.payload() })))
       .pipe(z.object({ algorithm: z.lazy(() => Algorithm$schema), payload: core.BytesVec$schema })),
   )
 export const PublicKey$codec = core.structCodec<PublicKey>([

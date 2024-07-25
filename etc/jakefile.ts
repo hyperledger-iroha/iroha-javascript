@@ -12,16 +12,6 @@ task('clean', async () => {
   reportDeleted(deleted)
 })
 
-namespace('prepare', () => {
-  desc('Produce Rust SCALE samples for data-model tests')
-  task('data-model-rust-samples', ['clean'], async () => {
-    await $`pnpm --filter data-model-rust-samples produce-samples`
-  })
-
-  desc('Compile all necessary artifacts')
-  task('all', ['data-model-rust-samples'])
-})
-
 namespace('crypto-wasm', () => {
   task('clean-wasm-pkgs', async () => {
     const deleted = await del(WASM_PACK_TARGETS.map((a) => wasmPackOutDirForTarget(a)).toArray())

@@ -5,6 +5,9 @@ import { execa } from 'execa'
 import { describe, expect, onTestFinished, test, vi } from 'vitest'
 import type { SCHEMA } from '@iroha2/data-model-schema'
 import { z } from 'zod'
+import { fromHexWithSpaces, toHex } from './util'
+import { PublicKey } from '@iroha2/crypto-core'
+import { parseHex } from '../src/util'
 
 const SAMPLE_ACCOUNT_ID = 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'
 
@@ -355,4 +358,79 @@ test('tx payload default creation time', () => {
   })
 
   expect(txPayload.creationTime.asDate().getTime()).toEqual(DATE.getTime())
+})
+
+describe('Status', () => {
+  test('Documented example at https://hyperledger.github.io/iroha-2-docs/reference/torii-endpoints.html#status', () => {
+    const STATUS: datamodel.Status = {
+      peers: 4n,
+      blocks: 5n,
+      txsAccepted: 31n,
+      txsRejected: 3n,
+      uptime: {
+        secs: 5n,
+        nanos: 937000000,
+      },
+      viewChanges: 2n,
+      queueSize: 18n,
+    }
+    const ENCODED = '10 14 7C 0C 14 40 7C D9 37 08 48'
+
+    expect(datamodel.Status$codec.encode(STATUS)).toEqual(fromHexWithSpaces(ENCODED))
+    expect(datamodel.Status$codec.decode(fromHexWithSpaces(ENCODED))).toEqual(STATUS)
+  })
+
+  test('From zeros', () => {
+    expect(datamodel.Status$codec.decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00'))).toMatchInlineSnapshot(`
+      {
+        "blocks": 0n,
+        "peers": 0n,
+        "queueSize": 0n,
+        "txsAccepted": 0n,
+        "txsRejected": 0n,
+        "uptime": {
+          "nanos": 0,
+          "secs": 0n,
+        },
+        "viewChanges": 0n,
+      }
+    `)
+  })
+})
+
+test('Decode SignedBlock without errors', () => {
+  const SAMPLE = fromHexWithSpaces(`
+    0104000000000000000001018645b497f22d59d681254535acb76f1e3f9e
+    7f33fe036d5777db64534068bedbc8b42d7def59354eb424fc47843edcde
+    03a5fb2e6a5711bd585770bb9e9a7f03020000000000000001b543d34198
+    f886408d49017660889aa943486701164b85606cf68a010d4ca2bbca6427
+    cdf7b62212441236961692b1674bd3a3dfa1587435f822c7616dfdd9236d
+    f13d499001000000000000000000000000000004007f00000139050080b2
+    3e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a74447171
+    4e04010101055a96ed446b8b364ef45944e80de7b9e1db0bc2b638b88835
+    8620d5f82cff73a87c64e45ec25cff3bc2bb596bfe13ef86c65eaa2a8ffb
+    1a1f5a988ed8058b079030303030303030302d303030302d303030302d30
+    3030302d30303030303030303030303028776f6e6465726c616e640080b2
+    3e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a74447171
+    4e64f13d49900100000004000328776f6e6465726c616e640c786f720000
+    010000000000010200110143616e27742072656769737465722061737365
+    7420646566696e6974696f6e20696e206120646f6d61696e206f776e6564
+    20627920616e6f74686572206163636f756e7400
+  `)
+
+  expect(() => datamodel.SignedBlock$codec.decode(SAMPLE)).not.toThrow()
+})
+
+test.each([
+  'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',
+  PublicKey.fromMultihash('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'),
+  { algorithm: 'ed25519', payload: 'B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E' },
+  {
+    algorithm: 'ed25519',
+    payload: Uint8Array.from(parseHex('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')),
+  },
+] satisfies z.input<typeof datamodel.PublicKey$schema>[])('Parse public key from %o', (input) => {
+  const value = datamodel.PublicKey(input)
+  expect(value.algorithm).toEqual('ed25519')
+  expect(toHex(value.payload)).toEqual('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'.toLowerCase())
 })

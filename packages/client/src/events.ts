@@ -1,4 +1,4 @@
-import { datamodel, toCodec } from '@iroha2/data-model'
+import { datamodel } from '@iroha2/data-model'
 import type Emittery from 'emittery'
 import Debug from 'debug'
 import type { SocketEmitMapBase } from './util'
@@ -14,8 +14,8 @@ export interface EventsEmitteryMap extends SocketEmitMapBase {
 
 export interface SetupEventsParams {
   toriiURL: string
-  filters?: datamodel.EventFilterBox[]
   adapter: IsomorphicWebSocketAdapter
+  filters?: datamodel.EventFilterBox[]
 }
 
 export interface SetupEventsReturn {
@@ -42,11 +42,11 @@ export async function setupEvents(params: SetupEventsParams): Promise<SetupEvent
   })
 
   ee.on('open', () => {
-    sendRaw(toCodec(datamodel.EventSubscriptionRequest).encode({ filters: params.filters ?? [] }))
+    sendRaw(datamodel.EventSubscriptionRequest$codec.encode({ filters: params.filters ?? [] }))
   })
 
   ee.on('message', (raw) => {
-    const event = toCodec(datamodel.EventBox).decode(raw)
+    const event = datamodel.EventBox$codec.decode(raw)
     ee.emit('event', event)
   })
 

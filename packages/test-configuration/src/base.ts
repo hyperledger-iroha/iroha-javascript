@@ -1,11 +1,11 @@
-import type { datamodel } from '@iroha2/data-model'
+import { datamodel } from '@iroha2/data-model'
 
 export const BLOCK_TIME_MS = 0
 export const COMMIT_TIME_MS = 0
 // TODO: add reference to iroha source code
 export const PIPELINE_MS = BLOCK_TIME_MS + COMMIT_TIME_MS
 
-export const DOMAIN: datamodel.DomainId = { name: 'wonderland' }
+export const DOMAIN = datamodel.DomainId('wonderland')
 
 export const ACCOUNT_KEY_PAIR = {
   publicKey: 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',

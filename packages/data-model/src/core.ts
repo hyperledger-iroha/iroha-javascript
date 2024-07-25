@@ -1,6 +1,7 @@
 import * as scale from '@scale-codec/core'
 import type { z } from 'zod'
-import { type U32, U32$codec, U32$schema } from './core-datamodel'
+import * as coreDatamodel from './core-datamodel'
+import { parseHex } from './util'
 
 export interface RawScaleCodec<T> {
   encode: scale.Encode<T>
@@ -30,8 +31,9 @@ export class Codec<T> {
     return scale.WalkerImpl.encode(value, this.rawEncode)
   }
 
-  public decode(data: ArrayBufferView): T {
-    return scale.WalkerImpl.decode(data, this.rawDecode)
+  public decode(data: string | ArrayBufferView): T {
+    const parsed = ArrayBuffer.isView(data) ? data : Uint8Array.from(parseHex(data))
+    return scale.WalkerImpl.decode(parsed, this.rawDecode)
   }
 
   public wrap<U>(toBase: (value: U) => T, fromBase: (value: T) => U): Codec<U> {
@@ -133,8 +135,8 @@ export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
 }
 
 export function bitmap<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
-  const reprCodec = U32$codec
-  const reprSchema = U32$schema
+  const reprCodec = coreDatamodel.U32$codec
+  const reprSchema = coreDatamodel.U32$schema
   const REPR_MAX = 2 ** 32 - 1
 
   const toMask = (set: Set<Name>) => {
@@ -146,7 +148,7 @@ export function bitmap<Name extends string>(masks: { [K in Name]: number }): Cod
   }
 
   const masksArray = (Object.entries(masks) as [Name, number][]).map(([k, v]) => ({ key: k, value: v }))
-  const fromMask = (bitmask: U32): Set<Name> => {
+  const fromMask = (bitmask: coreDatamodel.U32): Set<Name> => {
     const set = new Set<Name>()
     let bitmaskMut: number = bitmask
     for (const mask of masksArray) {

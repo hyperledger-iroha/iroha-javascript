@@ -11,19 +11,7 @@
 
 import type { KeyPair } from '@iroha2/crypto-core'
 import { freeScope } from '@iroha2/crypto-core'
-import type { DefineQueryPayloadParams, DefineTransactionPayloadParams, Result } from '@iroha2/data-model'
-import {
-  type Enumerate,
-  datamodel,
-  defineQueryPayload,
-  defineTxPayload,
-  publicKeyFromCrypto,
-  signQuery,
-  signTransaction,
-  toCodec,
-  transactionHash,
-  variant,
-} from '@iroha2/data-model'
+import { datamodel, signQuery, signTransaction, transactionHash } from '@iroha2/data-model'
 import type { Except } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'
 import { setupBlocksStream } from './blocks-stream'
@@ -40,12 +28,13 @@ import type { SetupEventsParams } from './events'
 import { setupEvents } from './events'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 import defer from 'p-defer'
+import type { z } from 'zod'
 
 type Fetch = typeof fetch
 
 export interface SetPeerConfigParams {
   logger: {
-    level: datamodel.Level extends Enumerate<infer E> ? keyof E : never
+    level: datamodel.LogLevel
   }
 }
 
@@ -53,8 +42,8 @@ export interface CreateClientParams {
   http: Fetch
   ws: IsomorphicWebSocketAdapter
   toriiURL: string
-  chain: string
-  accountDomain: string
+  chain: z.input<typeof datamodel.ChainId$schema>
+  accountDomain: z.input<typeof datamodel.DomainId$schema>
   accountKeyPair: KeyPair
 }
 
@@ -64,7 +53,8 @@ export interface SubmitParams {
    * @default false
    */
   verify?: boolean
-  payload?: Except<DefineTransactionPayloadParams, 'chain' | 'authority' | 'executable'>
+  verifyAbort?: AbortSignal
+  payload?: Except<z.input<typeof datamodel.TransactionPayload$schema>, 'chain' | 'authority' | 'instructions'>
 }
 
 export class ResponseError extends Error {
@@ -111,18 +101,19 @@ export class Client {
   }
 
   public accountId(): datamodel.AccountId {
-    return {
-      domain: { name: this.params.accountDomain },
-      // TODO: optimise!
-      signatory: freeScope(() => publicKeyFromCrypto(this.params.accountKeyPair.publicKey())),
-    }
+    return freeScope(() =>
+      datamodel.AccountId({
+        domain: this.params.accountDomain,
+        signatory: this.params.accountKeyPair.publicKey(),
+      }),
+    )
   }
 
-  public async submit(executable: datamodel.Executable, params?: SubmitParams) {
-    const payload = defineTxPayload({
+  public async submit(instructions: datamodel.Executable, params?: SubmitParams) {
+    const payload = datamodel.TransactionPayload({
       chain: this.params.chain,
       authority: this.accountId(),
-      executable,
+      instructions,
       ...params?.payload,
     })
     const tx = freeScope(() => signTransaction(payload, this.params.accountKeyPair.privateKey()))
@@ -131,31 +122,40 @@ export class Client {
       const hash = freeScope(() => transactionHash(tx).payload())
       const stream = await this.eventsStream({
         filters: [
-          datamodel.EventFilterBox.Pipeline(
-            datamodel.PipelineEventFilterBox.Transaction({
-              hash: datamodel.Option.Some(
-                // FIXME: use `Uint8Array` in data model here
-                [...hash],
-              ),
-              blockHeight: datamodel.Option.None(),
-              // FIXME: this is bad designed on Iroha side
-              status: datamodel.Option.None(),
-            }),
-          ),
+          // TODO: include "status" when Iroha API is fixed about it
+          datamodel.EventFilterBox({
+            t: 'Pipeline',
+            value: {
+              t: 'Transaction',
+              value: {
+                // FIXME: fix data model, allow `null | Hash`
+                hash: { Some: hash },
+                // TODO: specify `status`, but now it requires `reason` which is Iroha API design problem
+              },
+            },
+          }),
         ],
       })
 
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       const deferred = defer<void>()
       stream.ee.on('event', (event) => {
-        const txEvent = event.as('Pipeline').as('Transaction')
-        if (txEvent.status.tag === 'Approved') deferred.resolve()
-        else if (txEvent.status.tag === 'Rejected')
-          deferred.reject(new TransactionRejectedError(txEvent.status.content))
-        else if (txEvent.status.tag === 'Expired') deferred.reject(new TransactionExpiredError())
+        if (event.t === 'Pipeline' && event.value.t === 'Transaction') {
+          const txEvent = event.value.value
+          if (txEvent.status.t === 'Approved') deferred.resolve()
+          else if (txEvent.status.t === 'Rejected') deferred.reject(new TransactionRejectedError(txEvent.status.value))
+          else if (txEvent.status.t === 'Expired') deferred.reject(new TransactionExpiredError())
+        }
       })
       stream.ee.on('close', () => {
         deferred.reject(new Error('Events stream was unexpectedly closed'))
+      })
+
+      const abortPromise = new Promise((_resolve, reject) => {
+        // FIXME: can this lead to a memory leak?
+        params.verifyAbort?.addEventListener('abort', () => {
+          reject(new Error('Aborted'))
+        })
       })
 
       await Promise.all([
@@ -163,6 +163,7 @@ export class Client {
         deferred.promise.finally(() => {
           stream.stop()
         }),
+        abortPromise,
       ])
     } else {
       await submitTransaction(this.toriiRequestRequirements, tx)
@@ -171,11 +172,11 @@ export class Client {
 
   public async query(
     query: datamodel.QueryBox,
-    params?: { payload: Except<DefineQueryPayloadParams, 'account' | 'query'> },
+    params?: { payload: Except<z.input<typeof datamodel.ClientQueryPayload$schema>, 'authority' | 'query'> },
   ): Promise<datamodel.BatchedResponse> {
-    const payload = defineQueryPayload({ query, account: this.accountId(), ...params?.payload })
+    const payload = datamodel.ClientQueryPayload({ query, authority: this.accountId(), ...params?.payload })
     const signed = freeScope(() => signQuery(payload, this.params.accountKeyPair.privateKey()))
-    const queryBytes = toCodec(datamodel.SignedQuery).encode(signed)
+    const queryBytes = datamodel.SignedQuery$codec.encode(signed)
     const response = await this.params
       .http(this.params.toriiURL + ENDPOINT_QUERY, {
         method: 'POST',
@@ -186,14 +187,14 @@ export class Client {
     const bytes = new Uint8Array(await response.arrayBuffer())
 
     if (response.status === 200) {
-      return toCodec(datamodel.BatchedResponse).decode(bytes)
+      return datamodel.BatchedResponse$codec.decode(bytes)
     } else {
-      const reason = toCodec(datamodel.ValidationFail).decode(bytes)
+      const reason = datamodel.ValidationFail$codec.decode(bytes)
       throw new QueryValidationError(reason)
     }
   }
 
-  public async getHealth(): Promise<Result<null, string>> {
+  public async getHealth(): Promise<HealthResult> {
     return getHealth(this.toriiRequestRequirements)
   }
 
@@ -235,22 +236,24 @@ export interface ToriiHttpParams {
   toriiURL: string
 }
 
-export async function getHealth({ http, toriiURL }: ToriiHttpParams): Promise<Result<null, string>> {
+export type HealthResult = { t: 'ok' } | { t: 'err'; err: unknown }
+
+export async function getHealth({ http, toriiURL }: ToriiHttpParams): Promise<HealthResult> {
   let response: Response
   try {
     response = await http(toriiURL + ENDPOINT_HEALTH)
   } catch (err) {
-    return variant('Err', `Network error: ${String(err)}`)
+    return { t: 'err', err }
   }
 
   ResponseError.throwIfStatusIsNot(response, 200)
 
   const text = await response.text()
   if (text !== HEALTHY_RESPONSE) {
-    return variant('Err', `Expected '${HEALTHY_RESPONSE}' response; got: '${text}'`)
+    return { t: 'err', err: new Error(`Expected '${HEALTHY_RESPONSE}' response; got: '${text}'`) }
   }
 
-  return variant('Ok', null)
+  return { t: 'ok' }
 }
 
 export async function getStatus({ http, toriiURL }: ToriiHttpParams): Promise<datamodel.Status> {
@@ -258,7 +261,7 @@ export async function getStatus({ http, toriiURL }: ToriiHttpParams): Promise<da
     headers: { accept: 'application/x-parity-scale' },
   })
   ResponseError.throwIfStatusIsNot(response, 200)
-  return response.arrayBuffer().then((buffer) => toCodec(datamodel.Status).decode(new Uint8Array(buffer)))
+  return response.arrayBuffer().then((buffer) => datamodel.Status$codec.decode(new Uint8Array(buffer)))
 }
 
 export async function getMetrics({ http, toriiURL }: ToriiHttpParams) {
@@ -280,7 +283,7 @@ export async function setPeerConfig({ http, toriiURL }: ToriiHttpParams, params:
 }
 
 export async function submitTransaction({ http, toriiURL }: ToriiHttpParams, tx: datamodel.SignedTransaction) {
-  const body = toCodec(datamodel.SignedTransaction).encode(tx)
+  const body = datamodel.SignedTransaction$codec.encode(tx)
   const response = await http(toriiURL + ENDPOINT_TRANSACTION, { body, method: 'POST' })
   ResponseError.throwIfStatusIsNot(response, 200)
 }
