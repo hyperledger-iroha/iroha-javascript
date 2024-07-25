@@ -1,7 +1,7 @@
 import * as coreDatamodel from './core-datamodel'
 import { structCodec } from './core'
 
-export * from './generated'
+export * from './generated/index'
 export * from './core-datamodel'
 
 export interface Uptime {

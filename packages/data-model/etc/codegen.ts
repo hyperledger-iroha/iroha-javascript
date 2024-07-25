@@ -432,12 +432,22 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, nullTypes
         return [
           match(id)
             .returnType<CodegenEntry>()
-            .with(P.union('QueryOutputBox', 'MetadataValueBox', 'InstructionBox', 'QueryOutputPredicate'), () => ({
-              t: 'enum',
-              mode: 'explicit',
-              id,
-              variants,
-            }))
+            .with(
+              P.union(
+                'QueryOutputBox',
+                'MetadataValueBox',
+                'InstructionBox',
+                'QueryOutputPredicate',
+                // To reduce load on TS compiler
+                'EventBox',
+              ),
+              () => ({
+                t: 'enum',
+                mode: 'explicit',
+                id,
+                variants,
+              }),
+            )
             .with(
               'PredicateBox',
               (): CodegenEntry => ({

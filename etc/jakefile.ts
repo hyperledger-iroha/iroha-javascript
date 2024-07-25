@@ -12,6 +12,11 @@ task('clean', async () => {
   reportDeleted(deleted)
 })
 
+desc('Necessary preparations before most of the tasks')
+task('prepare', async () => {
+  await $`pnpm --filter iroha-source build-all-binaries`
+})
+
 namespace('crypto-wasm', () => {
   task('clean-wasm-pkgs', async () => {
     const deleted = await del(WASM_PACK_TARGETS.map((a) => wasmPackOutDirForTarget(a)).toArray())
@@ -56,7 +61,7 @@ namespace('crypto-wasm', () => {
 
 namespace('build', () => {
   desc('Build TypeScript of the whole project and put corresponding artifacts near the packages')
-  task('tsc', ['clean', 'prepare:all'], async () => {
+  task('tsc', ['clean', 'prepare'], async () => {
     await $`pnpm tsc`
 
     for (const pkg of PACKAGES_TO_BUILD_WITH_TSC) {
@@ -77,7 +82,7 @@ namespace('build', () => {
 })
 
 namespace('test', () => {
-  task('unit', ['prepare:all'], async () => {
+  task('unit', ['prepare'], async () => {
     await $`pnpm vitest run`
   })
 
@@ -93,11 +98,6 @@ namespace('test', () => {
 
   desc('Run all tests')
   task('all', ['test:unit', 'test:crypto', 'test:client-integration'])
-})
-
-desc('Perform type checking in the whole repo')
-task('type-check', ['prepare:all'], async () => {
-  await $`pnpm tsc --noEmit`
 })
 
 task('lint', async () => {

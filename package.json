@@ -5,6 +5,7 @@
   "packageManager": "pnpm@9.3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "postinstall": "pnpm jake prepare",
     "format:fix": "prettier-eslint \"**/*.{ts,js,vue,json}\" --write",
     "lint": "eslint --ext=\".ts,.js,.vue\" .",
     "run-all-checks": "pnpm jake run-all-checks",

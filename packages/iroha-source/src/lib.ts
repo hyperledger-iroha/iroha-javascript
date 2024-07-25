@@ -20,10 +20,10 @@ export async function resolveBinary(bin: Binary): Promise<{ path: string }> {
   return { path: binaryPath }
 }
 
-export async function buildBinary(bin: Binary): Promise<void> {
-  consola.info(chalk`Building binary {magenta.bold ${bin}}...`)
+export async function buildBinaries(bin: Binary[]): Promise<void> {
+  consola.info(`Building binaries ${bin.map((x) => chalk.magenta.bold(x)).join(', ')}...`)
   await runCargoBuild(bin)
-  consola.success(`${chalk.magenta.bold(bin)} is built`)
+  consola.success(`Binaries are built`)
 }
 
 export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'configs/swarm/executor.wasm')
@@ -32,8 +32,11 @@ function resolveBinaryPath(bin: string): string {
   return path.join(IROHA_DIR, `target/release`, bin)
 }
 
-async function runCargoBuild(crate: string): Promise<void> {
-  await execa('cargo', ['build', '--release', '-p', crate], { stdio: 'inherit', cwd: IROHA_DIR })
+async function runCargoBuild(crates: string[]): Promise<void> {
+  await execa('cargo', ['build', '--release', ...crates.flatMap((x) => ['-p', x])], {
+    stdio: 'inherit',
+    cwd: IROHA_DIR,
+  })
 }
 
 async function isAccessible(path: string, mode?: number): Promise<boolean> {

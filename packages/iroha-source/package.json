@@ -6,7 +6,7 @@
   "main": "./src/lib.ts",
   "scripts": {
     "cli": "tsx etc/cli",
-    "clone": "pnpm cli clone"
+    "build-all-binaries": "pnpm cli build-all"
   },
   "devDependencies": {
     "@types/yargs": "^17.0.22",

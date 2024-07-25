@@ -19,6 +19,7 @@
   "dependencies": {
     "@iroha2/crypto-core": "workspace:^1.1.1",
     "@scale-codec/core": "^2.0.1",
+    "type-fest": "^4.23.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

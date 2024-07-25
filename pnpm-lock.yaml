@@ -325,6 +325,9 @@ importers:
       '@scale-codec/core':
         specifier: ^2.0.1
         version: 2.0.1
+      type-fest:
+        specifier: ^4.23.0
+        version: 4.23.0
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -4488,6 +4491,10 @@ packages:
   type-fest@3.9.0:
     resolution: {integrity: sha512-hR8JP2e8UiH7SME5JZjsobBlEiatFoxpzCP+R3ZeCo7kAaG1jXQE5X/buLzogM6GJu8le9Y4OcfNuIQX0rZskA==}
     engines: {node: '>=14.16'}
+
+  type-fest@4.23.0:
+    resolution: {integrity: sha512-ZiBujro2ohr5+Z/hZWHESLz3g08BBdrdLMieYFULJO+tWc437sn8kQsWLJoZErY8alNhxre9K4p3GURAG11n+w==}
+    engines: {node: '>=16'}
 
   type-fest@4.6.0:
     resolution: {integrity: sha512-rLjWJzQFOq4xw7MgJrCZ6T1jIOvvYElXT12r+y0CC6u67hegDHaxcPqb2fZHOGlqxugGQPNB1EnTezjBetkwkw==}
@@ -9158,6 +9165,8 @@ snapshots:
   type-fest@2.19.0: {}
 
   type-fest@3.9.0: {}
+
+  type-fest@4.23.0: {}
 
   type-fest@4.6.0: {}
 

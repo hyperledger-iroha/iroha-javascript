@@ -1158,9 +1158,20 @@ export const DomainOwnerChanged$codec = core.structCodec<DomainOwnerChanged>([
   ['domain', core.lazyCodec(() => DomainId$codec)],
   ['newOwner', core.lazyCodec(() => AccountId$codec)],
 ])
-export type EventBox = z.infer<typeof EventBox$schema>
+export type EventBox =
+  | { t: 'Pipeline'; value: PipelineEventBox }
+  | { t: 'Data'; value: DataEvent }
+  | { t: 'Time'; value: TimeEvent }
+  | { t: 'ExecuteTrigger'; value: ExecuteTriggerEvent }
+  | { t: 'TriggerCompleted'; value: TriggerCompletedEvent }
 export const EventBox = (input: z.input<typeof EventBox$schema>): EventBox => EventBox$schema.parse(input)
-export const EventBox$schema = z.discriminatedUnion('t', [
+type EventBox$input =
+  | { t: 'Pipeline'; value: z.input<typeof PipelineEventBox$schema> }
+  | { t: 'Data'; value: z.input<typeof DataEvent$schema> }
+  | { t: 'Time'; value: z.input<typeof TimeEvent$schema> }
+  | { t: 'ExecuteTrigger'; value: z.input<typeof ExecuteTriggerEvent$schema> }
+  | { t: 'TriggerCompleted'; value: z.input<typeof TriggerCompletedEvent$schema> }
+export const EventBox$schema: z.ZodType<EventBox, z.ZodTypeDef, EventBox$input> = z.discriminatedUnion('t', [
   z.object({ t: z.literal('Pipeline'), value: z.lazy(() => PipelineEventBox$schema) }),
   z.object({ t: z.literal('Data'), value: z.lazy(() => DataEvent$schema) }),
   z.object({ t: z.literal('Time'), value: z.lazy(() => TimeEvent$schema) }),
