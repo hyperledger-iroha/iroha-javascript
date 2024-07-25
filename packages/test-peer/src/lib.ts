@@ -1,8 +1,16 @@
-import { resolveBinary } from '@iroha2/iroha-source'
+import { EXECUTOR_WASM_PATH, resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
 import path from 'path'
 import { fs } from 'zx'
-import { PEER_CONFIG_BASE, SIGNED_GENESIS } from '@iroha2/test-configuration'
+import {
+  ACCOUNT_KEY_PAIR,
+  BLOCK_TIME_MS,
+  CHAIN,
+  COMMIT_TIME_MS,
+  DOMAIN,
+  GENESIS_KEY_PAIR,
+  PEER_CONFIG_BASE,
+} from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
 import { temporaryDirectory } from 'tempy'
 import { type ToriiHttpParams, getStatus } from '@iroha2/client'
@@ -84,30 +92,70 @@ export async function startPeer(params?: { port?: number }): Promise<StartPeerRe
   const API_URL = `http://${API_ADDRESS}`
   const P2P_ADDRESS = '127.0.0.1:1337'
   const TMP_DIR = temporaryDirectory()
+  const irohad = await resolveBinary('irohad')
+  const kagami = await resolveBinary('kagami')
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
+
+  const RAW_GENESIS = {
+    chain: CHAIN,
+    executor: EXECUTOR_WASM_PATH,
+    instructions: [
+      { Register: { Domain: { id: DOMAIN, metadata: {} } } },
+      { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`, metadata: {} } } },
+      {
+        Transfer: {
+          Domain: {
+            source: `${GENESIS_KEY_PAIR.publicKey}@genesis`,
+            object: DOMAIN,
+            destination: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`,
+          },
+        },
+      },
+      { SetParameter: { Sumeragi: { BlockTimeMs: BLOCK_TIME_MS } } },
+      { SetParameter: { Sumeragi: { CommitTimeMs: COMMIT_TIME_MS } } },
+    ],
+    topology: [{ address: P2P_ADDRESS, public_key: PEER_CONFIG_BASE.public_key }],
+  }
+
+  await fs.writeFile(path.join(TMP_DIR, 'genesis.json'), JSON.stringify(RAW_GENESIS))
+  await execa(
+    kagami.path,
+    [
+      `genesis`,
+      `sign`,
+      path.join(TMP_DIR, 'genesis.json'),
+      `--public-key`,
+      GENESIS_KEY_PAIR.publicKey,
+      `--private-key`,
+      GENESIS_KEY_PAIR.privateKey,
+      '--out-file',
+      path.join(TMP_DIR, 'genesis.scale'),
+    ],
+    { encoding: 'buffer' },
+  )
 
   await fs.writeFile(
     path.join(TMP_DIR, 'config.toml'),
     TOML.stringify(
       mergeDeep(PEER_CONFIG_BASE, {
-        genesis: { signed_file: './genesis.scale' },
+        genesis: { file: './genesis.scale' },
         kura: { store_dir: './storage' },
         torii: { address: API_ADDRESS },
         network: { address: P2P_ADDRESS },
         snapshot: { mode: 'disabled' },
+        logger: {
+          format: 'json',
+          level: 'DEBUG',
+        },
       }),
     ),
   )
-  await fs.writeFile(path.join(TMP_DIR, 'genesis.scale'), SIGNED_GENESIS.blob)
-
-  const irohad = (await resolveBinary('irohad')).path
 
   // state
   let isAlive = false
 
   // starting peer
-  const subprocess = execa(irohad, ['--config', './config.toml', '--submit-genesis'], {
-    env: { LOG_FORMAT: 'json', LOG_LEVEL: 'DEBUG' },
+  const subprocess = execa(irohad.path, ['--config', './config.toml'], {
     cwd: TMP_DIR,
   })
 

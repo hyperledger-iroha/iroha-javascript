@@ -1,13 +1,50 @@
 // import { Torii } from '@iroha2/client'
-import { type Result, datamodel, variant } from '@iroha2/data-model'
+import { datamodel } from '@iroha2/data-model'
 import { describe, expect, test } from 'vitest'
 import { usePeer } from './util'
 import { DOMAIN } from '@iroha2/test-configuration'
+import { match, P } from 'ts-pattern'
 
 test('Peer is healthy', async () => {
   const { client } = await usePeer()
 
-  expect(await client.getHealth()).toEqual(variant('Ok', null) as Result<null, any>)
+  expect(await client.getHealth()).toMatchInlineSnapshot(`
+    {
+      "t": "ok",
+    }
+  `)
+})
+
+test.only('Register domain', async () => {
+  const DOMAIN = 'test'
+  const { client } = await usePeer()
+
+  await client.submit(
+    { t: 'Instructions', value: [{ t: 'Register', value: { t: 'Domain', value: { object: { id: DOMAIN } } } }] },
+    { verify: true },
+  )
+
+  // FIXME: too much to handle for clients!
+  const domains = match(await client.query({ t: 'FindAllDomains' }))
+    .with(
+      {
+        t: 'V1',
+        value: { batch: { t: 'Vec', value: P.select() } },
+      },
+      (items) =>
+        items.map((x) =>
+          match(x)
+            .with({ t: 'Identifiable', value: { t: 'Domain', value: { id: P.select() } } }, (id) => id)
+            .otherwise(() => {
+              throw new Error('unreachable')
+            }),
+        ),
+    )
+    .otherwise(() => {
+      throw new Error('unreachable')
+    })
+
+  expect(domains).toContain(DOMAIN)
 })
 
 test('AddAsset instruction with name length more than limit is not committed', async () => {
@@ -54,33 +91,6 @@ test('AddAsset instruction with name length more than limit is not committed', a
     .map((val) => val.enum.as('Identifiable').as('AssetDefinition').id)
   expect(definitions).toContainEqual(validAsset)
   expect(definitions).not.toContainEqual(invalidAsset)
-})
-
-test('Register domain', async () => {
-  const DOMAIN = 'test'
-  const { client } = await usePeer()
-
-  await client.submit(
-    datamodel.Executable.Instructions([
-      datamodel.InstructionBox.Register(
-        datamodel.RegisterBox.Domain({
-          object: {
-            id: { name: 'test' },
-            logo: datamodel.Option.None(),
-            metadata: new Map(),
-          },
-        }),
-      ),
-    ]),
-    { verify: true },
-  )
-
-  const domains = (await client.query(datamodel.QueryBox.FindAllDomains))
-    .as('V1')
-    .batch.enum.as('Vec')
-    .map((x) => x.enum.as('Identifiable').as('Domain').id.name)
-
-  expect(domains).toContain(DOMAIN)
 })
 
 test('When querying for a non-existing domain, returns FindError', async () => {

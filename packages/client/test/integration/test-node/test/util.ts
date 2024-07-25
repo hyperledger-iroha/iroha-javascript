@@ -32,7 +32,7 @@ export async function usePeer() {
     http: fetch,
     ws: WS,
     chain: CHAIN,
-    accountDomain: DOMAIN.name,
+    accountDomain: DOMAIN,
     accountKeyPair,
   })
 

@@ -109,7 +109,7 @@ export class Client {
     )
   }
 
-  public async submit(instructions: datamodel.Executable, params?: SubmitParams) {
+  public async submit(instructions: z.input<typeof datamodel.Executable$schema>, params?: SubmitParams) {
     const payload = datamodel.TransactionPayload({
       chain: this.params.chain,
       authority: this.accountId(),
@@ -151,11 +151,12 @@ export class Client {
         deferred.reject(new Error('Events stream was unexpectedly closed'))
       })
 
-      const abortPromise = new Promise((_resolve, reject) => {
+      const abortPromise = new Promise<void>((resolve, reject) => {
         // FIXME: can this lead to a memory leak?
         params.verifyAbort?.addEventListener('abort', () => {
           reject(new Error('Aborted'))
         })
+        stream.ee.once('close').then(() => resolve())
       })
 
       await Promise.all([
@@ -171,7 +172,7 @@ export class Client {
   }
 
   public async query(
-    query: datamodel.QueryBox,
+    query: z.input<typeof datamodel.QueryBox$schema>,
     params?: { payload: Except<z.input<typeof datamodel.ClientQueryPayload$schema>, 'authority' | 'query'> },
   ): Promise<datamodel.BatchedResponse> {
     const payload = datamodel.ClientQueryPayload({ query, authority: this.accountId(), ...params?.payload })
