@@ -18,7 +18,5 @@
     "packages/client-isomorphic-*",
     "packages/crypto/crypto-rs"
   ],
-  "include": [
-    "**/*.ts", "**/*.js",
-  ]
+  "include": ["**/*.ts", "**/*.js"]
 }

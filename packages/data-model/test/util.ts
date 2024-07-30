@@ -14,3 +14,5 @@ export function fromHexWithSpaces(hex: string): Uint8Array {
 export function toHex(data: Iterable<number>): string {
   return [...data].map((x) => x.toString(16).padStart(2, '0')).join('')
 }
+
+export const SAMPLE_ACCOUNT_ID = 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'

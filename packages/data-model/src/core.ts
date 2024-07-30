@@ -1,6 +1,6 @@
 import * as scale from '@scale-codec/core'
 import type { z } from 'zod'
-import * as coreDatamodel from './core-datamodel'
+import * as datamodel from './datamodel/core'
 import { parseHex } from './util'
 
 export interface RawScaleCodec<T> {
@@ -135,8 +135,8 @@ export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
 }
 
 export function bitmap<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
-  const reprCodec = coreDatamodel.U32$codec
-  const reprSchema = coreDatamodel.U32$schema
+  const reprCodec = datamodel.U32$codec
+  const reprSchema = datamodel.U32$schema
   const REPR_MAX = 2 ** 32 - 1
 
   const toMask = (set: Set<Name>) => {
@@ -148,7 +148,7 @@ export function bitmap<Name extends string>(masks: { [K in Name]: number }): Cod
   }
 
   const masksArray = (Object.entries(masks) as [Name, number][]).map(([k, v]) => ({ key: k, value: v }))
-  const fromMask = (bitmask: coreDatamodel.U32): Set<Name> => {
+  const fromMask = (bitmask: datamodel.U32): Set<Name> => {
     const set = new Set<Name>()
     let bitmaskMut: number = bitmask
     for (const mask of masksArray) {
@@ -169,3 +169,13 @@ export function bitmap<Name extends string>(masks: { [K in Name]: number }): Cod
 
   return reprCodec.wrap(toMask, fromMask)
 }
+
+const thisCodecShouldNeverBeCalled = () => {
+  throw new Error('This value could never be encoded')
+}
+export const neverCodec: Codec<never> = new Codec(
+  scale.encodeFactory(thisCodecShouldNeverBeCalled, thisCodecShouldNeverBeCalled),
+  thisCodecShouldNeverBeCalled,
+)
+
+export const nullCodec: Codec<null> = new Codec(scale.encodeUnit, scale.decodeUnit)

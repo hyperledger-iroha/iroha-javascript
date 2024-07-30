@@ -1,12 +1,30 @@
 import { expect, test } from 'vitest'
 import { SCHEMA } from '@iroha2/data-model-schema'
-import { generate } from './codegen'
-import { format } from 'prettier'
-import prettierrc from '../../../.prettierrc'
+import { generate, parseIdent } from './codegen'
+import { QUERY_IMPLS } from '@iroha2/iroha-source'
 
 // convenient for development in watch mode
+// works almost as if JavaScript supported comptime codegen
 test('codegen snapshot', async () => {
-  const code = generate(SCHEMA)
-  const formatted = await format(code, { parser: 'typescript', ...prettierrc })
-  expect(formatted).toMatchFileSnapshot('../src/generated/index.ts')
+  const code = generate(SCHEMA, QUERY_IMPLS)
+  expect(code).toMatchFileSnapshot('../src/datamodel/generated.ts')
+})
+
+test('parse ident Vec<crate::role::Role>', () => {
+  expect(parseIdent('Vec<crate::role::Role>')).toMatchInlineSnapshot(`
+      {
+        "id": "Vec",
+        "items": [
+          {
+            "id": "Role",
+            "items": [],
+            "path": [
+              "crate",
+              "role",
+            ],
+          },
+        ],
+        "path": undefined,
+      }
+    `)
 })

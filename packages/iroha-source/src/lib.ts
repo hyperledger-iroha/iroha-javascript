@@ -3,6 +3,7 @@ import consola from 'consola'
 import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
+export { default as QUERY_IMPLS, type QueryImpl } from './impl-query'
 
 export type Binary = 'irohad' | 'kagami' | 'parity_scale_cli'
 

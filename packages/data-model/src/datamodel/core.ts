@@ -1,8 +1,8 @@
 import * as scale from '@scale-codec/core'
 import { z } from 'zod'
-import { type Codec, codec, EnumCodec } from './core'
+import { type Codec, EnumCodec, codec, enumCodec, lazyCodec } from '../core'
 import type { JsonValue } from 'type-fest'
-import { parseHex } from './util'
+import { parseHex } from '../util'
 
 export type U8 = z.infer<typeof U8$schema>
 
@@ -253,21 +253,6 @@ export const Timestamp$codec = U64$codec.wrap<Timestamp>(
 
 export { Timestamp as TimestampU128 }
 
-export const TimestampU128$schema = Timestamp$schema
-
-// FIXME: remove after fix in Iroha
-export const TimestampU128$codec = U128$codec.wrap<Timestamp>(
-  (timestamp) => U128(timestamp.asMilliseconds()),
-  (ms) => {
-    const MAX = 2n ** 64n
-    if (ms > MAX) {
-      console.warn(`logic error: ${ms} exceeds u64::MAX, which doesn't make sense in Iroha`)
-      return Timestamp.fromMilliseconds(U64(MAX))
-    }
-    return Timestamp.fromMilliseconds(U64(ms))
-  },
-)
-
 export type Duration = z.infer<typeof Duration$schema>
 
 export const Duration = (input: z.input<typeof Duration$schema>): Duration => Duration$schema.parse(input)
@@ -296,3 +281,39 @@ export const Name$schema = z
       })
   })
 export const Name$codec = String$codec as Codec<Name>
+
+export type CompoundPredicate<Atom> =
+  | { t: 'Atom'; value: Atom }
+  | { t: 'Not'; value: CompoundPredicate<Atom> }
+  | { t: 'And' | 'Or'; value: CompoundPredicate<Atom>[] }
+
+export type CompoundPredicate$input<Atom> =
+  | { t: 'Atom'; value: Atom }
+  | { t: 'Not'; value: CompoundPredicate<Atom> }
+  | { t: 'And' | 'Or'; value: CompoundPredicate<Atom>[] }
+
+export const CompoundPredicate$schema = <Atom extends z.ZodType>(
+  atom: Atom,
+): z.ZodType<CompoundPredicate<z.output<Atom>>, z.ZodTypeDef, CompoundPredicate<z.input<Atom>>> =>
+  z.discriminatedUnion('t', [
+    z.object({ t: z.literal('Atom'), value: atom }),
+    z.object({ t: z.literal('Not'), value: z.lazy(() => CompoundPredicate$schema(atom)) }),
+    z.object({ t: z.literal('And'), value: z.array(z.lazy(() => CompoundPredicate$schema(atom))) }),
+    z.object({ t: z.literal('Or'), value: z.array(z.lazy(() => CompoundPredicate$schema(atom))) }),
+  ]) as any
+
+export const CompoundPredicate$codec = <Atom>(atom: Codec<Atom>): Codec<CompoundPredicate<Atom>> => {
+  const self: Codec<CompoundPredicate<Atom>> = enumCodec<{
+    Atom: [Atom]
+    Not: [CompoundPredicate<Atom>]
+    And: [CompoundPredicate<Atom>[]]
+    Or: [CompoundPredicate<Atom>[]]
+  }>([
+    [0, 'Atom', atom],
+    [1, 'Not', lazyCodec(() => self)],
+    [2, 'And', Vec$codec(lazyCodec(() => self))],
+    [3, 'Or', Vec$codec(lazyCodec(() => self))],
+  ]).discriminated()
+
+  return self
+}

@@ -1,5 +1,6 @@
-import { PublicKey } from '@iroha2/crypto-core'
 import { z } from 'zod'
+import * as crypto from '@iroha2/crypto-core'
+import * as datamodel from './datamodel/index'
 
 function hexChar(hex: string, index: number): number {
   const char = hex[index].toLowerCase()
@@ -58,9 +59,9 @@ export function parseAssetId(str: string, ctx: z.RefinementCtx) {
 }
 
 export function parseMultihashPublicKey(hex: string, ctx: z.RefinementCtx) {
-  let key: PublicKey
+  let key: crypto.PublicKey
   try {
-    key = PublicKey.fromMultihash(hex)
+    key = crypto.PublicKey.fromMultihash(hex)
   } catch (err) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -71,4 +72,102 @@ export function parseMultihashPublicKey(hex: string, ctx: z.RefinementCtx) {
   const result = { algorithm: key.algorithm, payload: key.payload() }
   key.free()
   return result
+}
+
+export class ExtractQueryOutputError extends Error {
+  public kind: keyof datamodel.QueryOutputMap
+  public response: datamodel.QueryResponse
+
+  public constructor(kind: keyof datamodel.QueryOutputMap, response: datamodel.QueryResponse, message: string) {
+    // TODO: improve message
+    super(`Failed to extract output of query ${kind}: ${message}. This is a bug!`)
+    this.kind = kind
+    this.response = response
+  }
+}
+
+// TODO: stronger signature?
+
+function extractQueryOutput<
+  Q extends keyof datamodel.QueryOutputMap,
+  P extends 'Singular',
+  B extends datamodel.SingularQueryOutputBox['t'],
+>(
+  query: Q,
+  plurality: P,
+  box: B,
+): datamodel.QueryOutputMap[Q] extends (datamodel.SingularQueryOutputBox & { t: B })['value']
+  ? (response: datamodel.QueryResponse) => datamodel.QueryOutputMap[Q]
+  : never
+
+function extractQueryOutput<
+  Q extends keyof datamodel.QueryOutputMap,
+  P extends 'Iterable',
+  B extends datamodel.IterableQueryOutputBatchBox['t'],
+>(
+  query: Q,
+  plurality: P,
+  box: B,
+): datamodel.QueryOutputMap[Q] extends (datamodel.IterableQueryOutputBatchBox & { t: B })['value']
+  ? (response: datamodel.QueryResponse) => datamodel.QueryOutputMap[Q]
+  : never
+
+function extractQueryOutput<
+  Q extends keyof datamodel.QueryOutputMap,
+  P extends 'Singular' | 'Iterable',
+  B extends datamodel.SingularQueryOutputBox['t'] | datamodel.IterableQueryOutputBatchBox['t'],
+>(query: Q, plurality: P, box: B): (response: datamodel.QueryResponse) => datamodel.QueryOutputMap[Q] {
+  return (response) => {
+    if (plurality === 'Singular' && response.t === 'Singular' && response.value.t === box)
+      return response.value.value as any
+    if (plurality === 'Iterable' && response.t === 'Iterable' && response.value.batch.t === box)
+      return response.value.batch.value
+    throw new ExtractQueryOutputError(
+      query,
+      response,
+      `Expected "${plurality}" kind of query response with "${box}" kind of output`,
+    )
+  }
+}
+
+export { extractQueryOutput }
+
+/**
+ * The one that is used for e.g. {@link datamodel.TransactionEventFilter}
+ */
+export function transactionHash(tx: datamodel.SignedTransaction): crypto.Hash {
+  const bytes = datamodel.SignedTransaction$codec.encode(tx)
+  return crypto.Hash.hash(crypto.Bytes.array(bytes))
+}
+
+export function signQuery(
+  payload: datamodel.QueryRequestWithAuthority,
+  privateKey: crypto.PrivateKey,
+): datamodel.SignedQuery {
+  const payloadBytes = datamodel.QueryRequestWithAuthority$codec.encode(payload)
+  const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).payload()))
+  return {
+    t: 'V1',
+    value: {
+      payload,
+      signature: datamodel.Signature(signature),
+    },
+  }
+}
+
+export function signTransaction(
+  payload: datamodel.TransactionPayload,
+  privateKey: crypto.PrivateKey,
+): datamodel.SignedTransaction {
+  return crypto.freeScope(() => {
+    const payloadBytes = datamodel.TransactionPayload$codec.encode(payload)
+    const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).payload()))
+    return {
+      t: 'V1',
+      value: {
+        payload,
+        signature: datamodel.Signature(signature),
+      },
+    }
+  })
 }
