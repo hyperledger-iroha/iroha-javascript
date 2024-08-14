@@ -11,7 +11,7 @@
 
 import type { KeyPair } from '@iroha2/crypto-core'
 import { freeScope } from '@iroha2/crypto-core'
-import { datamodel, signQuery, signTransaction, transactionHash } from '@iroha2/data-model'
+import { datamodel, signTransaction, transactionHash } from '@iroha2/data-model'
 import type { Except } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'
 import { setupBlocksStream } from './blocks-stream'
@@ -19,7 +19,6 @@ import {
   ENDPOINT_CONFIGURATION,
   ENDPOINT_HEALTH,
   ENDPOINT_METRICS,
-  ENDPOINT_QUERY,
   ENDPOINT_STATUS,
   ENDPOINT_TRANSACTION,
   HEALTHY_RESPONSE,
@@ -29,6 +28,7 @@ import { setupEvents } from './events'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 import defer from 'p-defer'
 import type { z } from 'zod'
+import { doQuery, type QueryOutput, type QueryPayload } from './query'
 
 type Fetch = typeof fetch
 
@@ -58,12 +58,18 @@ export interface SubmitParams {
 }
 
 export class ResponseError extends Error {
-  public static throwIfStatusIsNot(response: Response, status: number) {
-    if (response.status !== status) throw new ResponseError(response)
+  public static async assertStatus(response: Response, status: number) {
+    if (response.status !== status) {
+      let message = 'got an error response'
+      if (/text\/plain/.test(response.headers.get('content-type') ?? '')) {
+        message = await response.text()
+      }
+      throw new ResponseError(response, message)
+    }
   }
 
-  public constructor(response: Response) {
-    super(`${response.status}: ${response.statusText}`)
+  public constructor(response: Response, message: string) {
+    super(`${response.status} (${response.statusText}): ${message}`)
   }
 }
 
@@ -171,28 +177,17 @@ export class Client {
     }
   }
 
-  public async query(
-    query: z.input<typeof datamodel.QueryBox$schema>,
-    params?: { payload: Except<z.input<typeof datamodel.ClientQueryPayload$schema>, 'authority' | 'query'> },
-  ): Promise<datamodel.BatchedResponse> {
-    const payload = datamodel.ClientQueryPayload({ query, authority: this.accountId(), ...params?.payload })
-    const signed = freeScope(() => signQuery(payload, this.params.accountKeyPair.privateKey()))
-    const queryBytes = datamodel.SignedQuery$codec.encode(signed)
-    const response = await this.params
-      .http(this.params.toriiURL + ENDPOINT_QUERY, {
-        method: 'POST',
-        body: queryBytes!,
-      })
-      .then()
-
-    const bytes = new Uint8Array(await response.arrayBuffer())
-
-    if (response.status === 200) {
-      return datamodel.BatchedResponse$codec.decode(bytes)
-    } else {
-      const reason = datamodel.ValidationFail$codec.decode(bytes)
-      throw new QueryValidationError(reason)
-    }
+  public query<
+    Q extends keyof datamodel.QueryOutputMap | keyof datamodel.SingularQueryOutputMap,
+    P extends QueryPayload<Q>,
+  >(query: Q, params: P): QueryOutput<Q> {
+    return doQuery(query, {
+      ...params,
+      authority: this.accountId(),
+      // FIXME
+      authorityPrivateKey: this.params.accountKeyPair.privateKey(),
+      toriiURL: this.params.toriiURL,
+    } /* FIXME */ as any)
   }
 
   public async getHealth(): Promise<HealthResult> {
@@ -247,7 +242,7 @@ export async function getHealth({ http, toriiURL }: ToriiHttpParams): Promise<He
     return { t: 'err', err }
   }
 
-  ResponseError.throwIfStatusIsNot(response, 200)
+  ResponseError.assertStatus(response, 200)
 
   const text = await response.text()
   if (text !== HEALTHY_RESPONSE) {
@@ -261,15 +256,14 @@ export async function getStatus({ http, toriiURL }: ToriiHttpParams): Promise<da
   const response = await http(toriiURL + ENDPOINT_STATUS, {
     headers: { accept: 'application/x-parity-scale' },
   })
-  ResponseError.throwIfStatusIsNot(response, 200)
+  await ResponseError.assertStatus(response, 200)
   return response.arrayBuffer().then((buffer) => datamodel.Status$codec.decode(new Uint8Array(buffer)))
 }
 
 export async function getMetrics({ http, toriiURL }: ToriiHttpParams) {
-  return http(toriiURL + ENDPOINT_METRICS).then((response) => {
-    ResponseError.throwIfStatusIsNot(response, 200)
-    return response.text()
-  })
+  const response = await http(toriiURL + ENDPOINT_METRICS)
+  await ResponseError.assertStatus(response, 200)
+  return response.text()
 }
 
 export async function setPeerConfig({ http, toriiURL }: ToriiHttpParams, params: SetPeerConfigParams) {
@@ -280,13 +274,13 @@ export async function setPeerConfig({ http, toriiURL }: ToriiHttpParams, params:
       'Content-Type': 'application/json',
     },
   })
-  ResponseError.throwIfStatusIsNot(response, 202 /* ACCEPTED */)
+  await ResponseError.assertStatus(response, 202 /* ACCEPTED */)
 }
 
 export async function submitTransaction({ http, toriiURL }: ToriiHttpParams, tx: datamodel.SignedTransaction) {
   const body = datamodel.SignedTransaction$codec.encode(tx)
   const response = await http(toriiURL + ENDPOINT_TRANSACTION, { body, method: 'POST' })
-  ResponseError.throwIfStatusIsNot(response, 200)
+  await ResponseError.assertStatus(response, 200)
 }
 
 export * from './events'

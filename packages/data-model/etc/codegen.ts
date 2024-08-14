@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable max-nested-callbacks */
 import type { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
-import { P, match } from 'ts-pattern'
+import { P, isMatching, match } from 'ts-pattern'
 import invariant from 'tiny-invariant'
 import { camelCase, pascalCase } from 'change-case'
 import type { Algorithm } from '@iroha2/crypto-core'
 import type { QueryImpl } from '@iroha2/iroha-source'
+import { deepEqual } from 'fast-equals'
 
 export function generate(schema: Schema, queryImpls: QueryImpl[]): string {
   const ident = new TransformIdent(schema)
@@ -15,7 +16,7 @@ export function generate(schema: Schema, queryImpls: QueryImpl[]): string {
   return [
     `import { core, crypto, z } from './generated-prelude'`,
     ...transformed.map((x) => generateSingleEntry(x)),
-    generateQueryImpls(queryImpls, ident),
+    generateQueryImpls(transformed, queryImpls, ident),
   ].join('\n')
 }
 
@@ -147,7 +148,7 @@ function transform(schema: Schema, ident: TransformIdent): ActualCodegenSchema {
     },
     {
       t: 'struct-gen',
-      id: 'IterableQueryWithFilter',
+      id: 'QueryWithFilter',
       genericsCount: 2,
       fields: [
         { name: 'query', type: { t: 'gen', genericIndex: 0 } },
@@ -376,7 +377,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
                   `${base}.or(z.string().transform(core.parseMultihashPublicKey).or(` +
                   `z.instanceof(crypto.PublicKey).transform((x) => ({ algorithm: x.algorithm, payload: x.payload() }))).pipe(${base}))`,
               )
-              .with('Sorting', 'Pagination', 'IterableQueryParams', () => (base) => `${base}.default(() => ({}))`)
+              .with('Sorting', 'Pagination', 'QueryParams', () => (base) => `${base}.default(() => ({}))`)
               .otherwise(() => undefined),
           } satisfies CodegenEntry,
         ]
@@ -439,8 +440,8 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
             .returnType<CodegenEntry>()
             .with(
               P.union(
-                'IterableQueryOutputBatchBox',
-                'IterableQueryBox',
+                'QueryOutputBatchBox',
+                'QueryBox',
                 'SingularQueryOutputBox',
                 'MetadataValueBox',
                 'InstructionBox',
@@ -1073,39 +1074,82 @@ export function parseIdent(src: string): Ident {
     })
 }
 
-function generateQueryImpls(queryImpls: QueryImpl[], ident: TransformIdent) {
-  const outputTypes = queryImpls
-    .map((impl) => {
-      const outputTypeId = ident.transform(impl.output)
-      const outputIdent = match(impl)
-        .returnType<TypeIdent>()
-        .with({ t: 'singular' }, () => outputTypeId)
-        .with({ t: 'iter' }, () => ({ t: 'lib', id: 'Vec', generics: [outputTypeId] }))
-        .exhaustive()
-
-      return { query: impl.query, type: generateIdent(outputIdent).type }
+function generateQueryImpls(schema: ActualCodegenSchema, queryImpls: QueryImpl[], ident: TransformIdent) {
+  const iterableOutputVariants = match(schema.find((x) => x.id === 'QueryOutputBatchBox'))
+    .with({ t: 'enum' }, ({ variants }) => variants)
+    .otherwise((x) => {
+      throw new Error(`unexpected iterable query output box: ${String(x)}`)
     })
-    .map((x) => `  ${x.query}: ${x.type}`)
-    .join('\n')
-
-  const extractors = queryImpls
-    .map((impl) => {
-      const boxTag = match(parseIdent(impl.output))
-        .with({ id: 'SignedBlock' }, () => 'Block')
-        .with({ id: 'TransactionQueryOutput' }, () => 'Transaction')
-        .otherwise(({ id }) => id)
-      const args = match(impl)
-        .with({ t: 'iter' }, () => `'${impl.query}', 'Iterable', '${boxTag}'`)
-        .with({ t: 'singular' }, () => `'${impl.query}', 'Singular', '${boxTag}'`)
-        .exhaustive()
-      return `  ${impl.query}: core.extractQueryOutput(${args}),`
+    .map((x) =>
+      match(x)
+        .with(
+          { t: 'with-type', tag: P.select('tag'), type: { t: 'lib', id: 'Vec', generics: [P.select('type')] } },
+          (x) => x,
+        )
+        .otherwise(() => {
+          throw new Error('bad variant')
+        }),
+    )
+  const singularOutputVariants = match(schema.find((x) => x.id === 'SingularQueryOutputBox'))
+    .with({ t: 'enum' }, ({ variants }) => variants)
+    .otherwise((x) => {
+      throw new Error(`unexpected singular query output box: ${String(x)}`)
     })
-    .join('\n')
+    .map((x) =>
+      match(x)
+        .with({ t: 'with-type', tag: P.select('tag'), type: P.select('type') }, (x) => x)
+        .otherwise(() => {
+          throw new Error('bad variant')
+        }),
+    )
+
+  const { singular, iter } = queryImpls.reduce(
+    (acc, impl) => {
+      if (impl.t === 'singular') acc.singular.push(impl)
+      else acc.iter.push(impl)
+      return acc
+    },
+    { singular: new Array<QueryImpl>(), iter: new Array<QueryImpl>() },
+  )
+
+  const outputTypes = (impls: QueryImpl[]) =>
+    impls
+      .map((impl) => {
+        const outputTypeId = ident.transform(impl.output)
+        const outputIdent = match(impl)
+          .returnType<TypeIdent>()
+          .with({ t: 'singular' }, () => outputTypeId)
+          .with({ t: 'iter' }, () => ({ t: 'lib', id: 'Vec', generics: [outputTypeId] }))
+          .exhaustive()
+
+        return { query: impl.query, type: generateIdent(outputIdent).type }
+      })
+      .map((x) => `  ${x.query}: ${x.type}`)
+      .join('\n')
+
+  const outputKinds = (impls: QueryImpl[], variants: { tag: string; type: TypeIdent }[]) =>
+    impls
+      .map(({ query, output }) => {
+        const outputTypeId = ident.transform(output)
+        const tag = match(
+          variants.find((x) =>
+            match(x)
+              .with({ type: P.when((x) => deepEqual(x, outputTypeId)) }, () => true)
+              .otherwise(() => false),
+          ),
+        )
+          .with({ tag: P.select() }, (tag) => tag)
+          .otherwise(() => {
+            throw new Error(`Expected to find a variant for '${query}' query`)
+          })
+        return `  ${query}: '${tag}',`
+      })
+      .join('\n')
 
   return [
-    `export type QueryOutputMap = {\n${outputTypes}\n}`,
-    `export const QueryOutputExtractors: {\n` +
-      `  [K in keyof QueryOutputMap]: (response: QueryResponse) => QueryOutputMap[K]\n` +
-      `} = {\n${extractors}\n}`,
+    `export type QueryOutputMap = {\n${outputTypes(iter)}\n}`,
+    `export const QueryOutputKindMap = {\n${outputKinds(iter, iterableOutputVariants)}\n} as const`,
+    `export type SingularQueryOutputMap = {\n${outputTypes(singular)}\n}`,
+    `export const SingularQueryOutputKindMap = {\n${outputKinds(singular, singularOutputVariants)}\n} as const`,
   ].join('\n')
 }

@@ -1,3 +1,3 @@
 export * from '../core'
 export * from './core'
-export * from '../util'
+export * from './generated-util'

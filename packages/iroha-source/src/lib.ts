@@ -27,7 +27,7 @@ export async function buildBinaries(bin: Binary[]): Promise<void> {
   consola.success(`Binaries are built`)
 }
 
-export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'configs/swarm/executor.wasm')
+export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'defaults/executor.wasm')
 
 function resolveBinaryPath(bin: string): string {
   return path.join(IROHA_DIR, `target/release`, bin)

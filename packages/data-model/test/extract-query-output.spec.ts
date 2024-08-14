@@ -1,4 +1,4 @@
-import { datamodel } from '@iroha2/data-model'
+import { datamodel, extractQueryOutput } from '@iroha2/data-model'
 import { expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID } from './util'
 
@@ -15,7 +15,7 @@ test('Extract a batch of AssetDefinitions', () => {
     t: 'Iterable',
     value: { batch: { t: 'AssetDefinition', value: definitions } },
   })
-  expect(datamodel.QueryOutputExtractors.FindAssetsDefinitions(response)).toEqual(definitions)
+  expect(extractQueryOutput('FindAssetsDefinitions', response)).toEqual(definitions)
 })
 
 test('Extract singular domain metadata', () => {
@@ -24,5 +24,5 @@ test('Extract singular domain metadata', () => {
     t: 'Singular',
     value: { t: 'JsonString', value: metadata },
   })
-  expect(datamodel.QueryOutputExtractors.FindDomainMetadata(response).asValue()).toEqual(metadata)
+  expect(extractQueryOutput('FindDomainMetadata', response).asValue()).toEqual(metadata)
 })

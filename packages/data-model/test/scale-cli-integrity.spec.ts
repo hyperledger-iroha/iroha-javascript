@@ -241,7 +241,7 @@ test.each([
     json: {
       authority: SAMPLE_ACCOUNT_ID,
       request: {
-        StartIterable: {
+        Start: {
           query: { FindAccounts: { query: null, predicate: { And: [] } } },
         },
       },
@@ -251,16 +251,65 @@ test.each([
     value: {
       authority: SAMPLE_ACCOUNT_ID,
       request: {
-        t: 'StartIterable',
+        t: 'Start',
         value: { query: { t: 'FindAccounts', value: { predicate: { t: 'And', value: [] } } } },
       },
     },
   }),
   ...casesCompoundPredicates(),
+  defCase({
+    type: 'SignedTransaction',
+    json: {
+      version: '1',
+      content: {
+        payload: {
+          chain: '0',
+          authority: 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@wonderland',
+          creation_time_ms: 1723592746838,
+          instructions: { Instructions: [{ Register: { Domain: { id: 'roses', metadata: {} } } }] },
+          metadata: {},
+        },
+        signature: {
+          payload:
+            '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
+        },
+      },
+    },
+    codec: datamodel.SignedTransaction$codec,
+    schema: datamodel.SignedTransaction$schema,
+    value: {
+      t: 'V1',
+      value: {
+        payload: {
+          chain: '0',
+          authority: 'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@wonderland',
+          creationTime: new Date(1723592746838),
+          instructions: {
+            t: 'Instructions',
+            value: [
+              {
+                t: 'Register',
+                value: {
+                  t: 'Domain',
+                  value: {
+                    object: {
+                      id: 'roses',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+        signature:
+          '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
+      },
+    },
+  }),
   // TODO: add SignedBlock
 ])(`Ensure correct parsing & encoding of $type: $value`, async (data: Case<any>) => {
   const parsed = data.schema.parse(data.value)
   const referenceEncoded = await encodeWithCLI(data.type, data.json)
   const actualEncoded = data.codec.encode(parsed)
-  expect(actualEncoded).toEqual(referenceEncoded)
+  expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
 })

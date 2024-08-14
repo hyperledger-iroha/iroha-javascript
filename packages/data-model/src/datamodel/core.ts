@@ -294,13 +294,14 @@ export type CompoundPredicate$input<Atom> =
 
 export const CompoundPredicate$schema = <Atom extends z.ZodType>(
   atom: Atom,
-): z.ZodType<CompoundPredicate<z.output<Atom>>, z.ZodTypeDef, CompoundPredicate<z.input<Atom>>> =>
-  z.discriminatedUnion('t', [
+): z.ZodType<CompoundPredicate<z.output<Atom>>, z.ZodTypeDef, CompoundPredicate$input<z.input<Atom>>> => {
+  return z.discriminatedUnion('t', [
     z.object({ t: z.literal('Atom'), value: atom }),
     z.object({ t: z.literal('Not'), value: z.lazy(() => CompoundPredicate$schema(atom)) }),
     z.object({ t: z.literal('And'), value: z.array(z.lazy(() => CompoundPredicate$schema(atom))) }),
     z.object({ t: z.literal('Or'), value: z.array(z.lazy(() => CompoundPredicate$schema(atom))) }),
   ]) as any
+}
 
 export const CompoundPredicate$codec = <Atom>(atom: Codec<Atom>): Codec<CompoundPredicate<Atom>> => {
   const self: Codec<CompoundPredicate<Atom>> = enumCodec<{
@@ -316,4 +317,40 @@ export const CompoundPredicate$codec = <Atom>(atom: Codec<Atom>): Codec<Compound
   ]).discriminated()
 
   return self
+}
+
+export function bitmap<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
+  const reprCodec = U32$codec
+  const reprSchema = U32$schema
+  const REPR_MAX = 2 ** 32 - 1
+
+  const toMask = (set: Set<Name>) => {
+    let num = 0
+    for (const i of set) {
+      num |= masks[i]
+    }
+    return reprSchema.parse(num)
+  }
+
+  const masksArray = (Object.entries(masks) as [Name, number][]).map(([k, v]) => ({ key: k, value: v }))
+  const fromMask = (bitmask: U32): Set<Name> => {
+    const set = new Set<Name>()
+    let bitmaskMut: number = bitmask
+    for (const mask of masksArray) {
+      if ((mask.value & bitmaskMut) !== mask.value) continue
+      set.add(mask.key)
+
+      let maskEffectiveBits = 0
+      for (let i = mask.value; i > 0; i >>= 1, maskEffectiveBits++);
+
+      const fullNotMask = ((REPR_MAX >> maskEffectiveBits) << maskEffectiveBits) | ~mask.value
+      bitmaskMut &= fullNotMask
+    }
+    if (bitmaskMut !== 0) {
+      throw new Error(`Bitmask contains unknown flags: 0b${bitmaskMut.toString(2)}`)
+    }
+    return set
+  }
+
+  return reprCodec.wrap(toMask, fromMask)
 }
