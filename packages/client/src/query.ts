@@ -1,10 +1,10 @@
 import type { PrivateKey } from '@iroha2/crypto-core'
+import { freeScope } from '@iroha2/crypto-core'
 import { datamodel, extractQueryOutput, signQuery } from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
 import type { SetOptional } from 'type-fest'
 import type { z } from 'zod'
 import { ENDPOINT_QUERY } from './const'
-import { RestType } from 'typedoc'
 
 export type QueryPayload<Q> = Q extends keyof datamodel.QueryOutputMap
   ? SetOptional<(z.input<typeof datamodel.QueryBox$schema> & { t: Q })['value'], 'predicate'> &
@@ -23,16 +23,16 @@ export type QueryOutput<Q> = Q extends keyof datamodel.QueryOutputMap
     ? Promise<datamodel.SingularQueryOutputMap[Q]>
     : never
 
-interface QueryBaseParams {
+export interface RequestBaseParams {
   authority: datamodel.AccountId
-  authorityPrivateKey: PrivateKey
+  authorityPrivateKey: () => PrivateKey
   toriiURL: string
 }
 
-export function doQuery<
+export function doRequest<
   Q extends keyof datamodel.QueryOutputMap | keyof datamodel.SingularQueryOutputMap,
   P extends QueryPayload<Q>,
->(query: Q, params: P & QueryBaseParams): QueryOutput<Q> {
+>(query: Q, params: P & RequestBaseParams): QueryOutput<Q> {
   const { authority, authorityPrivateKey, toriiURL, ...rest } = params
   const baseParams = { authority, authorityPrivateKey, toriiURL }
 
@@ -66,7 +66,7 @@ export function doQuery<
     ) as QueryOutput<Q>
   } else if (query in datamodel.SingularQueryOutputKindMap) {
     return querySingular(
-      datamodel.SingularQueryBox({ t: query, value: rest } /* FIXME */ as any),
+      datamodel.SingularQueryBox({ t: query, value: rest.query } /* FIXME */ as any),
       baseParams,
     ) as QueryOutput<Q>
   } else {
@@ -74,13 +74,13 @@ export function doQuery<
   }
 }
 
-function signQueryRequest(request: datamodel.QueryRequest, params: QueryBaseParams) {
-  return signQuery({ authority: params.authority, request }, params.authorityPrivateKey)
+function signQueryRequest(request: datamodel.QueryRequest, params: RequestBaseParams) {
+  return freeScope(() => signQuery({ authority: params.authority, request }, params.authorityPrivateKey()))
 }
 
 async function* queryIterStream(
   request: datamodel.QueryWithParams,
-  params: QueryBaseParams,
+  params: RequestBaseParams,
 ): AsyncGenerator<datamodel.QueryOutputBatchBox['value']> {
   let continueCursor: datamodel.ForwardCursor | null = null
   do {
@@ -105,7 +105,7 @@ async function* queryIterStream(
 
 async function querySingular(
   query: datamodel.SingularQueryBox,
-  params: QueryBaseParams,
+  params: RequestBaseParams,
 ): Promise<datamodel.SingularQueryOutputBox['value']> {
   const response = await fetch(params.toriiURL + ENDPOINT_QUERY, {
     method: 'POST',

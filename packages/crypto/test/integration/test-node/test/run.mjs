@@ -5,5 +5,5 @@ import { Bytes, Hash, setWASM } from '@iroha2/crypto-core'
 
 setWASM(wasmPkg)
 
-const hash = Hash.hash(Bytes.hex('deadbeef')).bytes('hex')
+const hash = Hash.hash(Bytes.hex('deadbeef')).payload('hex')
 console.log('Sample hash:', hash)

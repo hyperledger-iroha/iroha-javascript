@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev:app": "vite",
-    "dev:peer-server": "DEBUG=* tsx etc/dev-peer-server",
+    "dev:peer-server": "DEBUG=* tsx etc/run-peer-server",
     "dev:cy": "cypress open",
     "test": "run-s test:app:build test:run",
     "test:app:build": "vue-tsc --noEmit && vite build",

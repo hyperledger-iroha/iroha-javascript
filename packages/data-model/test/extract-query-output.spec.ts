@@ -9,11 +9,12 @@ test('Extract a batch of AssetDefinitions', () => {
       type: { t: 'Numeric', value: {} },
       mintable: 'Not',
       ownedBy: SAMPLE_ACCOUNT_ID,
+      totalQuantity: { mantissa: 42n, scale: 0n },
     }),
   ]
   const response = datamodel.QueryResponse({
     t: 'Iterable',
-    value: { batch: { t: 'AssetDefinition', value: definitions } },
+    value: { batch: { t: 'AssetDefinition', value: definitions }, remainingItems: 4n },
   })
   expect(extractQueryOutput('FindAssetsDefinitions', response)).toEqual(definitions)
 })
@@ -22,7 +23,7 @@ test('Extract singular domain metadata', () => {
   const metadata = { foo: 'bar', baz: [1, 2, 3] }
   const response = datamodel.QueryResponse({
     t: 'Singular',
-    value: { t: 'JsonString', value: metadata },
+    value: { t: 'Json', value: metadata },
   })
   expect(extractQueryOutput('FindDomainMetadata', response).asValue()).toEqual(metadata)
 })

@@ -7,4 +7,4 @@ export const ENDPOINT_BLOCKS_STREAM = '/block/stream'
 export const ENDPOINT_STATUS = '/status'
 export const ENDPOINT_METRICS = '/metrics'
 
-export const HEALTHY_RESPONSE = `"Healthy"`
+export const HEALTHY_RESPONSE = `Healthy`

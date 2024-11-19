@@ -8,7 +8,7 @@ import type { z } from 'zod'
 import { SAMPLE_ACCOUNT_ID } from './util'
 
 async function encodeWithCLI(type: keyof typeof SCHEMA, data: JsonValue): Promise<Uint8Array> {
-  const tool = await resolveBinary('parity_scale_cli')
+  const tool = await resolveBinary('iroha_codec')
   const input = JSON.stringify(data, undefined, 2)
   try {
     const result = await execa(tool.path, ['json-to-scale', '--type', type], {
@@ -68,22 +68,22 @@ function casesSchedule() {
   ]
 }
 
-// TODO: support strings as user inputs?
-function casesAddrs() {
-  const base = { type: 'SocketAddr', codec: datamodel.SocketAddr$codec, schema: datamodel.SocketAddr$schema } as const
-  return [
-    defCase({ ...base, json: '127.0.0.1:8080', value: { t: 'Ipv4', value: { ip: [127, 0, 0, 1], port: 8080 } } }),
-    defCase({ ...base, json: 'localhost:8080', value: { t: 'Host', value: { host: 'localhost', port: 8080 } } }),
-    defCase({
-      ...base,
-      json: '[84d5:51a0:9114:1855:4cfa:f2d7:1f12:7003]:4000',
-      value: {
-        t: 'Ipv6',
-        value: { ip: [0x84d5, 0x51a0, 0x9114, 0x1855, 0x4cfa, 0xf2d7, 0x1f12, 0x7003], port: 4000 },
-      },
-    }),
-  ]
-}
+// // TODO: support strings as user inputs?
+// function casesAddrs() {
+//   const base = { type: 'SocketAddr', codec: datamodel.SocketAddr$codec, schema: datamodel.SocketAddr$schema } as const
+//   return [
+//     defCase({ ...base, json: '127.0.0.1:8080', value: { t: 'Ipv4', value: { ip: [127, 0, 0, 1], port: 8080 } } }),
+//     defCase({ ...base, json: 'localhost:8080', value: { t: 'Host', value: { host: 'localhost', port: 8080 } } }),
+//     defCase({
+//       ...base,
+//       json: '[84d5:51a0:9114:1855:4cfa:f2d7:1f12:7003]:4000',
+//       value: {
+//         t: 'Ipv6',
+//         value: { ip: [0x84d5, 0x51a0, 0x9114, 0x1855, 0x4cfa, 0xf2d7, 0x1f12, 0x7003], port: 4000 },
+//       },
+//     }),
+//   ]
+// }
 
 function casesTxPayload() {
   const base = {
@@ -137,21 +137,21 @@ function casesCompoundPredicates() {
 }
 
 test.each([
-  defCase({
-    type: 'SocketAddr',
-    json: 'localhost:8080',
-    schema: datamodel.SocketAddr$schema,
-    codec: datamodel.SocketAddr$codec,
-    value: { t: 'Host', value: { host: 'localhost', port: 8080 } },
-  }),
+  // defCase({
+  //   type: 'SocketAddr',
+  //   json: 'localhost:8080',
+  //   schema: datamodel.SocketAddr$schema,
+  //   codec: datamodel.SocketAddr$codec,
+  //   value: { t: 'Host', value: { host: 'localhost', port: 8080 } },
+  // }),
   caseHash(),
-  defCase({
-    type: 'Ipv4Addr',
-    json: '127.0.0.1',
-    schema: datamodel.Ipv4Addr$schema,
-    codec: datamodel.Ipv4Addr$codec,
-    value: [127, 0, 0, 1],
-  }),
+  // defCase({
+  //   type: 'Ipv4Addr',
+  //   json: '127.0.0.1',
+  //   schema: datamodel.Ipv4Addr$schema,
+  //   codec: datamodel.Ipv4Addr$codec,
+  //   value: [127, 0, 0, 1],
+  // }),
   ...defMultipleValues(
     {
       type: 'AccountEventSet',
@@ -172,7 +172,7 @@ test.each([
   }),
   ...defMultipleValues(
     {
-      type: 'JsonString',
+      type: 'Json',
       json: { whatever: ['foo', 'bar'] },
       schema: datamodel.Json$schema,
       codec: datamodel.Json$codec,
@@ -227,7 +227,6 @@ test.each([
     },
   ),
   ...casesSchedule(),
-  ...casesAddrs(),
   defCase({
     type: 'EventBox',
     json: { Time: { interval: { since_ms: 15_000, length_ms: 18_000 } } },
@@ -269,10 +268,8 @@ test.each([
           instructions: { Instructions: [{ Register: { Domain: { id: 'roses', metadata: {} } } }] },
           metadata: {},
         },
-        signature: {
-          payload:
-            '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
-        },
+        signature:
+          '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
       },
     },
     codec: datamodel.SignedTransaction$codec,

@@ -1,15 +1,15 @@
 /* eslint-disable no-lone-blocks */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { test, expectTypeOf, assertType } from 'vitest'
+import { assertType, expectTypeOf, test } from 'vitest'
 import type {
-  SingularQueryOutputMap,
-  QueryOutputMap,
-  QueryOutputBatchBox,
-  SingularQueryOutputBox,
-  SingularQueryBox,
   QueryBox,
-  SingularQueryOutputKindMap,
+  QueryOutputBatchBox,
   QueryOutputKindMap,
+  QueryOutputMap,
+  SingularQueryBox,
+  SingularQueryOutputBox,
+  SingularQueryOutputKindMap,
+  SingularQueryOutputMap,
 } from './generated'
 
 export type Equal<a, b> = (<T>() => T extends a ? 1 : 2) extends <T>() => T extends b ? 1 : 2 ? true : false

@@ -2,7 +2,7 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { type Binary, buildBinaries } from '../src/lib'
 
-const BINARIES: Binary[] = ['irohad', 'kagami', 'parity_scale_cli']
+const BINARIES: Binary[] = ['irohad', 'iroha_kagami', 'iroha_codec']
 
 yargs(hideBin(process.argv))
   .command(

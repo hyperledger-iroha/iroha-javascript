@@ -1,23 +1,23 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable max-nested-callbacks */
 import type { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
-import { P, isMatching, match } from 'ts-pattern'
+import { P, match } from 'ts-pattern'
 import invariant from 'tiny-invariant'
 import { camelCase, pascalCase } from 'change-case'
 import type { Algorithm } from '@iroha2/crypto-core'
 import type { QueryImpl } from '@iroha2/iroha-source'
 import { deepEqual } from 'fast-equals'
 
-export function generate(schema: Schema, queryImpls: QueryImpl[]): string {
+export function generate(schema: Schema, queryImpls: QueryImpl[], libModule: string): string {
   const ident = new TransformIdent(schema)
   const transformed = transform(schema, ident)
   transformed.sort((a, b) => (a.id < b.id ? -1 : a.id === b.id ? 0 : 1))
 
   return [
-    `import { core, crypto, z } from './generated-prelude'`,
+    `import { lib, z } from '${libModule}'`,
     ...transformed.map((x) => generateSingleEntry(x)),
     generateQueryImpls(transformed, queryImpls, ident),
-  ].join('\n')
+  ].join('\n\n')
 }
 
 type ActualCodegenSchema = CodegenEntry[]
@@ -28,7 +28,7 @@ type CodegenEntry = { id: string } & (
   | { t: 'struct'; fields: { name: string; type: TypeIdent }[]; schema?: (base: string) => string }
   | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: TypeIdent }[] }
   | { t: 'tuple'; elements: TypeIdent[] }
-  | { t: 'bitmap'; repr: LibCodec; masks: { name: string; mask: number }[] }
+  | { t: 'bitmap'; repr: LibType; masks: { name: string; mask: number }[] }
   | { t: 'alias'; to: TypeIdent }
   | { t: 'branded-alias'; to: TypeIdent }
   | { t: 'never' }
@@ -43,13 +43,16 @@ type CodegenEnumVariant =
  */
 type TypeIdent =
   | { t: 'ref'; id: string; generics?: TypeIdent[]; schema?: string }
-  | { t: 'lib'; id: LibCodec; generics?: TypeIdent[]; schema?: string }
+  | { t: 'lib'; id: LibType; generics?: TypeIdent[]; schema?: string }
   | { t: 'special-predicate-box-not-value' }
   | { t: 'special-array-generic-len'; len: number }
   | { t: 'gen'; genericIndex: number }
   | { t: 'null' }
 
-type LibCodec =
+/**
+ * Types available in the library
+ */
+type LibType =
   | 'BytesVec'
   | 'String'
   | 'U8'
@@ -72,6 +75,14 @@ type LibCodec =
   | 'Duration'
   | 'Name'
   | 'CompoundPredicate'
+  | 'DomainId'
+  | `AccountId`
+  | `AssetDefinitionId`
+  | `AssetId`
+  | 'Algorithm'
+  | 'Signature'
+  | 'Hash'
+  | 'PublicKey'
 
 const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
 
@@ -160,7 +171,7 @@ function transform(schema: Schema, ident: TransformIdent): ActualCodegenSchema {
   const ignore = new Set([...ident.nulls, ...items.map((x) => x.id)])
 
   for (const [key, value] of Object.entries(schema)) {
-    if (ignore.has(parseIdent(key).id)) continue
+    if (ignore.has(parseRawIdent(key).id)) continue
     items.push(...transformDefinition(key, value, ident))
   }
 
@@ -170,36 +181,28 @@ function transform(schema: Schema, ident: TransformIdent): ActualCodegenSchema {
 function transformDefinition(name: string, item: SchemaTypeDefinition, ident: TransformIdent): CodegenEntry[] {
   const id = ident.transform(name)
 
-  // has been resolved to a lib type, can exclude from schema
-  if (id.t === 'lib' || id.t !== 'ref') return []
+  // console.log(name, item, id)
+
+  // not in-schema reference, don't render
+  if (id.t !== 'ref') return []
 
   return (
     match([id, item])
       .returnType<CodegenEntry[]>()
+
+      // this is not used anywhere
+      .with([{ t: 'ref', id: 'MerkleTree' }, P._], () => [])
+
       .with([{ generics: P.array() }, P._], () => {
         throw new Error(`don't know how to transform the definition of "${name}"`)
       })
-      .with([{ id: 'Signature' }, { Struct: [{ name: 'payload', type: 'Vec<u8>' }] }], () => [
-        {
-          t: 'branded-alias',
-          id: 'Signature',
-          to: (() => {
-            const bytes = ident.transform('Vec<u8>')
-            const schemaBase = generateIdent(bytes).schema
-            return {
-              ...bytes,
-              schema: `${schemaBase}.or(z.instanceof(crypto.Signature).transform(x => x.payload()).pipe(${schemaBase}))`,
-            }
-          })(),
-        },
-      ])
       .with([{ id: 'BlockSignature' }, { Tuple: ['u64', P.string.startsWith('Signature')] }], () => [
         {
           t: 'struct',
           id: 'BlockSignature',
           fields: [
             { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
-            { name: 'signature', type: { t: 'ref', id: 'Signature' } },
+            { name: 'signature', type: { t: 'lib', id: 'Signature' } },
           ],
         },
       ])
@@ -329,7 +332,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
                 )
                 .with({ id: 'TransactionPayload', field: { name: 'creation_time_ms', type: 'u64' } }, () => ({
                   name: 'creation_time',
-                  type: { t: 'lib', id: 'Timestamp', schema: `core.Timestamp$schema.default(() => new Date())` },
+                  type: { t: 'lib', id: 'Timestamp', schema: `lib.Timestamp$schema.default(() => new Date())` },
                 }))
                 .with({ id: 'Schedule', field: { name: 'period_ms', type: 'Option<u64>' } }, () => ({
                   name: 'period',
@@ -365,19 +368,8 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
             ),
             schema: match(id)
               .returnType<undefined | ((base: string) => string)>()
-              .with('AccountId', () => (base) => `z.string().transform(core.parseAccountId).pipe(${base}).or(${base})`)
-              .with(
-                'AssetDefinitionId',
-                () => (base) => `z.string().transform(core.parseAssetDefinitionId).pipe(${base}).or(${base})`,
-              )
-              .with('AssetId', () => (base) => `z.string().transform(core.parseAssetId).pipe(${base}).or(${base})`)
-              .with(
-                'PublicKey',
-                () => (base) =>
-                  `${base}.or(z.string().transform(core.parseMultihashPublicKey).or(` +
-                  `z.instanceof(crypto.PublicKey).transform((x) => ({ algorithm: x.algorithm, payload: x.payload() }))).pipe(${base}))`,
-              )
-              .with('Sorting', 'Pagination', 'QueryParams', () => (base) => `${base}.default(() => ({}))`)
+              .with('Sorting', 'QueryParams', () => (base) => `${base}.default(() => ({}))`)
+              .with('Pagination', () => (base) => base + '.default(() => ({ offset: 0 }))')
               .otherwise(() => undefined),
           } satisfies CodegenEntry,
         ]
@@ -445,7 +437,7 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
                 'SingularQueryOutputBox',
                 'MetadataValueBox',
                 'InstructionBox',
-                // To reduce load on TS compiler
+                // To reduce load on tsc
                 'EventBox',
               ),
               () => ({
@@ -533,21 +525,21 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
             } satisfies CodegenEntry,
           ]
         }
-        if (type.id === 'Hash') {
-          const schemaBase = generateIdent(aliasParsed).schema
-          const schemaCrypto = `z.instanceof(crypto.Hash).transform(x => x.payload()).pipe(${schemaBase})`
-          const schemaHex = `core.hex$schema.pipe(${schemaBase})`
-          return [
-            {
-              t: 'branded-alias',
-              id: type.id,
-              to: {
-                ...aliasParsed,
-                schema: `${schemaBase}.or(${schemaCrypto}).or(${schemaHex})`,
-              },
-            },
-          ]
-        }
+        // if (type.id === 'Hash') {
+        //   const schemaBase = generateIdent(aliasParsed).schema
+        //   const schemaCrypto = `z.instanceof(crypto.Hash).transform(x => x.payload()).pipe(${schemaBase})`
+        //   const schemaHex = `lib.hex$schema.pipe(${schemaBase})`
+        //   return [
+        //     {
+        //       t: 'branded-alias',
+        //       id: type.id,
+        //       to: {
+        //         ...aliasParsed,
+        //         schema: `${schemaBase}.or(${schemaCrypto}).or(${schemaHex})`,
+        //       },
+        //     },
+        //   ]
+        // }
 
         return [
           {
@@ -565,6 +557,9 @@ function transformDefinition(name: string, item: SchemaTypeDefinition, ident: Tr
 }
 
 class TransformIdent {
+  /**
+   * Null-types
+   */
   readonly nulls: Set<string>
 
   constructor(schema: Schema) {
@@ -575,13 +570,19 @@ class TransformIdent {
   }
 
   /**
-   * Single transform logic for all type names
+   * Responsibility: recognise type names in the schema and transform them into items in JS data model schema
+   * (recursively, with respect to generics).
    */
-  transform(id: string | Ident): TypeIdent {
+  transform(id: string | RawIdent): TypeIdent {
     return (
-      match(typeof id === 'string' ? parseIdent(id) : id)
+      match(typeof id === 'string' ? parseRawIdent(id) : id)
         .returnType<TypeIdent>()
-        .with({ id: 'HashOf', items: [P.any] }, () => ({ t: 'ref', id: 'Hash' }))
+
+        // useless aliases
+        .with({ id: 'BlockMessage', items: [] }, () => ({ t: 'ref', id: 'SignedBlock' }))
+        .with({ id: 'TimeEventFilter', items: [] }, () => ({ t: 'ref', id: 'ExecutionTime' }))
+        .with({ id: 'EventMessage', items: [] }, () => ({ t: 'ref', id: 'EventBox' }))
+        .with({ id: 'HashOf', items: [P.any] }, () => ({ t: 'lib', id: 'Hash' }))
         .with(
           P.union(
             { id: 'TransactionSignature', items: [] },
@@ -589,31 +590,58 @@ class TransformIdent {
             { id: 'SignatureOf', items: [P.any] },
           ),
           () => ({
-            t: 'ref',
+            t: 'lib',
             id: 'Signature',
           }),
         )
-        .with({ id: 'NonTrivial', items: [P._] }, () => ({
+
+        // Library types
+        .with({ id: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
+        .with(
+          {
+            id: P.union(
+              'String',
+              'Json',
+              'Name',
+              'CompoundPredicate',
+              'DomainId',
+              'AccountId',
+              'AssetId',
+              'AssetDefinitionId',
+              'Compact',
+              'Algorithm',
+              'Signature',
+              'Hash',
+              'PublicKey',
+            ).select(),
+            // items: [],
+          },
+          (id) => ({ t: 'lib', id }),
+        )
+        .with({ id: P.union('u8', 'u16', 'u32', 'u64', 'u128') }, ({ id }) => ({
           t: 'lib',
-          id: 'Vec',
-          generics: [{ t: 'ref', id: 'PredicateBox' }],
+          id: upcase(id),
         }))
         .with(
-          { id: P.union('BatchedResponse', 'BatchedResponseV1'), items: [{ id: 'QueryOutputBox', items: [] }] },
-          ({ id }) => ({ t: 'ref', id }),
+          {
+            id: 'Array',
+            items: [
+              { id: P.union('u8', 'u16').select('int'), items: [] },
+              { id: P.select('len'), items: [] },
+            ],
+          },
+          ({ int, len: lenStr }) => {
+            const len = Number(lenStr)
+            invariant(!Number.isNaN(len))
+            return {
+              t: 'lib',
+              id: `${upcase(int)}Array` satisfies LibType,
+              generics: [{ t: 'special-array-generic-len', len }],
+            } satisfies TypeIdent
+          },
         )
-        .with({ id: 'MerkleTree', items: [{ id: 'SignedTransaction', items: [] }] }, () => this.transform('Vec<Hash>'))
-        .with({ id: 'BlockMessage', items: [] }, () => ({ t: 'ref', id: 'SignedBlock' }))
-        .with({ id: P.union('SortedMap', 'Map'), items: [P._, P._] }, ({ items: [key, value] }) => ({
-          t: 'lib',
-          id: 'Map',
-          generics: [this.transform(key), this.transform(value)],
-        }))
-        .with({ id: 'NonZero', items: [{ id: P.union('u32', 'u64').select() }] }, (int) => ({
-          t: 'lib',
-          id: 'NonZero',
-          generics: [{ t: 'lib', id: upcase(int) }],
-        }))
+
+        // Library containers
         .with({ id: 'Vec', items: [{ id: 'u8', items: [] }] }, () => ({ t: 'lib', id: 'BytesVec' }))
         .with({ id: P.union('SortedVec', 'Vec'), items: [P.select()] }, (item) => ({
           t: 'lib',
@@ -625,8 +653,24 @@ class TransformIdent {
           id: 'Option',
           generics: [this.transform(some)],
         }))
-        .with({ id: 'TimeEventFilter', items: [] }, () => ({ t: 'ref', id: 'ExecutionTime' }))
+        .with({ id: P.union('SortedMap', 'Map'), items: [P._, P._] }, ({ items: [key, value] }) => ({
+          t: 'lib',
+          id: 'Map',
+          generics: [this.transform(key), this.transform(value)],
+        }))
+        .with({ id: 'NonZero', items: [{ id: P.union('u32', 'u64').select() }] }, (int) => ({
+          t: 'lib',
+          id: 'NonZero',
+          generics: [{ t: 'lib', id: upcase(int) }],
+        }))
+
+        // Exists only for AssetType
         .with({ id: 'Mismatch', items: [{ id: 'AssetType' }] }, () => ({ t: 'ref', id: 'AssetTypeMismatch' }))
+
+        // Just renaming for clarity
+        .with({ id: 'Level', items: [] }, () => ({ t: 'ref', id: 'LogLevel' }))
+
+        // Generics in these ISIs need an addition of `Id` suffix
         .with(
           { id: 'Transfer', items: [{ items: [] }, { items: [] }, { items: [] }] },
           ({ items: [{ id: source }, { id: object }, { id: destination }] }) => ({
@@ -649,77 +693,44 @@ class TransformIdent {
             generics: [object, destination + 'Id'].map((id) => this.transform(id)),
           }),
         )
-        .with({ id: 'MetadataChanged', items: [{ id: P.select(), items: [] }] }, (id) => ({
-          t: 'ref',
-          id: 'MetadataChanged',
-          generics: [{ t: 'ref', id }],
-        }))
         .with(
-          { id: P.union('SetKeyValue', 'RemoveKeyValue').select('isi'), items: [{ items: [], id: P.select('id') }] },
-          ({ isi, id }) => ({
+          {
+            id: P.union('SetKeyValue', 'RemoveKeyValue').select('isi'),
+            items: [{ items: [], id: P.select('object') }],
+          },
+          ({ isi, object }) => ({
             t: 'ref',
             id: isi,
-            generics: [{ t: 'ref', id }],
+            generics: [this.transform(`${object}Id`)],
           }),
         )
         .with(
           {
             id: 'Register',
-            items: [{ id: P.union('Domain', 'AssetDefinition', 'Account').select('object'), items: [] }],
+            items: [{ id: P.select(), items: [] }],
           },
-          ({ object }) => ({
+          (entity) => ({
             t: 'ref',
             id: 'Register',
-            generics: [{ t: 'ref', id: `New${object}` }],
+            generics: [
+              this.transform(
+                match(entity)
+                  .with('Peer', () => 'PeerId')
+                  .with(P.union('Domain', 'AssetDefinition', 'Account'), (x) => `New${x}`)
+                  .otherwise((x) => x),
+              ),
+            ],
           }),
         )
-        .with({ id: 'Register', items: [{ id: P.select('object'), items: [] }] }, ({ object }) => ({
-          t: 'ref',
-          id: 'Register',
-          generics: [{ t: 'ref', id: object }],
-        }))
         .with({ id: 'Unregister', items: [{ id: P.select('object'), items: [] }] }, ({ object }) => ({
           t: 'ref',
           id: 'Unregister',
-          generics: [{ t: 'ref', id: `${object}Id` }],
+          generics: [this.transform(`${object}Id`)],
         }))
-        // .with({ id: 'GenericPredicateBox', items: [{ id: 'QueryOutputPredicate', items: [] }] }, () => ({
-        //   t: 'ref',
-        //   id: 'PredicateBox',
-        // }))
-        .with({ id: 'EventMessage', items: [] }, () => ({ t: 'ref', id: 'EventBox' }))
-        .with({ id: 'Compact' }, () => ({ t: 'lib', id: 'Compact' }))
-        .with({ id: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
-        .with({ id: P.union('String'), items: [] }, () => ({ t: 'lib', id: 'String' }))
-        .with({ id: P.union('u8', 'u16', 'u32', 'u64', 'u128') }, ({ id }) => ({
-          t: 'lib',
-          id: upcase(id),
-        }))
-        .with({ id: 'JsonString', items: [] }, () => ({ t: 'lib', id: 'Json' }))
-        .with(
-          {
-            id: 'Array',
-            items: [
-              { id: P.union('u8', 'u16').select('int'), items: [] },
-              { id: P.select('len'), items: [] },
-            ],
-          },
-          ({ int, len: lenStr }) => {
-            const len = Number(lenStr)
-            invariant(!Number.isNaN(len))
-            return {
-              t: 'lib',
-              id: `${upcase(int)}Array` satisfies LibCodec,
-              generics: [{ t: 'special-array-generic-len', len }],
-            } satisfies TypeIdent
-          },
-        )
-        .with({ id: 'Level', items: [] }, () => ({ t: 'ref', id: 'LogLevel' }))
-        .with({ id: P.union('Name', 'CompoundPredicate').select() }, (id) => ({
-          t: 'lib',
-          id,
-        }))
+
+        // recognised nulls
         .with({ id: P.when((x) => this.nulls.has(x)), items: [] }, () => ({ t: 'null' }))
+
         .otherwise(({ id, items }) => {
           return {
             t: 'ref',
@@ -748,14 +759,14 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
     .with({ t: 'ref', generics: P.array() }, ({ id, generics, schema }) => {
       return {
         type: id + `<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
-        codec: `core.lazyCodec(() => ${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')}))`,
+        codec: `lib.lazyCodec(() => ${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')}))`,
         schema: schema ?? `z.lazy(() => ${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')}))`,
         typeofSchema: `ReturnType<typeof ${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
     .with({ t: 'ref' }, ({ id, schema }) => ({
       type: id,
-      codec: `core.lazyCodec(() => ${id}$codec)`,
+      codec: `lib.lazyCodec(() => ${id}$codec)`,
       schema: schema ?? `z.lazy(() => ${id}$schema)`,
       typeofSchema: `z.ZodLazy<typeof ${id}$schema>`,
     }))
@@ -766,28 +777,27 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
         .otherwise(() => `<${generics.map((x) => generateIdent(x).type).join(', ')}>`)
 
       return {
-        type: `core.${id}${typeGenerics}`,
-        codec: `core.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
+        type: `lib.${id}${typeGenerics}`,
+        codec: `lib.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
         schema:
-          schema ??
-          `core.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
-        typeofSchema: `ReturnType<typeof core.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
+          schema ?? `lib.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
+        typeofSchema: `ReturnType<typeof lib.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
       }
     })
     .with({ t: 'lib' }, ({ id, schema }) => {
       return {
-        type: `core.${id}`,
-        codec: `core.${id}$codec`,
+        type: `lib.${id}`,
+        codec: `lib.${id}$codec`,
         schema:
           schema ??
           match(id)
             .with('String', () => `z.string()`)
             .with('Bool', () => `z.boolean()`)
-            .otherwise(() => `core.${id}$schema`),
+            .otherwise(() => `lib.${id}$schema`),
         typeofSchema: match(id)
           .with('String', () => `z.ZodString`)
           .with('Bool', () => `z.ZodBoolean`)
-          .otherwise(() => `typeof core.${id}$schema`),
+          .otherwise(() => `typeof lib.${id}$schema`),
       }
     })
     .with({ t: 'special-array-generic-len' }, ({ len }) => ({
@@ -811,7 +821,7 @@ function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): 
     })
     .with({ t: 'null' }, () => ({
       type: 'null',
-      codec: 'core.nullCodec',
+      codec: 'lib.nullCodec',
       schema: 'z.null().default(null)',
       typeofSchema: 'z.ZodDefault<z.ZodNull>',
     }))
@@ -848,7 +858,7 @@ function generateBaseEnumCodec(variants: CodegenEnumVariant[]): string {
       )
       .exhaustive(),
   )
-  return `core.enumCodec<{ ${types.join(', ')} }>([${options.join(', ')}])`
+  return `lib.enumCodec<{ ${types.join(', ')} }>([${options.join(', ')}])`
 }
 
 function generateDiscriminatedUnionExplicitTypes(variants: CodegenEnumVariant[]) {
@@ -898,7 +908,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         generateParseFn(id),
         `export const ${id}$schema = ${zodSchema}`,
-        `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.literalUnion()`,
+        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.literalUnion()`,
       ]
     })
     .with({ t: 'enum', mode: 'normal' }, ({ variants, id }) => {
@@ -906,7 +916,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         generateParseFn(id),
         `export const ${id}$schema  = ${generateZodDiscriminatedUnion(variants)}`,
-        `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
+        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
       ]
     })
     .with({ t: 'enum', mode: 'explicit' }, ({ id, variants }) => {
@@ -916,7 +926,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         generateParseFn(id),
         `type ${id}$input = ${type.input}`,
         `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = ${generateZodDiscriminatedUnion(variants, { removeDefault: true })}`,
-        `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
+        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
       ]
     })
     .with({ t: 'enum', mode: 'explicit-default' }, ({ id, variants, default: _default }) => {
@@ -928,7 +938,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export const ${id}$schema: z.ZodDefault<z.ZodType<${id}, z.ZodTypeDef, ${id}$input>> = ` +
           generateZodDiscriminatedUnion(variants, { removeDefault: true }) +
           `.default(${_default})`,
-        `export const ${id}$codec: core.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
+        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
       ]
     })
     .with({ t: 'struct' }, ({ id, fields, schema: schemaFn }) => {
@@ -941,7 +951,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         generateParseFn(id),
         `export const ${id}$schema = ${schema}`,
-        `export const ${id}$codec = core.structCodec<${id}>([${codecFields}])`,
+        `export const ${id}$codec = lib.structCodec<${id}>([${codecFields}])`,
       ]
     })
     .with({ t: 'tuple' }, ({ id, elements }) => {
@@ -951,7 +961,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         generateParseFn(id),
         `export const ${id}$schema = z.tuple([${schemaElements.join(', ')}])`,
-        `export const ${id}$codec: core.Codec<${id}> = core.tupleCodec([${codecElements.join(', ')}])`,
+        `export const ${id}$codec: lib.Codec<${id}> = lib.tupleCodec([${codecElements.join(', ')}])`,
       ]
     })
     .with({ t: 'bitmap' }, ({ id, masks, repr }) => {
@@ -971,7 +981,7 @@ function generateSingleEntry(item: CodegenEntry): string {
         generateParseFn(id),
         `const ${id}$literalSchema = ${literalSchema}`,
         `export const ${id}$schema = z.set(${id}$literalSchema).or(z.array(${id}$literalSchema).transform(arr => new Set(arr)))`,
-        `export const ${id}$codec = core.bitmap<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`,
+        `export const ${id}$codec = lib.bitmap<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`,
       ]
     })
     .with({ t: 'struct-gen' }, ({ id, genericsCount, fields }) => {
@@ -997,9 +1007,9 @@ function generateSingleEntry(item: CodegenEntry): string {
           return `['${camelCase(name)}', ${codec}]`
         })
         .join(', ')
-      const codecFn = `<${mapGenerics((i) => `T${i}`).join(', ')}>(${mapGenerics(
-        (i) => `t${i}: core.Codec<T${i}>`,
-      ).join(', ')}) => core.structCodec([${codecSchemaItems}])`
+      const codecFn = `<${mapGenerics((i) => `T${i}`).join(', ')}>(${mapGenerics((i) => `t${i}: lib.Codec<T${i}>`).join(
+        ', ',
+      )}) => lib.structCodec([${codecSchemaItems}])`
 
       return [
         `export interface ${id}<${genericsTypes}> { ${typeFields} }`,
@@ -1021,13 +1031,13 @@ function generateSingleEntry(item: CodegenEntry): string {
         `export type ${id} = z.infer<typeof ${id}$schema>`,
         generateParseFn(id),
         `export const ${id}$schema = ${generateIdent(to).schema}.brand<'${id}'>()`,
-        `export const ${id}$codec = ${generateIdent(to).codec} as core.Codec<${id}>`,
+        `export const ${id}$codec = ${generateIdent(to).codec} as lib.Codec<${id}>`,
       ]
     })
     .with({ t: 'never' }, ({ id }) => [
       `export type ${id} = never`,
       `export const ${id}$schema = z.never()`,
-      `export const ${id}$codec = core.neverCodec`,
+      `export const ${id}$codec = lib.neverCodec`,
     ])
     .exhaustive()
     .join('\n')
@@ -1038,16 +1048,16 @@ function upcase<S extends string>(s: S): Uppercase<S> {
 }
 
 /**
- * Structured model of an identifier, e.g. `Map<Key, Option<T>>`
+ * Structured model of an identifier from Iroha schema, e.g. `Map<Key, Option<T>>`
  */
-interface Ident {
+interface RawIdent {
   id: string
-  items: Ident[]
+  items: RawIdent[]
   path?: string[]
 }
 
-export function parseIdent(src: string): Ident {
-  const stack: Ident[] = [{ id: '__root__', items: [] }]
+export function parseRawIdent(src: string): RawIdent {
+  const stack: RawIdent[] = [{ id: '__root__', items: [] }]
 
   for (const [token] of src.matchAll(/(<|>|(?:[\w_]+|::)+)/gi)) {
     if (token === '<') {

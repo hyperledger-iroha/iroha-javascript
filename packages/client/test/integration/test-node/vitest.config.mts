@@ -8,7 +8,7 @@ export default defineConfig({
       'basic',
       // This is for Compatibility Matrix tests
       // https://allurereport.org/docs/vitest-reference/
-      new AllureReporter({}),
+      // new AllureReporter({}),
     ],
     poolOptions: {
       threads: {

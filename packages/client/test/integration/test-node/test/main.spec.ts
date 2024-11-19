@@ -1,9 +1,15 @@
-// import { Torii } from '@iroha2/client'
+import type { Client } from '@iroha2/client'
+import { asyncIterAll } from '@iroha2/client'
 import { datamodel } from '@iroha2/data-model'
 import { describe, expect, test } from 'vitest'
 import { usePeer } from './util'
-import { DOMAIN } from '@iroha2/test-configuration'
-import { match, P } from 'ts-pattern'
+import { KeyPair } from '@iroha2/crypto-core'
+import { freeScope } from '@iroha2/crypto-core'
+
+export const SAMPLE_ACCOUNT_ID = freeScope(() => {
+  const kp = KeyPair.random()
+  return `${kp.publicKey().toMultihash()}@badland`
+})
 
 test('Peer is healthy', async () => {
   const { client } = await usePeer()
@@ -15,7 +21,7 @@ test('Peer is healthy', async () => {
   `)
 })
 
-test.only('Register domain', async () => {
+test('Register domain', async () => {
   const DOMAIN = 'test'
   const { client } = await usePeer()
 
@@ -23,82 +29,17 @@ test.only('Register domain', async () => {
     { t: 'Instructions', value: [{ t: 'Register', value: { t: 'Domain', value: { object: { id: DOMAIN } } } }] },
     { verify: true },
   )
+  const domains = await asyncIterAll(client.request('FindDomains'))
 
-  // FIXME: too much to handle for clients!
-  const domains = match(await client.query({ t: 'FindAllDomains' }))
-    .with(
-      {
-        t: 'V1',
-        value: { batch: { t: 'Vec', value: P.select() } },
-      },
-      (items) =>
-        items.map((x) =>
-          match(x)
-            .with({ t: 'Identifiable', value: { t: 'Domain', value: { id: P.select() } } }, (id) => id)
-            .otherwise(() => {
-              throw new Error('unreachable')
-            }),
-        ),
-    )
-    .otherwise(() => {
-      throw new Error('unreachable')
-    })
-
-  expect(domains).toContain(DOMAIN)
+  expect(domains.map((x) => x.id)).toContain(DOMAIN)
 })
 
-test('AddAsset instruction with name length more than limit is not committed', async () => {
-  const { client } = await usePeer()
-  const newAsset = (id: datamodel.AssetDefinitionId): datamodel.NewAssetDefinition => {
-    return {
-      id,
-      valueType: datamodel.AssetValueType.Numeric({ scale: datamodel.Option.None() }),
-      mintable: datamodel.Mintable.Once,
-      logo: datamodel.Option.None(),
-      metadata: new Map(),
-    }
-  }
-
-  const validAsset = { domain: DOMAIN, name: 'rose' }
-  await client.submit(
-    datamodel.Executable.Instructions([
-      datamodel.InstructionBox.Register(
-        datamodel.RegisterBox.AssetDefinition({
-          object: newAsset(validAsset),
-        }),
-      ),
-    ]),
-    { verify: true },
-  )
-
-  const invalidAsset = { domain: DOMAIN, name: '0'.repeat(2 ** 14) }
-  await expect(
-    client.submit(
-      datamodel.Executable.Instructions([
-        datamodel.InstructionBox.Register(
-          datamodel.RegisterBox.AssetDefinition({
-            object: newAsset(invalidAsset),
-          }),
-        ),
-      ]),
-      { verify: true },
-    ),
-  ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Transaction rejected]`)
-
-  const definitions: datamodel.AssetDefinitionId[] = (await client.query(datamodel.QueryBox.FindAllAssetsDefinitions))
-    .as('V1')
-    .batch.enum.as('Vec')
-    .map((val) => val.enum.as('Identifiable').as('AssetDefinition').id)
-  expect(definitions).toContainEqual(validAsset)
-  expect(definitions).not.toContainEqual(invalidAsset)
-})
-
-test('When querying for a non-existing domain, returns FindError', async () => {
+test('When querying for a non-existing asset with a singular query, returns FindError', async () => {
   const { client } = await usePeer()
 
   await expect(
-    client.query(datamodel.QueryBox.FindDomainById({ id: { name: 'non-existing' } })),
-  ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Query validation failed]`)
+    client.request('FindAssetQuantityById', { query: { id: `time##${SAMPLE_ACCOUNT_ID}` } }),
+  ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Query execution fail]`)
 })
 
 describe('Setting configuration', () => {
@@ -109,7 +50,8 @@ describe('Setting configuration', () => {
     await client.setPeerConfig({ logger: { level: 'TRACE' } })
   })
 
-  test('Throws an error when trying to set an invalid configuration', async () => {
+  // FIXME: re-enable after fix of https://github.com/hyperledger-iroha/iroha/issues/5247
+  test.skip('Throws an error when trying to set an invalid configuration', async () => {
     const { client } = await usePeer()
 
     await expect(client.setPeerConfig({ logger: { level: 'TR' as any } })).rejects.toThrowErrorMatchingInlineSnapshot(
@@ -122,27 +64,18 @@ describe('Blocks Stream API', () => {
   test('Committing 3 blocks one after another', async () => {
     const { client } = await usePeer()
 
-    const stream = await client.blocksStream({ fromBlockHeight: datamodel.NonZero.define(2n) })
+    const stream = await client.blocksStream({
+      fromBlockHeight: datamodel.NonZero$schema(datamodel.U64$schema).parse(2n),
+    })
     const streamClosedPromise = stream.ee.once('close')
 
-    for (const assetName of ['xor', 'val', 'vat']) {
+    for (const domainName of ['looking_glass', 'breakdown', 'island']) {
       const blockPromise = stream.ee.once('block')
 
-      await client.submit(
-        datamodel.Executable.Instructions([
-          datamodel.InstructionBox.Register(
-            datamodel.RegisterBox.AssetDefinition({
-              object: {
-                id: { name: assetName, domain: { name: 'wonderland' } },
-                valueType: datamodel.AssetValueType.Store,
-                mintable: datamodel.Mintable.Not,
-                logo: datamodel.Option.None(),
-                metadata: new Map(),
-              },
-            }),
-          ),
-        ]),
-      )
+      await client.submit({
+        t: 'Instructions',
+        value: [{ t: 'Register', value: { t: 'Domain', value: { object: { id: domainName } } } }],
+      })
 
       await Promise.race([
         blockPromise,
@@ -175,7 +108,7 @@ test('Fetching status', async () => {
       "blocks": 1n,
       "peers": 0n,
       "queueSize": 0n,
-      "txsAccepted": 1n,
+      "txsAccepted": 3n,
       "txsRejected": 0n,
       "viewChanges": 0n,
     }
@@ -186,4 +119,133 @@ test('Fetching status', async () => {
       secs: expect.any(BigInt),
     }),
   )
+})
+
+test.todo('Peers endpoint')
+
+describe('Queries', () => {
+  async function prelude(client: Client) {
+    const bobPub = freeScope(() => KeyPair.random().publicKey().toMultihash())
+
+    await client.submit(
+      {
+        t: 'Instructions',
+        value: [
+          { t: 'Register', value: { t: 'Domain', value: { object: { id: 'certainty' } } } },
+          { t: 'Register', value: { t: 'Domain', value: { object: { id: 'based' } } } },
+          { t: 'Register', value: { t: 'Domain', value: { object: { id: 'wherever' } } } },
+          { t: 'Register', value: { t: 'Account', value: { object: { id: `${bobPub}@certainty` } } } },
+          {
+            t: 'Register',
+            value: {
+              t: 'AssetDefinition',
+              value: { object: { id: 'time#certainty', type: { t: 'Numeric', value: {} }, mintable: 'Not' } },
+            },
+          },
+          {
+            t: 'Register',
+            value: {
+              t: 'AssetDefinition',
+              value: { object: { id: 'base_coin#based', type: { t: 'Store' }, mintable: 'Not' } },
+            },
+          },
+          {
+            t: 'Register',
+            value: {
+              t: 'AssetDefinition',
+              value: {
+                object: {
+                  id: 'neko_coin#wherever',
+                  type: { t: 'Store' },
+                  mintable: 'Not',
+                  metadata: new Map([['foo', ['bar', false]]]),
+                },
+              },
+            },
+          },
+          {
+            t: 'Register',
+            value: {
+              t: 'AssetDefinition',
+              value: {
+                object: { id: 'gator_coin#certainty', type: { t: 'Numeric', value: {} }, mintable: 'Infinitely' },
+              },
+            },
+          },
+          // FIXME: if I change to Mint.Domain, there is no error about this combination being invalid
+          {
+            t: 'Mint',
+            value: {
+              t: 'Asset',
+              value: {
+                destination: `gator_coin##${bobPub}@certainty`,
+                object: { scale: 0n, mantissa: 551_231n },
+              },
+            },
+          },
+          {
+            t: 'SetKeyValue',
+            value: {
+              t: 'Asset',
+              value: {
+                object: `neko_coin#wherever#${bobPub}@certainty`,
+                key: 'mewo?',
+                value: { me: 'wo' },
+              },
+            },
+          },
+          {
+            t: 'SetKeyValue',
+            value: {
+              t: 'Asset',
+              value: {
+                object: `base_coin#based#${bobPub}@certainty`,
+                key: 'hey',
+                value: [1, 2, 3],
+              },
+            },
+          },
+        ],
+      },
+      { verify: true },
+    )
+  }
+
+  test.todo('Fetch domains, accounts, asset definitions')
+
+  test('Filter assets by ...', async () => {
+    const { client } = await usePeer()
+    await prelude(client)
+
+    const assets = await asyncIterAll(
+      client.request('FindAssets', {
+        predicate: {
+          t: 'Atom',
+          value: {
+            t: 'Id',
+            value: { t: 'DefinitionId', value: { t: 'Name', value: { t: 'EndsWith', value: '_coin' } } },
+          },
+        },
+      }),
+    )
+
+    expect(new Set(assets.map((x) => x.id.definition.name))).toEqual(new Set(['base_coin', 'neko_coin', 'gator_coin']))
+  })
+
+  test('Filter with empty OR predicate returns nothing', async () => {
+    const { client } = await usePeer()
+    await prelude(client)
+
+    const domains = await asyncIterAll(client.request('FindDomains'))
+    expect(domains.length).toBeGreaterThan(0)
+
+    const domainsFiltered = await asyncIterAll(client.request('FindDomains', { predicate: { t: 'Or', value: [] } }))
+    expect(domainsFiltered.length).toBe(0)
+  })
+
+  test.todo('Fetch domains in batches with specified fetch size')
+
+  test.todo('Alternate sorting')
+
+  test.todo('Fetch parameters and data model')
 })

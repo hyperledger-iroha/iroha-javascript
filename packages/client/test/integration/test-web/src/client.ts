@@ -1,4 +1,4 @@
-import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration/src/base'
+import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration'
 
 import { Client } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/native'
@@ -21,6 +21,6 @@ export const client = new Client({
   ws: WS,
   http: fetch.bind(window),
   chain: CHAIN,
-  accountDomain: DOMAIN.name,
+  accountDomain: DOMAIN,
   accountKeyPair: keyPair,
 })

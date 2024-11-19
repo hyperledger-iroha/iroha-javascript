@@ -93,28 +93,41 @@ export async function startPeer(params?: { port?: number }): Promise<StartPeerRe
   const P2P_ADDRESS = '127.0.0.1:1337'
   const TMP_DIR = temporaryDirectory()
   const irohad = await resolveBinary('irohad')
-  const kagami = await resolveBinary('kagami')
+  const kagami = await resolveBinary('iroha_kagami')
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
+
+  const alice = `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`
 
   const RAW_GENESIS = {
     chain: CHAIN,
     executor: EXECUTOR_WASM_PATH,
     instructions: [
       { Register: { Domain: { id: DOMAIN, metadata: {} } } },
-      { Register: { Account: { id: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`, metadata: {} } } },
+      { Register: { Account: { id: alice, metadata: {} } } },
       {
         Transfer: {
           Domain: {
             source: `${GENESIS_KEY_PAIR.publicKey}@genesis`,
             object: DOMAIN,
-            destination: `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`,
+            destination: alice,
           },
         },
       },
       { SetParameter: { Sumeragi: { BlockTimeMs: BLOCK_TIME_MS } } },
       { SetParameter: { Sumeragi: { CommitTimeMs: COMMIT_TIME_MS } } },
+      {
+        Grant: {
+          Permission: {
+            object: { name: 'CanSetParameters', payload: null },
+            destination: alice,
+          },
+        },
+      },
+      { Grant: { Permission: { destination: alice, object: { name: 'CanRegisterDomain', payload: null } } } },
     ],
-    topology: [{ address: P2P_ADDRESS, public_key: PEER_CONFIG_BASE.public_key }],
+    topology: [PEER_CONFIG_BASE.public_key],
+    wasm_dir: 'why the hell do you require wasm_dir at all times?',
+    wasm_triggers: [], // FIXME IROHA I DONT NEED IT STOPP!
   }
 
   await fs.writeFile(path.join(TMP_DIR, 'genesis.json'), JSON.stringify(RAW_GENESIS))
@@ -141,7 +154,7 @@ export async function startPeer(params?: { port?: number }): Promise<StartPeerRe
         genesis: { file: './genesis.scale' },
         kura: { store_dir: './storage' },
         torii: { address: API_ADDRESS },
-        network: { address: P2P_ADDRESS },
+        network: { address: P2P_ADDRESS, public_address: P2P_ADDRESS },
         snapshot: { mode: 'disabled' },
         logger: {
           format: 'json',

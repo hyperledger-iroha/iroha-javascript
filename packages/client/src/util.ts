@@ -73,3 +73,50 @@ export function setupWebSocket<EmitMap extends SocketEmitMapBase>(params: {
 
   return { isClosed, send, close: closeAsync, ee, accepted }
 }
+
+async function* asyncIterFlatten<T>(iter: AsyncIterable<T[]>) {
+  for await (const batch of iter) {
+    for (const i of batch) {
+      yield i
+    }
+  }
+}
+
+/**
+ * A util to get just all items from all batches from an async iterator.
+ */
+export async function asyncIterAll<T>(iter: AsyncIterable<T[]>): Promise<T[]> {
+  // TODO: replace with Array.fromAsync when available
+  const acc: T[] = []
+  for await (const i of asyncIterFlatten(iter)) {
+    acc.push(i)
+  }
+  return acc
+}
+
+/**
+ * A util extracting one and only one item from an async iterator.
+ *
+ * It is an error if the iterator yields more than one item or finishes without yielding anything.
+ */
+export async function asyncIterOne<T>(iter: AsyncIterable<T[]>): Promise<T> {
+  const item = await asyncIterOneOpt(iter)
+  if (!item) throw new Error('expected async iterator to yield exactly one item, but it yielded no items at all')
+  return item.some
+}
+
+/**
+ * A util extracting a single optional element from an async iterator.
+ *
+ * It is an error if the iterator yields more than a single item.
+ */
+export async function asyncIterOneOpt<T>(iter: AsyncIterable<T[]>): Promise<null | { some: T }> {
+  // TODO: maybe simplify with collecting just all
+  let item: null | { some: T } = null
+  for await (const batch of iter) {
+    if (!item && batch.length === 1) item = { some: batch[0] }
+    else if ((item && batch.length) || (!item && batch.length > 1))
+      throw new Error('expected async iterator with batches to yield exactly one item, but it yields more')
+  }
+  return item
+}

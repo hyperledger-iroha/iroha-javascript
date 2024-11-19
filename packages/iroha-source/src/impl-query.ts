@@ -8,10 +8,15 @@ export interface QueryImpl {
   output: string
 }
 
-const RUST_CODE = await fs.readFile(path.join(IROHA_DIR, 'data_model/src/query/mod.rs'), { encoding: 'utf-8' })
+const RUST_CODE = await fs.readFile(path.join(IROHA_DIR, 'crates/iroha_data_model/src/query/mod.rs'), {
+  encoding: 'utf-8',
+})
 
-function parseItems(raw: string) {
-  return raw
+function parseItems(raw: string, reg: RegExp) {
+  const fragment = raw.match(reg)
+  invariant(fragment, () => `failed to match ${reg}. Code: \n\n${raw}`)
+
+  return fragment[1]
     .split('\n')
     .map((x) => x.trim())
     .filter((x) => !!x)
@@ -24,8 +29,8 @@ function parseItems(raw: string) {
 }
 
 export default [
-  ...parseItems(RUST_CODE.match(/^impl_iter_queries! {((?:.|\n)+?)}/m)![1]).map((x) => ({ ...x, t: 'iter' as const })),
-  ...parseItems(RUST_CODE.match(/^impl_singular_queries! {((?:.|\n)+?)}/m)![1]).map((x) => ({
+  ...parseItems(RUST_CODE, /^impl_iter_queries! {((?:.|\n)+?)}/m).map((x) => ({ ...x, t: 'iter' as const })),
+  ...parseItems(RUST_CODE, /^impl_singular_queries! {((?:.|\n)+?)}/m).map((x) => ({
     ...x,
     t: 'singular' as const,
   })),

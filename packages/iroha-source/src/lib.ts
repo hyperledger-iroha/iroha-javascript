@@ -3,9 +3,10 @@ import consola from 'consola'
 import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
+import { match } from 'ts-pattern'
 export { default as QUERY_IMPLS, type QueryImpl } from './impl-query'
 
-export type Binary = 'irohad' | 'kagami' | 'parity_scale_cli'
+export type Binary = 'irohad' | 'iroha_kagami' | 'iroha_codec'
 
 /**
  * Resolves path to the release build of the binary.
@@ -29,8 +30,14 @@ export async function buildBinaries(bin: Binary[]): Promise<void> {
 
 export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'defaults/executor.wasm')
 
-function resolveBinaryPath(bin: string): string {
-  return path.join(IROHA_DIR, `target/release`, bin)
+function resolveBinaryPath(bin: Binary): string {
+  return path.join(
+    IROHA_DIR,
+    `target/release`,
+    match(bin)
+      .with('iroha_kagami', () => 'kagami')
+      .otherwise((x) => x),
+  )
 }
 
 async function runCargoBuild(crates: string[]): Promise<void> {

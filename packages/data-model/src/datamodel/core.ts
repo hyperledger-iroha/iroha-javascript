@@ -1,8 +1,9 @@
 import * as scale from '@scale-codec/core'
 import { z } from 'zod'
-import { type Codec, EnumCodec, codec, enumCodec, lazyCodec } from '../core'
+import { type Codec, EnumCodec, codec, enumCodec, lazyCodec, structCodec } from '../core'
 import type { JsonValue } from 'type-fest'
 import { parseHex } from '../util'
+import * as crypto from '@iroha2/crypto-core'
 
 export type U8 = z.infer<typeof U8$schema>
 
@@ -160,7 +161,7 @@ export const U8Array$schema = (length: number) =>
 export const U8Array$codec = (length: number) =>
   codec(scale.createUint8ArrayEncoder(length), scale.createUint8ArrayDecoder(length))
 
-// TODO docs parse/stringify json lazily when needed
+// TODO document that parse/stringify json lazily when needed
 export class Json<T extends JsonValue = JsonValue> {
   public static fromValue<T extends JsonValue>(value: T): Json<T> {
     return new Json({ some: value }, null)
@@ -319,38 +320,272 @@ export const CompoundPredicate$codec = <Atom>(atom: Codec<Atom>): Codec<Compound
   return self
 }
 
-export function bitmap<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
-  const reprCodec = U32$codec
-  const reprSchema = U32$schema
-  const REPR_MAX = 2 ** 32 - 1
+// Crypto specials
 
-  const toMask = (set: Set<Name>) => {
-    let num = 0
-    for (const i of set) {
-      num |= masks[i]
-    }
-    return reprSchema.parse(num)
+// TODO: make first-class integration with crypto
+
+export function parseMultihashPublicKey(hex: string, ctx: z.RefinementCtx) {
+  let key: crypto.PublicKey
+  try {
+    key = crypto.PublicKey.fromMultihash(hex)
+  } catch (err) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Failed to parse PublicKey from a multihash hex: ${err}\n\n invalid input: "${hex}"`,
+    })
+    return z.NEVER
   }
-
-  const masksArray = (Object.entries(masks) as [Name, number][]).map(([k, v]) => ({ key: k, value: v }))
-  const fromMask = (bitmask: U32): Set<Name> => {
-    const set = new Set<Name>()
-    let bitmaskMut: number = bitmask
-    for (const mask of masksArray) {
-      if ((mask.value & bitmaskMut) !== mask.value) continue
-      set.add(mask.key)
-
-      let maskEffectiveBits = 0
-      for (let i = mask.value; i > 0; i >>= 1, maskEffectiveBits++);
-
-      const fullNotMask = ((REPR_MAX >> maskEffectiveBits) << maskEffectiveBits) | ~mask.value
-      bitmaskMut &= fullNotMask
-    }
-    if (bitmaskMut !== 0) {
-      throw new Error(`Bitmask contains unknown flags: 0b${bitmaskMut.toString(2)}`)
-    }
-    return set
-  }
-
-  return reprCodec.wrap(toMask, fromMask)
+  const result = { algorithm: key.algorithm, payload: key.payload() }
+  key.free()
+  return result
 }
+
+export type Algorithm = z.infer<typeof Algorithm$schema>
+export const Algorithm = (input: z.input<typeof Algorithm$schema>): Algorithm => Algorithm$schema.parse(input)
+export const Algorithm$schema = z.union([
+  z.literal('ed25519'),
+  z.literal('secp256k1'),
+  z.literal('bls_normal'),
+  z.literal('bls_small'),
+])
+export const Algorithm$codec: Codec<Algorithm> = enumCodec<{
+  ed25519: []
+  secp256k1: []
+  bls_normal: []
+  bls_small: []
+}>([
+  [0, 'ed25519'],
+  [1, 'secp256k1'],
+  [2, 'bls_normal'],
+  [3, 'bls_small'],
+]).literalUnion()
+
+export type Hash = Uint8Array
+
+export const Hash$schema = z
+  .instanceof(crypto.Hash)
+  .transform((x) => x.payload())
+  .or(U8Array$schema(32).or(hex$schema))
+
+export const Hash$codec = U8Array$codec(32)
+
+// export class PublicKey {
+//   public readonly algorithm
+// }
+export class PublicKey {
+  public readonly algorithm: Algorithm
+  public readonly payload: BytesVec
+
+  public constructor(algorithm: Algorithm, payload: BytesVec) {
+    this.algorithm = algorithm
+    this.payload = payload
+  }
+
+  public toMultihash() {
+    return crypto.freeScope(() =>
+      crypto.PublicKey.fromRaw(this.algorithm, crypto.Bytes.array(this.payload)).toMultihash(),
+    )
+  }
+
+  public toJSON() {
+    return this.toMultihash
+  }
+}
+
+const pubKeyObj = z
+  .object({ algorithm: Algorithm$schema, payload: BytesVec$schema })
+  .transform((x) => new PublicKey(x.algorithm, x.payload))
+export const PublicKey$schema = pubKeyObj
+  .or(z.string().transform(parseMultihashPublicKey).pipe(pubKeyObj))
+  .or(z.instanceof(crypto.PublicKey).transform((x) => new PublicKey(x.algorithm, x.payload())))
+
+export const PublicKey$codec = structCodec<PublicKey>([
+  ['algorithm', lazyCodec(() => Algorithm$codec)],
+  ['payload', BytesVec$codec],
+])
+
+export type Signature = z.infer<typeof Signature$schema>
+export const Signature$schema = BytesVec$schema.or(
+  z
+    .instanceof(crypto.Signature)
+    .transform((x) => x.payload())
+    .pipe(BytesVec$schema),
+).brand<'Signature'>()
+export const Signature$codec = BytesVec$codec as Codec<Signature>
+
+// higher-level types for IDs
+
+function parseAccountId(str: string, ctx: z.RefinementCtx) {
+  const parts = str.split('@')
+  if (parts.length !== 2) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'account id should have format `signatory@domain`' })
+    return z.NEVER
+  }
+  const [signatory, domain] = parts
+  return { signatory, domain }
+}
+
+function parseAssetDefinitionId(str: string, ctx: z.RefinementCtx) {
+  const parts = str.split('#')
+  if (parts.length !== 2) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'asset definition id should have format `name#domain`' })
+    return z.NEVER
+  }
+  const [name, domain] = parts
+  return { name, domain }
+}
+
+/**
+ * Parses either `asset##account@domain` or `asset#domain1#account@domain2`
+ */
+function parseAssetId(str: string, ctx: z.RefinementCtx) {
+  const match = str.match(/^(.+)#(.+)?#(.+)@(.+)$/)
+  if (!match) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        'asset id should have format `asset#asset_domain#account@account_domain` ' +
+        'or `asset##account@domain` (when asset & account domain are the same)',
+    })
+    return z.NEVER
+  }
+  const [, asset, domain1, account, domain2] = match
+  // TODO
+  return {
+    account: { signatory: account, domain: domain2 },
+    definition: { domain: domain1 ?? domain2, name: asset },
+  }
+}
+
+export type DomainId = z.infer<typeof DomainId$schema>
+export const DomainId = (input: z.input<typeof DomainId$schema>): DomainId => DomainId$schema.parse(input)
+export const DomainId$schema = Name$schema.brand<'DomainId'>()
+export const DomainId$codec = Name$codec as Codec<DomainId>
+
+export class AccountId {
+  public static parse(raw: z.input<typeof AccountId$schema>): AccountId {
+    return AccountId$schema.parse(raw)
+  }
+
+  public readonly signatory: PublicKey
+  public readonly domain: DomainId
+
+  public constructor(signatory: PublicKey, domain: DomainId) {
+    this.signatory = signatory
+    this.domain = domain
+  }
+
+  public toJSON() {
+    // const multihash = freeScope(() => crypto.PublicKey.fromRaw(this.signatory.))
+    return `${this.signatory.toMultihash()}@${this.domain}`
+  }
+
+  // public toString(): string {}
+}
+
+const accountIdObject = z
+  .object({
+    signatory: PublicKey$schema,
+    domain: DomainId$schema,
+  })
+  .transform(({ signatory, domain }) => new AccountId(signatory, domain))
+
+export const AccountId$schema = accountIdObject.or(
+  z
+    .string()
+    .transform((str, ctx) => parseAccountId(str, ctx))
+    .pipe(accountIdObject),
+)
+
+export const AccountId$codec = structCodec<{ signatory: PublicKey; domain: DomainId }>([
+  ['domain', DomainId$codec],
+  ['signatory', PublicKey$codec],
+]).wrap<AccountId>(
+  (higher) => higher,
+  (lower) => new AccountId(lower.signatory, lower.domain),
+)
+
+export class AssetDefinitionId {
+  public static parse(input: z.input<typeof AssetDefinitionId$schema>): AssetDefinitionId {
+    return AssetDefinitionId$schema.parse(input)
+  }
+
+  public readonly name: Name
+  public readonly domain: DomainId
+
+  public constructor(name: Name, domain: DomainId) {
+    this.name = name
+    this.domain = domain
+  }
+
+  // public toString(): string {}
+}
+
+const assetDefinitionObject = z
+  .object({
+    name: Name$schema,
+    domain: DomainId$schema,
+  })
+  .transform(({ name, domain }) => new AssetDefinitionId(name, domain))
+
+export const AssetDefinitionId$schema = assetDefinitionObject.or(
+  z
+    .string()
+    .transform((str, ctx) => parseAssetDefinitionId(str, ctx))
+    .pipe(assetDefinitionObject),
+)
+
+export const AssetDefinitionId$codec = structCodec<{ name: Name; domain: DomainId }>([
+  ['domain', DomainId$codec],
+  ['name', Name$codec],
+]).wrap<AssetDefinitionId>(
+  (higher) => higher,
+  (lower) => new AssetDefinitionId(lower.name, lower.domain),
+)
+
+export class AssetId {
+  // /**
+  //  * Parses a stringified ID in a form of either
+  //  *
+  //  * - `asset#domain#account@domain`
+  //  * - `asset##account@domain`
+  //  */
+  // public static parse(id: string): {
+  //   return
+  // }
+
+  public readonly account: AccountId
+  public readonly definition: AssetDefinitionId
+
+  public constructor(account: AccountId, definition: AssetDefinitionId) {
+    this.account = account
+    this.definition = definition
+  }
+
+  // /**
+  //  * Produce a stringified ID, see {@link parse}.
+  //  */
+  // public toString(): string {}
+}
+
+const assetIdObject = z
+  .object({
+    account: AccountId$schema,
+    definition: AssetDefinitionId$schema,
+  })
+  .transform((lower) => new AssetId(lower.account, lower.definition))
+
+export const AssetId$schema = assetIdObject.or(
+  z
+    .string()
+    .transform((str, ctx) => parseAssetId(str, ctx))
+    .pipe(assetIdObject),
+)
+
+export const AssetId$codec = structCodec<{ account: AccountId; definition: AssetDefinitionId }>([
+  ['account', AccountId$codec],
+  ['definition', AssetDefinitionId$codec],
+]).wrap<AssetId>(
+  (higher) => higher,
+  (lower) => new AssetId(lower.account, lower.definition),
+)

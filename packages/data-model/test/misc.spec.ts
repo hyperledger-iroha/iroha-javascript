@@ -5,25 +5,15 @@ import type { z } from 'zod'
 import { parseHex } from '../src/util'
 import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util'
 
-describe('Validation', () => {
-  test('Ipv4', () => {
-    expect(() => datamodel.Ipv4Addr([-1, 0, 0, 1])).toThrowErrorMatchingInlineSnapshot(`
-        [ZodError: [
-          {
-            "code": "too_small",
-            "minimum": 0,
-            "type": "number",
-            "inclusive": true,
-            "exact": false,
-            "message": "Number must be greater than or equal to 0",
-            "path": [
-              0
-            ]
-          }
-        ]]
-      `)
+describe('JSON serialisation', () => {
+  test('AccountId', () => {
+    expect(
+      datamodel.AccountId.parse('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
+    ).toMatchInlineSnapshot(`"ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland"`)
   })
+})
 
+describe('Validation', () => {
   test('Empty JSON string', () => {
     expect(() => datamodel.Json.fromJsonString('')).toThrowErrorMatchingInlineSnapshot(
       `[Error: JSON string cannot be empty]`,
@@ -36,74 +26,35 @@ describe('Validation', () => {
 })
 
 test('Parse AssetId with different domains', () => {
-  expect(
-    datamodel.AssetId('rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
-  ).toMatchInlineSnapshot(`
-      {
-        "account": {
-          "domain": "badland",
-          "signatory": {
-            "algorithm": "ed25519",
-            "payload": Uint8Array [
-              178,
-              62,
-              20,
-              246,
-              89,
-              185,
-              23,
-              54,
-              170,
-              185,
-              128,
-              182,
-              173,
-              220,
-              228,
-              177,
-              219,
-              138,
-              19,
-              138,
-              176,
-              38,
-              126,
-              4,
-              156,
-              8,
-              42,
-              116,
-              68,
-              113,
-              113,
-              78,
-            ],
-          },
-        },
-        "definition": {
-          "domain": "wonderland",
-          "name": "rose",
-        },
-      }
-    `)
+  const parsed = datamodel.AssetId$schema.parse(
+    'rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+  )
+
+  expect(parsed.definition.name).toEqual('rose')
+  expect(parsed.definition.domain).toEqual('wonderland')
+  expect(parsed.account.signatory.algorithm).toEqual('ed25519')
+  expect(toHex(parsed.account.signatory.payload)).toEqual(
+    'b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e',
+  )
+  expect(parsed.account.domain).toEqual('badland')
 })
 
 test('Fails to parse invalid account id with bad signatory', () => {
-  expect(() => datamodel.AccountId('test@test')).toThrowErrorMatchingInlineSnapshot(`
-      [ZodError: [
-        {
-          "code": "custom",
-          "message": "Failed to parse PublicKey from a multihash hex: Error: Invalid character 't' at position 0\\n\\n invalid input: \\"test\\"",
-          "path": [
-            "signatory"
-          ]
-        }
-      ]]
-    `)
+  expect(() => datamodel.AccountId$schema.parse('test@test')).toThrowErrorMatchingInlineSnapshot(`
+    [ZodError: [
+      {
+        "code": "custom",
+        "message": "Failed to parse PublicKey from a multihash hex: Error: Invalid character 't' at position 0\\n\\n invalid input: \\"test\\"",
+        "path": [
+          "signatory"
+        ]
+      }
+    ]]
+  `)
 })
 
 test('Fails to parse account id with multiple @', () => {
-  expect(() => datamodel.AccountId('a@b@c')).toThrowErrorMatchingInlineSnapshot(`
+  expect(() => datamodel.AccountId$schema.parse('a@b@c')).toThrowErrorMatchingInlineSnapshot(`
       [ZodError: [
         {
           "code": "custom",
@@ -177,7 +128,7 @@ test.each([
     payload: Uint8Array.from(parseHex('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')),
   },
 ] satisfies z.input<typeof datamodel.PublicKey$schema>[])('Parse public key from %o', (input) => {
-  const value = datamodel.PublicKey(input)
+  const value = datamodel.PublicKey$schema.parse(input)
   expect(value.algorithm).toEqual('ed25519')
   expect(toHex(value.payload)).toEqual('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'.toLowerCase())
 })

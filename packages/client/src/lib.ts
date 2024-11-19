@@ -12,7 +12,7 @@
 import type { KeyPair } from '@iroha2/crypto-core'
 import { freeScope } from '@iroha2/crypto-core'
 import { datamodel, signTransaction, transactionHash } from '@iroha2/data-model'
-import type { Except } from 'type-fest'
+import type { Except, RequiredKeysOf } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'
 import { setupBlocksStream } from './blocks-stream'
 import {
@@ -28,7 +28,7 @@ import { setupEvents } from './events'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types'
 import defer from 'p-defer'
 import type { z } from 'zod'
-import { doQuery, type QueryOutput, type QueryPayload } from './query'
+import { type QueryOutput, type QueryPayload, doRequest } from './query'
 
 type Fetch = typeof fetch
 
@@ -108,7 +108,7 @@ export class Client {
 
   public accountId(): datamodel.AccountId {
     return freeScope(() =>
-      datamodel.AccountId({
+      datamodel.AccountId.parse({
         domain: this.params.accountDomain,
         signatory: this.params.accountKeyPair.publicKey(),
       }),
@@ -177,15 +177,49 @@ export class Client {
     }
   }
 
-  public query<
+  // TODO: split to `query` and `querySingle`, make simpler types
+  /**
+   * Request data from Iroha using Query API.
+   *
+   * There are two kinds of queries Iroha supports:
+   *
+   * - **Iterable** queries: they allow iterating over some data (e.g. accounts or domains) with features like pagination,
+   *   filtering, and sorting. They also allow fetching batches of data lazily by specifying a certain `fetchSize`.
+   *   In JavaScript, iterable queries are wrapped into {@link AsyncGenerator}.
+   * - **Singular** queries: they are usually in the form of "find me this particular non-iterable item of data" and return a single
+   *   result.
+   *
+   * This function combines both and relies on conditional types. Depending on a specific query, it tells TypeScript
+   * what parameters are required/allowed, and what is the output of the query.
+   *
+   * Examples:
+   *
+   * ```ts
+   * declare const client: Client
+   *
+   * // async stream of batches of domains
+   * for await (const domains of client.request('FindDomains')) {
+   *   console.log('batch of domains:', domains)
+   * }
+   *
+   * // TODO: more examples
+   * ```
+   *
+   * To simplify work with async generators, consider using these utils:
+   * - {@link import('./query.ts').asyncIterAll}
+   * - {@link import('./query.ts').asyncIterOne}
+   * - {@link import('./query.ts').asyncIterOneOpt}
+   *
+   * This function is a shortcut to {@link doRequest} with an addition of data stored in the client, i.e. {@link import('./query.ts').RequestBaseParams}.
+   */
+  public request<
     Q extends keyof datamodel.QueryOutputMap | keyof datamodel.SingularQueryOutputMap,
     P extends QueryPayload<Q>,
-  >(query: Q, params: P): QueryOutput<Q> {
-    return doQuery(query, {
-      ...params,
+  >(...args: RequiredKeysOf<P> extends never ? [query: Q, params?: P] : [query: Q, params: P]): QueryOutput<Q> {
+    return doRequest(args[0], {
+      ...args[1],
       authority: this.accountId(),
-      // FIXME
-      authorityPrivateKey: this.params.accountKeyPair.privateKey(),
+      authorityPrivateKey: () => this.params.accountKeyPair.privateKey(),
       toriiURL: this.params.toriiURL,
     } /* FIXME */ as any)
   }
@@ -242,7 +276,7 @@ export async function getHealth({ http, toriiURL }: ToriiHttpParams): Promise<He
     return { t: 'err', err }
   }
 
-  ResponseError.assertStatus(response, 200)
+  await ResponseError.assertStatus(response, 200)
 
   const text = await response.text()
   if (text !== HEALTHY_RESPONSE) {
@@ -283,6 +317,10 @@ export async function submitTransaction({ http, toriiURL }: ToriiHttpParams, tx:
   await ResponseError.assertStatus(response, 200)
 }
 
+export * from './query'
 export * from './events'
 export * from './blocks-stream'
 export * from './web-socket/types'
+export { asyncIterOneOpt } from './util'
+export { asyncIterOne } from './util'
+export { asyncIterAll } from './util'

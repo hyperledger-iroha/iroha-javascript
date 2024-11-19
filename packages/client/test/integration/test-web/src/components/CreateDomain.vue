@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { datamodel } from '@iroha2/data-model'
 import { useTask } from '@vue-kakuyaku/core'
 import { client } from '../client'
 
@@ -8,13 +7,10 @@ const domainName = ref('')
 
 const { state, run: registerDomain } = useTask(() =>
   client.submit(
-    datamodel.Executable.Instructions([
-      datamodel.InstructionBox.Register(
-        datamodel.RegisterBox.Domain({
-          object: { id: { name: domainName.value }, logo: datamodel.Option.None(), metadata: new Map() },
-        }),
-      ),
-    ]),
+    {
+      t: 'Instructions',
+      value: [{ t: 'Register', value: { t: 'Domain', value: { object: { id: domainName.value } } } }],
+    },
     { verify: true },
   ),
 )

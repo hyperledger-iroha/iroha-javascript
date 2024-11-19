@@ -13,7 +13,7 @@ task('clean', async () => {
 })
 
 desc('Necessary preparations before most of the tasks')
-task('prepare', async () => {
+task('build-iroha-binaries', async () => {
   await $`pnpm --filter iroha-source build-all-binaries`
 })
 
@@ -61,7 +61,7 @@ namespace('crypto-wasm', () => {
 
 namespace('build', () => {
   desc('Build TypeScript of the whole project and put corresponding artifacts near the packages')
-  task('tsc', ['clean', 'prepare'], async () => {
+  task('tsc', ['clean'], async () => {
     await $`pnpm tsc`
 
     for (const pkg of PACKAGES_TO_BUILD_WITH_TSC) {
@@ -82,7 +82,7 @@ namespace('build', () => {
 })
 
 namespace('test', () => {
-  task('unit', ['prepare'], async () => {
+  task('unit', ['build-iroha-binaries'], async () => {
     await $`pnpm vitest run`
   })
 
@@ -90,7 +90,7 @@ namespace('test', () => {
     await $`pnpm --filter monorepo-crypto test:integration`
   })
 
-  task('prepare-client-integration', ['build:all'])
+  task('prepare-client-integration', ['build-iroha-binaries', 'build:all'])
 
   task('client-integration', ['prepare-client-integration'], async () => {
     await $`pnpm --filter client test:integration`

@@ -40,11 +40,16 @@ function extractQueryOutput(query: string, response: datamodel.QueryResponse) {
   if (query in datamodel.QueryOutputKindMap) {
     const outputKind = datamodel.QueryOutputKindMap[query as keyof datamodel.QueryOutputMap]
     if (response.t === 'Iterable' && response.value.batch.t === outputKind) return response.value.batch.value
-    // throw good error
+    // TODO throw good error
     throw new Error('unimplemented')
   }
-  // todo do the same for singular
-  throw new Error('unimplemented')
+  if (query in datamodel.SingularQueryOutputKindMap) {
+    const outputKind = datamodel.SingularQueryOutputKindMap[query as keyof datamodel.SingularQueryOutputMap]
+    if (response.t === 'Singular' && response.value.t === outputKind) return response.value.value
+    // TODO throw good error
+    throw new Error('unimplemented')
+  }
+  throw new Error(`invalid query: ${query}`) // TODO list supported ones
 }
 
 export { extractQueryOutput }
@@ -67,7 +72,7 @@ export function signQuery(
     t: 'V1',
     value: {
       payload,
-      signature: datamodel.Signature(signature),
+      signature: datamodel.Signature$schema.parse(signature),
     },
   }
 }
@@ -83,8 +88,14 @@ export function signTransaction(
       t: 'V1',
       value: {
         payload,
-        signature: datamodel.Signature(signature),
+        signature: datamodel.Signature$schema.parse(signature),
       },
     }
   })
+}
+
+// TODO test
+export function blockHash(header: datamodel.BlockHeader): crypto.Hash {
+  const encoded = datamodel.BlockHeader$codec.encode(header)
+  return crypto.Hash.hash(crypto.Bytes.array(encoded))
 }

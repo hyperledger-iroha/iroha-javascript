@@ -1,6 +1,8 @@
 import * as scale from '@scale-codec/core'
 import type { z } from 'zod'
 import { parseHex } from './util'
+import type { U32 } from './datamodel/index'
+import { U32$codec, U32$schema } from './datamodel/index'
 
 export interface RawScaleCodec<T> {
   encode: scale.Encode<T>
@@ -133,7 +135,6 @@ export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
   return codec(scale.createStructEncoder(encoders), scale.createStructDecoder(decoders))
 }
 
-
 const thisCodecShouldNeverBeCalled = () => {
   throw new Error('This value could never be encoded')
 }
@@ -143,3 +144,39 @@ export const neverCodec: Codec<never> = new Codec(
 )
 
 export const nullCodec: Codec<null> = new Codec(scale.encodeUnit, scale.decodeUnit)
+
+export function bitmap<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
+  const reprCodec = U32$codec
+  const reprSchema = U32$schema
+  const REPR_MAX = 2 ** 32 - 1
+
+  const toMask = (set: Set<Name>) => {
+    let num = 0
+    for (const i of set) {
+      num |= masks[i]
+    }
+    return reprSchema.parse(num)
+  }
+
+  const masksArray = (Object.entries(masks) as [Name, number][]).map(([k, v]) => ({ key: k, value: v }))
+  const fromMask = (bitmask: U32): Set<Name> => {
+    const set = new Set<Name>()
+    let bitmaskMut: number = bitmask
+    for (const mask of masksArray) {
+      if ((mask.value & bitmaskMut) !== mask.value) continue
+      set.add(mask.key)
+
+      let maskEffectiveBits = 0
+      for (let i = mask.value; i > 0; i >>= 1, maskEffectiveBits++);
+
+      const fullNotMask = ((REPR_MAX >> maskEffectiveBits) << maskEffectiveBits) | ~mask.value
+      bitmaskMut &= fullNotMask
+    }
+    if (bitmaskMut !== 0) {
+      throw new Error(`Bitmask contains unknown flags: 0b${bitmaskMut.toString(2)}`)
+    }
+    return set
+  }
+
+  return reprCodec.wrap(toMask, fromMask)
+}

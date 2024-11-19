@@ -2,10 +2,10 @@
 import { computed, onBeforeUnmount, shallowReactive, shallowRef } from 'vue'
 import type { SetupEventsReturn } from '@iroha2/client'
 import { datamodel } from '@iroha2/data-model'
-import { match } from 'ts-pattern'
+import { P, match } from 'ts-pattern'
 import { client } from '../client'
 
-function bytesToHex(bytes: number[]): string {
+function bytesToHex(bytes: Pick<Array<number>, 'map'>): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
@@ -16,35 +16,26 @@ const isListening = computed(() => !!currentListener.value)
 async function startListening() {
   currentListener.value = await client.eventsStream({
     filters: [
-      datamodel.EventFilterBox.Pipeline(
-        datamodel.PipelineEventFilterBox.Block({
-          height: datamodel.Option.None(),
-          status: datamodel.Option.None(),
-        }),
-      ),
-      datamodel.EventFilterBox.Pipeline(
-        datamodel.PipelineEventFilterBox.Transaction({
-          hash: datamodel.Option.None(),
-          blockHeight: datamodel.Option.None(),
-          status: datamodel.Option.None(),
-        }),
-      ),
+      datamodel.EventFilterBox({ t: 'Pipeline', value: { t: 'Block', value: {} } }),
+      datamodel.EventFilterBox({ t: 'Pipeline', value: { t: 'Transaction', value: {} } }),
     ],
   })
 
   currentListener.value.ee.on('event', (event) => {
     events.push(
-      match(event.as('Pipeline'))
+      match(event)
         .returnType<string>()
         .with(
-          { tag: 'Block' },
-          ({ content: { status, hash } }) => `Block (${bytesToHex(hash.slice(0, 5))}...): ${status.tag}`,
+          { t: 'Pipeline', value: { t: 'Block', value: P.select() } },
+          ({ status, header }) => `Block (height=${header.height}): ${status.t}`,
         )
         .with(
-          { tag: 'Transaction' },
-          ({ content: { hash, status } }) => `Transaction (${bytesToHex(hash.slice(0, 5))}...): ${status.tag}`,
+          { t: 'Pipeline', value: { t: 'Transaction', value: P.select() } },
+          ({ hash, status }) => `Transaction (${bytesToHex([...hash.slice(0, 5)])}...): ${status.t}`,
         )
-        .exhaustive(),
+        .otherwise(({ t }) => {
+          throw new Error(`This should not appear with given filters: ${t}`)
+        }),
     )
   })
 }
