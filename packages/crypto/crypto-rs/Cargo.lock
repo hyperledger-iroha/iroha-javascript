@@ -456,6 +456,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "drop_bomb"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bda8e21c04aca2ae33ffc2fd8c23134f3cac46db123ba97bd9d3f3b8a4a85e1"
+
+[[package]]
 name = "ecdsa"
 version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -728,6 +734,7 @@ name = "iroha_derive"
 version = "2.0.0-rc.1.0"
 dependencies = [
  "darling",
+ "iroha_macro_utils",
  "manyhow",
  "proc-macro2",
  "quote",
@@ -739,6 +746,18 @@ name = "iroha_macro"
 version = "2.0.0-rc.1.0"
 dependencies = [
  "iroha_derive",
+]
+
+[[package]]
+name = "iroha_macro_utils"
+version = "2.0.0-rc.1.0"
+dependencies = [
+ "darling",
+ "drop_bomb",
+ "manyhow",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.76",
 ]
 
 [[package]]
@@ -796,6 +815,7 @@ name = "iroha_schema_derive"
 version = "2.0.0-rc.1.0"
 dependencies = [
  "darling",
+ "iroha_macro_utils",
  "manyhow",
  "proc-macro2",
  "quote",

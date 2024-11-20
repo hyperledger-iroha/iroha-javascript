@@ -1,6 +1,6 @@
 /* eslint-disable max-nested-callbacks,no-new */
-import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { FREE_HEAP, FreeGuard, FreeScope, freeScope } from './free'
+import { describe, expect, test, vi } from 'vitest'
+import { FreeGuard, FreeScope, freeScope } from './free'
 
 function dummyFree() {
   return {
@@ -18,18 +18,7 @@ function dummyAccessor() {
 }
 
 describe('Test `.free()` utilities', () => {
-  beforeEach(() => {
-    FREE_HEAP.forEach((a) => a.free())
-    FREE_HEAP.clear()
-  })
-
   describe('when FreeGuard is created', () => {
-    test('then it is added to the heap', () => {
-      const guard = new FreeGuard(dummyFree())
-
-      expect(FREE_HEAP.has(guard)).toBe(true)
-    })
-
     test('within a scope, then it is freed with the scope', () => {
       const dummy = dummyFree()
 
@@ -50,25 +39,9 @@ describe('Test `.free()` utilities', () => {
 
       expect(dummy.free).toBeCalled()
     })
-
-    test('then it is deleted from the heap', () => {
-      const guard = new FreeGuard(dummyFree())
-
-      guard.free()
-
-      expect(FREE_HEAP.has(guard)).toBe(false)
-    })
   })
 
   describe('when FreeGuard is forgotten by itself', () => {
-    test('then it is deleted from the heap', () => {
-      const guard = new FreeGuard(dummyFree())
-
-      guard.forget()
-
-      expect(FREE_HEAP.has(guard)).toBe(false)
-    })
-
     test('then the underlying object is not freed', () => {
       const dummy = dummyFree()
       const guard = new FreeGuard(dummy)
@@ -148,10 +121,6 @@ describe('Test `.free()` utilities', () => {
     })
 
     expect(guard.object.free).not.toBeCalled()
-
-    guard.free()
-
-    expect(FREE_HEAP.size).toBe(0)
   })
 
   describe('Accessing inner track object', () => {
@@ -179,28 +148,30 @@ describe('Test `.free()` utilities', () => {
   })
 
   test('When an object is forgotten in the nested scope, it is tracked by the parent ones', () => {
+    const target = dummyFree()
+
     freeScope(() => {
       freeScope((scope) => {
-        const guard = new FreeGuard(dummyFree())
+        const guard = new FreeGuard(target)
         scope.forget(guard)
       })
-
-      expect(FREE_HEAP.size).toBe(1)
     })
 
-    expect(FREE_HEAP.size).toBe(0)
+    expect(target.free).toBeCalled()
   })
 
   test('When an object is forgotten and not adopted in the nested scope, it is not tracked by the parent ones', () => {
+    const target = dummyFree()
+
     freeScope(() =>
       freeScope(() =>
         freeScope((scope) => {
-          const guard = new FreeGuard(dummyFree())
+          const guard = new FreeGuard(target)
           scope.forget(guard, { adopt: false })
         }),
       ),
     )
 
-    expect(FREE_HEAP.size).toBe(1)
+    expect(target.free).not.toBeCalled()
   })
 })

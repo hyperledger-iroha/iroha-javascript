@@ -1,5 +1,4 @@
 import type { PrivateKey } from '@iroha2/crypto-core'
-import { freeScope } from '@iroha2/crypto-core'
 import { datamodel, extractQueryOutput, signQuery } from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
 import type { SetOptional } from 'type-fest'
@@ -75,7 +74,7 @@ export function doRequest<
 }
 
 function signQueryRequest(request: datamodel.QueryRequest, params: RequestBaseParams) {
-  return freeScope(() => signQuery({ authority: params.authority, request }, params.authorityPrivateKey()))
+  return signQuery({ authority: params.authority, request }, params.authorityPrivateKey())
 }
 
 async function* queryIterStream(

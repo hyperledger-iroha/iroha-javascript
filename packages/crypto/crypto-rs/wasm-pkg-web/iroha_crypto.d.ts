@@ -236,6 +236,7 @@ export interface InitOutput {
   readonly publickey_from_bytes: (a: number, b: number, c: number) => void;
   readonly publickey_from_private_key: (a: number) => number;
   readonly publickey_to_multihash_hex: (a: number, b: number) => void;
+  readonly publickey_algorithm: (a: number) => number;
   readonly publickey_payload: (a: number, b: number) => void;
   readonly publickey_payload_hex: (a: number, b: number) => void;
   readonly __wbg_privatekey_free: (a: number) => void;
@@ -259,7 +260,6 @@ export interface InitOutput {
   readonly signature_verify: (a: number, b: number, c: number, d: number) => void;
   readonly signature_payload: (a: number, b: number) => void;
   readonly signature_payload_hex: (a: number, b: number) => void;
-  readonly publickey_algorithm: (a: number) => number;
   readonly main_js: () => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

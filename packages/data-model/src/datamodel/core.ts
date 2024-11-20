@@ -383,7 +383,7 @@ export class PublicKey {
 
   public toMultihash() {
     return crypto.freeScope(() =>
-      crypto.PublicKey.fromRaw(this.algorithm, crypto.Bytes.array(this.payload)).toMultihash(),
+      crypto.PublicKey.fromBytes(this.algorithm, crypto.Bytes.array(this.payload)).toMultihash(),
     )
   }
 

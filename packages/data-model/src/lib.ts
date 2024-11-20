@@ -81,17 +81,15 @@ export function signTransaction(
   payload: datamodel.TransactionPayload,
   privateKey: crypto.PrivateKey,
 ): datamodel.SignedTransaction {
-  return crypto.freeScope(() => {
-    const payloadBytes = datamodel.TransactionPayload$codec.encode(payload)
-    const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).payload()))
-    return {
-      t: 'V1',
-      value: {
-        payload,
-        signature: datamodel.Signature$schema.parse(signature),
-      },
-    }
-  })
+  const payloadBytes = datamodel.TransactionPayload$codec.encode(payload)
+  const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).payload()))
+  return {
+    t: 'V1',
+    value: {
+      payload,
+      signature: datamodel.Signature$schema.parse(signature),
+    },
+  }
 }
 
 // TODO test

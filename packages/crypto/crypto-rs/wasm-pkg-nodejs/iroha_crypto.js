@@ -709,7 +709,7 @@ class PublicKey {
     * @returns {Algorithm}
     */
     get algorithm() {
-        const ret = wasm.privatekey_algorithm(this.__wbg_ptr);
+        const ret = wasm.publickey_algorithm(this.__wbg_ptr);
         return takeObject(ret);
     }
     /**

@@ -4,12 +4,8 @@ import { datamodel } from '@iroha2/data-model'
 import { describe, expect, test } from 'vitest'
 import { usePeer } from './util'
 import { KeyPair } from '@iroha2/crypto-core'
-import { freeScope } from '@iroha2/crypto-core'
 
-export const SAMPLE_ACCOUNT_ID = freeScope(() => {
-  const kp = KeyPair.random()
-  return `${kp.publicKey().toMultihash()}@badland`
-})
+export const SAMPLE_ACCOUNT_ID = `${KeyPair.random().publicKey().toMultihash()}@badland`
 
 test('Peer is healthy', async () => {
   const { client } = await usePeer()
@@ -125,7 +121,7 @@ test.todo('Peers endpoint')
 
 describe('Queries', () => {
   async function prelude(client: Client) {
-    const bobPub = freeScope(() => KeyPair.random().publicKey().toMultihash())
+    const bobPub = KeyPair.random().publicKey().toMultihash()
 
     await client.submit(
       {

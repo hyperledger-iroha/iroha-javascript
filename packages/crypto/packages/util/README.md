@@ -26,11 +26,10 @@ interface Free {
 
 - gives access to the inner object
 - throws a friendly error when the object is freed (more friendly than a Rust panic in WASM)
-- tracks itself in the global [`FREE_HEAP`](#inspect-active-guards-in-freeheap)
 - attaches itself to the current [scope](#scope-guards) if there is any
 
 ```ts
-import { FreeGuard, freeScope, FREE_HEAP, Free } from '@iroha2/crypto-util'
+import { FreeGuard, freeScope, Free } from '@iroha2/crypto-util'
 
 declare const wasmObject: Free & { do_stuff: () => void }
 
@@ -42,7 +41,7 @@ guard.object.do_stuff()
 
 // call `.free()` on the guard to:
 // - call `.free()` on the guarded object itself, i.e. `guard.object.free()`
-// - clear tracks, i.e. remove the guard from `FREE_HEAP` and from the scope (if there is any)
+// - clear tracks, i.e. remove the guard from the scope (if there is any)
 // - empty the guard, i.e. remove the guarded object and make it unusable
 //   so that it could no longer be accessed with `guard.object`
 guard.free()
@@ -97,17 +96,4 @@ scope.track(bar)
 
 // free every tracked object
 scope.free()
-```
-
-#### Inspect active guards in `FREE_HEAP`
-
-All `FreeGuard`s are automatically added into the global const `FREE_HEAP` set. You can inspect it in order to detect what you forgot to free:
-
-```ts
-import { FREE_HEAP } from '@iroha2/crypto-util'
-
-for (const guard of FREE_HEAP) {
-  console.log('Ooops:', { guard })
-  guard.free()
-}
 ```

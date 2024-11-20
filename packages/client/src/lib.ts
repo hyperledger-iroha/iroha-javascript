@@ -10,7 +10,6 @@
  */
 
 import type { KeyPair } from '@iroha2/crypto-core'
-import { freeScope } from '@iroha2/crypto-core'
 import { datamodel, signTransaction, transactionHash } from '@iroha2/data-model'
 import type { Except, RequiredKeysOf } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'
@@ -107,12 +106,10 @@ export class Client {
   }
 
   public accountId(): datamodel.AccountId {
-    return freeScope(() =>
-      datamodel.AccountId.parse({
-        domain: this.params.accountDomain,
-        signatory: this.params.accountKeyPair.publicKey(),
-      }),
-    )
+    return datamodel.AccountId.parse({
+      domain: this.params.accountDomain,
+      signatory: this.params.accountKeyPair.publicKey(),
+    })
   }
 
   public async submit(instructions: z.input<typeof datamodel.Executable$schema>, params?: SubmitParams) {
@@ -122,10 +119,10 @@ export class Client {
       instructions,
       ...params?.payload,
     })
-    const tx = freeScope(() => signTransaction(payload, this.params.accountKeyPair.privateKey()))
+    const tx = signTransaction(payload, this.params.accountKeyPair.privateKey())
 
     if (params?.verify) {
-      const hash = freeScope(() => transactionHash(tx).payload())
+      const hash = transactionHash(tx).payload()
       const stream = await this.eventsStream({
         filters: [
           // TODO: include "status" when Iroha API is fixed about it
@@ -136,7 +133,9 @@ export class Client {
               value: {
                 // FIXME: fix data model, allow `null | Hash`
                 hash: { Some: hash },
-                // TODO: specify `status`, but now it requires `reason` which is Iroha API design problem
+                // FIXME: Iroha design issue
+                //   If I want to filter by "rejected" status, I will also have to include a rejection reason into the
+                //   filter. I could imagine users wanting to just watch for rejections with all possible reasons.
               },
             },
           }),

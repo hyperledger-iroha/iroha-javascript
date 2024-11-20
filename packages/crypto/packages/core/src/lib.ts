@@ -121,7 +121,7 @@ export class PublicKey extends SingleFreeWrap<wasmPkg.PublicKey> implements HasA
     return new PublicKey(pair.inner.public_key())
   }
 
-  public static fromRaw(algorithm: Algorithm, payload: Bytes): PublicKey {
+  public static fromBytes(algorithm: Algorithm, payload: Bytes): PublicKey {
     return new PublicKey(getWASM(true).PublicKey.from_bytes(algorithm, payload.wasm))
   }
 
@@ -200,10 +200,16 @@ export class Signature extends SingleFreeWrap<wasmPkg.Signature> implements HasP
     return new Signature(value)
   }
 
-  public verify(publicKey: PublicKey, message: Bytes): wasmPkg.VerifyResult {
-    return this.inner.verify(publicKey.inner, message.wasm)
+  /**
+   * Verify that this signature is produced for the given payload by the given key (its public part)
+   */
+  public verify(publicKey: PublicKey, payload: Bytes): wasmPkg.VerifyResult {
+    return this.inner.verify(publicKey.inner, payload.wasm)
   }
 
+  /**
+   * Access the signature payload
+   */
   public payload(): Uint8Array
   public payload(mode: 'hex'): string
   public payload(mode?: 'hex'): string | Uint8Array {
