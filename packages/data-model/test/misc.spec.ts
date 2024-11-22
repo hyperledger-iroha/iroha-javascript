@@ -1,4 +1,4 @@
-import { PublicKey } from '@iroha2/crypto-core'
+import { KeyPair, PublicKey } from '@iroha2/crypto-core'
 import { datamodel } from '@iroha2/data-model'
 import { describe, expect, onTestFinished, test, vi } from 'vitest'
 import type { z } from 'zod'
@@ -7,9 +7,21 @@ import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util'
 
 describe('JSON serialisation', () => {
   test('AccountId', () => {
-    expect(
-      datamodel.AccountId.parse('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
-    ).toMatchInlineSnapshot(`"ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland"`)
+    const SIGNATORY = `ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E`
+    const DOMAIN = 'badland'
+    const ID = `${SIGNATORY}@${DOMAIN}`
+
+    expect(datamodel.AccountId.parse(ID).toJSON()).toEqual(ID)
+    expect(datamodel.AccountId.parse({ signatory: SIGNATORY, domain: DOMAIN }).toJSON()).toEqual(ID)
+  })
+
+  test('AccountId (after being decoded)', () => {
+    const pk = KeyPair.random().publicKey()
+    const decoded = datamodel.AccountId$codec.decode(
+      datamodel.AccountId$codec.encode(datamodel.AccountId.parse({ signatory: pk, domain: 'test' })),
+    )
+
+    expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)
   })
 })
 

@@ -1,5 +1,5 @@
 import type { PrivateKey } from '@iroha2/crypto-core'
-import { datamodel, extractQueryOutput, signQuery } from '@iroha2/data-model'
+import { datamodel, extractQueryOutput, extractSingularQueryOutput, signQuery } from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
 import type { SetOptional } from 'type-fest'
 import type { z } from 'zod'
@@ -28,6 +28,7 @@ export interface RequestBaseParams {
   toriiURL: string
 }
 
+// TODO: split to `doSingularRequest`
 export function doRequest<
   Q extends keyof datamodel.QueryOutputMap | keyof datamodel.SingularQueryOutputMap,
   P extends QueryPayload<Q>,
@@ -73,6 +74,10 @@ export function doRequest<
   }
 }
 
+// export function doSingularRequest<Q extends keyof datamodel.SingularQueryOutputMap, P extends {}>(query: Q, params: P): Promise<datamodel.SingularQueryOutputMap[Q]> {
+//
+// }
+
 function signQueryRequest(request: datamodel.QueryRequest, params: RequestBaseParams) {
   return signQuery({ authority: params.authority, request }, params.authorityPrivateKey())
 }
@@ -114,7 +119,7 @@ async function querySingular(
   }).then(handleQueryResponse)
 
   invariant(response.t === 'Singular')
-  return extractQueryOutput(query.t, response)
+  return extractSingularQueryOutput(query.t, response)
 }
 
 async function handleQueryResponse(resp: Response): Promise<datamodel.QueryResponse> {

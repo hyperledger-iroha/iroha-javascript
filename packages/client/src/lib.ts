@@ -11,6 +11,10 @@
 
 import type { KeyPair } from '@iroha2/crypto-core'
 import { datamodel, signTransaction, transactionHash } from '@iroha2/data-model'
+import { type Schema as DataModelSchema } from '@iroha2/data-model-schema'
+import defer from 'p-defer'
+import type { z } from 'zod'
+
 import type { Except, RequiredKeysOf } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'
 import { setupBlocksStream } from './blocks-stream'
@@ -18,6 +22,7 @@ import {
   ENDPOINT_CONFIGURATION,
   ENDPOINT_HEALTH,
   ENDPOINT_METRICS,
+  ENDPOINT_SCHEMA,
   ENDPOINT_STATUS,
   ENDPOINT_TRANSACTION,
   HEALTHY_RESPONSE,
@@ -25,8 +30,6 @@ import {
 import type { SetupEventsParams } from './events'
 import { setupEvents } from './events'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types'
-import defer from 'p-defer'
-import type { z } from 'zod'
 import { type QueryOutput, type QueryPayload, doRequest } from './query'
 
 type Fetch = typeof fetch
@@ -249,6 +252,14 @@ export class Client {
 
   public async getMetrics() {
     return getMetrics(this.toriiRequestRequirements)
+  }
+
+  /**
+   * Only available if Iroha is compiled with certain feature flags (TODO document)
+   */
+  public async getSchema(): Promise<DataModelSchema> {
+    // TODO: parse with zod?
+    return this.params.http(this.params.toriiURL + ENDPOINT_SCHEMA, { method: 'GET' }).then((x) => x.json())
   }
 
   public async setPeerConfig(params: SetPeerConfigParams) {

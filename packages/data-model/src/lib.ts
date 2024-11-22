@@ -26,33 +26,27 @@ export class ExtractQueryOutputError extends Error {
   }
 }
 
-function extractQueryOutput<Q extends keyof datamodel.QueryOutputMap>(
+export function extractQueryOutput<Q extends keyof datamodel.QueryOutputMap>(
   query: Q,
   response: datamodel.QueryResponse,
-): datamodel.QueryOutputMap[Q]
-
-function extractQueryOutput<Q extends keyof datamodel.SingularQueryOutputMap>(
-  query: Q,
-  response: datamodel.QueryResponse,
-): datamodel.SingularQueryOutputMap[Q]
-
-function extractQueryOutput(query: string, response: datamodel.QueryResponse) {
-  if (query in datamodel.QueryOutputKindMap) {
-    const outputKind = datamodel.QueryOutputKindMap[query as keyof datamodel.QueryOutputMap]
-    if (response.t === 'Iterable' && response.value.batch.t === outputKind) return response.value.batch.value
-    // TODO throw good error
-    throw new Error('unimplemented')
-  }
-  if (query in datamodel.SingularQueryOutputKindMap) {
-    const outputKind = datamodel.SingularQueryOutputKindMap[query as keyof datamodel.SingularQueryOutputMap]
-    if (response.t === 'Singular' && response.value.t === outputKind) return response.value.value
-    // TODO throw good error
-    throw new Error('unimplemented')
-  }
-  throw new Error(`invalid query: ${query}`) // TODO list supported ones
+): datamodel.QueryOutputMap[Q] {
+  const outputKind = datamodel.QueryOutputKindMap[query as keyof datamodel.QueryOutputMap]
+  if (response.t === 'Iterable' && response.value.batch.t === outputKind)
+    return response.value.batch.value as datamodel.QueryOutputMap[Q]
+  // TODO throw good error
+  throw new Error('unimplemented')
 }
 
-export { extractQueryOutput }
+export function extractSingularQueryOutput<Q extends keyof datamodel.SingularQueryOutputMap>(
+  query: Q,
+  response: datamodel.QueryResponse,
+): datamodel.SingularQueryOutputMap[Q] {
+  const outputKind = datamodel.SingularQueryOutputKindMap[query as keyof datamodel.SingularQueryOutputMap]
+  if (response.t === 'Singular' && response.value.t === outputKind)
+    return response.value.value as datamodel.SingularQueryOutputMap[Q]
+  // TODO throw good error
+  throw new Error('unimplemented')
+}
 
 /**
  * The one that is used for e.g. {@link datamodel.TransactionEventFilter}

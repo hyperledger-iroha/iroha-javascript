@@ -382,13 +382,11 @@ export class PublicKey {
   }
 
   public toMultihash() {
-    return crypto.freeScope(() =>
-      crypto.PublicKey.fromBytes(this.algorithm, crypto.Bytes.array(this.payload)).toMultihash(),
-    )
+    return crypto.PublicKey.fromBytes(this.algorithm, crypto.Bytes.array(this.payload)).toMultihash()
   }
 
   public toJSON() {
-    return this.toMultihash
+    return this.toMultihash()
   }
 }
 
@@ -399,10 +397,13 @@ export const PublicKey$schema = pubKeyObj
   .or(z.string().transform(parseMultihashPublicKey).pipe(pubKeyObj))
   .or(z.instanceof(crypto.PublicKey).transform((x) => new PublicKey(x.algorithm, x.payload())))
 
-export const PublicKey$codec = structCodec<PublicKey>([
+export const PublicKey$codec = structCodec<Pick<PublicKey, 'payload' | 'algorithm'>>([
   ['algorithm', lazyCodec(() => Algorithm$codec)],
   ['payload', BytesVec$codec],
-])
+]).wrap<PublicKey>(
+  (higher) => higher,
+  (lower) => new PublicKey(lower.algorithm, lower.payload),
+)
 
 export type Signature = z.infer<typeof Signature$schema>
 export const Signature$schema = BytesVec$schema.or(

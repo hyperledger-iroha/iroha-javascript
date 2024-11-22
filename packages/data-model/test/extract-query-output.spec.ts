@@ -1,4 +1,4 @@
-import { datamodel, extractQueryOutput } from '@iroha2/data-model'
+import { datamodel, extractQueryOutput, extractSingularQueryOutput } from '@iroha2/data-model'
 import { expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID } from './util'
 
@@ -25,5 +25,5 @@ test('Extract singular domain metadata', () => {
     t: 'Singular',
     value: { t: 'Json', value: metadata },
   })
-  expect(extractQueryOutput('FindDomainMetadata', response).asValue()).toEqual(metadata)
+  expect(extractSingularQueryOutput('FindDomainMetadata', response).asValue()).toEqual(metadata)
 })
