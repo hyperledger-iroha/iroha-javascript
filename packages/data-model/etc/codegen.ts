@@ -1,58 +1,88 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable max-nested-callbacks */
-import type { Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
-import { P, match } from 'ts-pattern'
-import invariant from 'tiny-invariant'
-import { camelCase, pascalCase } from 'change-case'
 import type { Algorithm } from '@iroha2/crypto-core'
+import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
 import type { QueryImpl } from '@iroha2/iroha-source'
+import { camelCase, pascalCase } from 'change-case'
 import { deepEqual } from 'fast-equals'
+import invariant from 'tiny-invariant'
+import { isMatching, match, P } from 'ts-pattern'
 
 export function generate(schema: Schema, queryImpls: QueryImpl[], libModule: string): string {
-  const ident = new TransformIdent(schema)
-  const transformed = transform(schema, ident)
-  transformed.sort((a, b) => (a.id < b.id ? -1 : a.id === b.id ? 0 : 1))
+  const resolver = new Resolver(schema)
+  const emits = Object.keys(schema)
+    .map<[string, TypeRefWithEmit]>((key) => [key, resolver.resolve(key)])
+    .reduce((map, [originId, resolved]) => {
+      if (resolved.t === 'local' && resolved.emit) {
+        const prevEmit = map.get(resolved.id)
+        const newEmit = resolved.emit()
+        if (prevEmit) {
+          // invariant(resolved.params?.length, () => `Only types with generics could duplicate emits. Resolved ID: ${resolved.id}; original ID: ${originId}`)
+          invariant(
+            deepEqual(newEmit, prevEmit),
+            () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
+          )
+        } else {
+          map.set(resolved.id, newEmit)
+        }
+      }
+      return map
+    }, new Map<string, EmitCode>())
+
+  postprocessEmits(emits)
+
+  const arranged = arrangeEmits(emits)
 
   return [
-    `import { lib, z } from '${libModule}'`,
-    ...transformed.map((x) => generateSingleEntry(x)),
-    generateQueryImpls(transformed, queryImpls, ident),
+    `import * as lib from '${libModule}'`,
+    ...arranged.map((id) => renderEmit(id, emits)),
+    // TODO
+    // generateQueryImpls(emits, queryImpls, resolver),
   ].join('\n\n')
 }
 
-type ActualCodegenSchema = CodegenEntry[]
+export type Ident = string
 
-type CodegenEntry = { id: string } & (
-  | { t: 'enum'; mode: 'explicit' | 'normal'; variants: CodegenEnumVariant[] }
-  | { t: 'enum'; mode: 'explicit-default'; variants: CodegenEnumVariant[]; default: string }
-  | { t: 'struct'; fields: { name: string; type: TypeIdent }[]; schema?: (base: string) => string }
-  | { t: 'struct-gen'; genericsCount: number; fields: { name: string; type: TypeIdent }[] }
-  | { t: 'tuple'; elements: TypeIdent[] }
-  | { t: 'bitmap'; repr: LibType; masks: { name: string; mask: number }[] }
-  | { t: 'alias'; to: TypeIdent }
-  | { t: 'branded-alias'; to: TypeIdent }
-  | { t: 'never' }
-)
+export type EmitsMap = Map<string, EmitCode>
 
-type CodegenEnumVariant =
-  | { t: 'unit'; tag: string; discriminant: number }
-  | { t: 'with-type'; tag: string; discriminant: number; type: TypeIdent }
+export type EmitCode =
+  | { t: 'enum'; variants: EmitEnumVariant[] }
+  | { t: 'struct'; fields: EmitStructField[] }
+  | { t: 'tuple'; elements: TypeRef[] }
+  | { t: 'bitmap'; repr: LibType; masks: EmitBitmapMask[] }
+  | { t: 'alias'; to: TypeRef }
+// | { t: 'null' }
 
-/**
- * Identifier of a type, either a local one or from the "library"
- */
-type TypeIdent =
-  | { t: 'ref'; id: string; generics?: TypeIdent[]; schema?: string }
-  | { t: 'lib'; id: LibType; generics?: TypeIdent[]; schema?: string }
-  | { t: 'special-predicate-box-not-value' }
-  | { t: 'special-array-generic-len'; len: number }
-  | { t: 'gen'; genericIndex: number }
+export interface EmitStructField {
+  name: string
+  type: TypeRef
+}
+
+export interface EmitBitmapMask {
+  name: string
+  mask: number
+}
+
+export type TypeRefWithEmit = (TypeRef & { t: 'local'; emit?: () => EmitCode }) | Exclude<TypeRef, { t: 'local' }>
+
+export type EmitEnumVariant = {
+  tag: string
+  discriminant: number
+  /** "null" means an empty variant */
+  type: TypeRef
+}
+
+export type TypeRef =
+  | { t: 'local'; id: Ident; params?: TypeRef[]; lazy?: boolean }
+  | { t: 'lib'; id: LibType; params?: TypeRef[] }
+  | { t: 'lib-array'; len: number; type: TypeRef }
+  | { t: 'param'; index: number }
   | { t: 'null' }
 
 /**
  * Types available in the library
  */
-type LibType =
+export type LibType =
   | 'BytesVec'
   | 'String'
   | 'U8'
@@ -65,13 +95,13 @@ type LibType =
   | 'Compact'
   | 'Vec'
   | 'Map'
-  | 'Array'
+  // | 'Array'
   | 'Json'
   | 'Bool'
-  | 'U8Array'
-  | 'U16Array'
+  // | 'U8Array'
+  // | 'U15Array'
   | 'Timestamp'
-  | 'TimestampU128'
+  // | 'TimestampU128'
   | 'Duration'
   | 'Name'
   | 'CompoundPredicate'
@@ -80,1086 +110,957 @@ type LibType =
   | `AssetDefinitionId`
   | `AssetId`
   | 'Algorithm'
-  | 'Signature'
-  | 'Hash'
-  | 'PublicKey'
+  | 'SignatureWrap'
+  | 'HashWrap'
+  | 'PublicKeyWrap'
+
+export class Resolver {
+  #schema: Schema
+  #cache: Map<string, TypeRefWithEmit> = new Map()
+
+  constructor(schema: Schema) {
+    this.#schema = schema
+  }
+
+  resolve(refOrStr: string | SchemaId): TypeRefWithEmit {
+    const [ref, refStr] =
+      typeof refOrStr === 'string' ? [SchemaId.parse(refOrStr), refOrStr] : [refOrStr, refOrStr.toStr()]
+
+    if (!this.#cache.has(refStr)) {
+      invariant(refStr in this.#schema, () => `Couldn't find schema for '${refStr}'`)
+      const schema = this.#schema[refStr]
+      const resolved = this.resolveInner(ref, refStr, schema)
+
+      if (resolved.t === 'local' && CYCLE_BREAK_POINTS.has(resolved.id)) resolved.lazy = true
+
+      this.#cache.set(refStr, resolved)
+      return resolved
+    }
+
+    return this.#cache.get(refStr)!
+  }
+
+  private resolveInner(ref: null | SchemaId, refStr: string, schema: SchemaTypeDefinition): TypeRefWithEmit {
+    return (
+      match({ ref, refStr, schema })
+        .returnType<TypeRefWithEmit>()
+        .with({ refStr: '()' }, () => ({ t: 'null' }))
+
+        // redundant unused type
+        .with({ ref: { id: 'MerkleTree', items: [P._] } }, () => ({ t: 'null' }))
+
+        .with({ refStr: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
+        .with(
+          {
+            ref: {
+              id: P.union(
+                'String',
+                'Json',
+                'Name',
+                'DomainId',
+                'AccountId',
+                'AssetId',
+                'AssetDefinitionId',
+                'Compact',
+                'Algorithm',
+              ).select(),
+            },
+          },
+          (id) => ({ t: 'lib', id }),
+        )
+        .with(
+          { refStr: P.union('u8', 'u16', 'u32', 'u64', 'u128').select('int'), schema: { Int: 'FixedWidth' } },
+          ({ int }) => ({
+            t: 'lib',
+            id: upcase(int),
+          }),
+        )
+
+        .with(
+          { refStr: 'BlockSignature', schema: { Tuple: [P.select('index').and('u64'), P.select('signature')] } },
+          ({ index, signature }) => ({
+            t: 'local',
+            id: 'BlockSignature',
+            emit: () => ({
+              t: 'struct',
+              fields: [
+                { name: 'peer_topology_index', type: this.resolve(index) },
+                { name: 'signature', type: this.resolve(signature) },
+              ],
+            }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: P.union('Register', 'Unregister'), items: [P._] },
+            schema: { Struct: [{ name: 'object', type: P.select('object') }] },
+          },
+          ({ object }) => this.resolve(object),
+        )
+        .with(
+          {
+            ref: { id: P.select('id').and('SetKeyValue'), items: [P._] },
+            schema: { Struct: [{ name: 'object', type: P.select('obj') }, P.select('key'), P.select('value')] },
+          },
+          ({ id, obj, key, value }) => ({
+            t: 'local',
+            id,
+            params: [this.resolve(obj)],
+            emit: () => ({
+              t: 'struct',
+              fields: [
+                { name: 'object', type: { t: 'param', index: 0 } },
+                ...[key, value].map((x) => ({ name: x.name, type: this.resolve(x.type) })),
+              ],
+            }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: P.select('id').and('RemoveKeyValue'), items: [P._] },
+            schema: { Struct: [{ name: 'object', type: P.select('obj') }, P.select('key')] },
+          },
+          ({ id, obj, key }) => ({
+            t: 'local',
+            id,
+            params: [this.resolve(obj)],
+            emit: () => ({
+              t: 'struct',
+              fields: [
+                { name: 'object', type: { t: 'param', index: 0 } },
+                { name: key.name, type: this.resolve(key.type) },
+              ],
+            }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: P.union('Mint', 'Burn', 'Grant', 'Revoke').select('id'), items: [P._, P._] },
+            schema: {
+              Struct: [
+                { name: 'object', type: P.select('obj') },
+                { name: 'destination', type: P.select('dest') },
+              ],
+            },
+          },
+          ({ id, obj, dest }) => ({
+            t: 'local',
+            id,
+            params: [obj, dest].map((x) => this.resolve(x)),
+            emit: () => ({
+              t: 'struct',
+              fields: [
+                { name: 'object', type: { t: 'param', index: 0 } },
+                { name: 'destination', type: { t: 'param', index: 1 } },
+              ],
+            }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: 'Transfer', items: [P._, P._, P._] },
+            schema: { Struct: P.select('fields', [{ name: 'source' }, { name: 'object' }, { name: 'destination' }]) },
+          },
+          ({ fields }) => ({
+            t: 'local',
+            id: 'Transfer',
+            params: fields.map((x) => this.resolve(x.type)),
+            emit: () => ({
+              t: 'struct',
+              fields: fields.map((x, i): EmitStructField => ({ ...x, type: { t: 'param', index: i } })),
+            }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: P.select('id', 'QueryWithFilter'), items: [P.select('generic')] },
+            schema: {
+              Struct: P.select('fields', [{ name: 'query' }, { name: 'predicate' }, { name: 'selector' }]),
+            },
+          },
+          ({ id, generic, fields }): TypeRefWithEmit => {
+            invariant(generic.toStr() === fields[0].type)
+            return {
+              t: 'local',
+              id,
+              params: fields.map((x) => this.resolve(x.type)),
+              emit: () => ({
+                t: 'struct',
+                fields: fields.map((x, i) => ({ name: x.name, type: { t: 'param', index: i } })),
+              }),
+            }
+          },
+        )
+        .with(
+          {
+            ref: {
+              id: P.select('id'),
+              items: [{ id: P.union('PredicateMarker', 'SelectorMarker').select('marker'), items: [] }],
+            },
+            schema: P.select('schema'),
+          },
+          ({ id, marker, schema }) => ({
+            t: 'local',
+            id: id + marker.slice(0, -'Marker'.length),
+            emit: (): EmitCode =>
+              match(schema)
+                .with({ Struct: P.select() }, (fields): EmitCode => ({ t: 'struct', fields: this.mapFields(fields) }))
+                .with(
+                  { Enum: P.select() },
+                  (variants): EmitCode => ({ t: 'enum', variants: this.mapVariants(variants) }),
+                )
+                .otherwise(() => {
+                  throw new Error(`Unexpected predicate/selector shape: ${id}`)
+                }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: 'MetadataChanged', items: [P._] },
+            schema: {
+              Struct: [
+                { name: 'target', type: P.select('target') },
+                P.select('key').and({ name: 'key' }),
+                P.select('value').and({ name: 'value' }),
+              ],
+            },
+          },
+          ({ target, key, value }) => ({
+            t: 'local',
+            id: 'MetadataChanged',
+            params: [this.resolve(target)],
+            emit: (): EmitCode => ({
+              t: 'struct',
+              fields: [{ name: 'target', type: { t: 'param', index: 0 } }, ...this.mapFields([key, value])],
+            }),
+          }),
+        )
+        .with(
+          {
+            ref: { id: 'SelectorTuple', items: [P._] },
+            schema: P.string.select(),
+          },
+          (target) => this.resolve(target),
+        )
+        .with(
+          {
+            ref: P.select('ref', { id: 'CompoundPredicate', items: [P._] }),
+            refStr: P.select('refStr'),
+            schema: {
+              Enum: [
+                { tag: 'Atom', type: P.string.select('tyAtom') },
+                { tag: 'Not', type: P.string.select('tyNot') },
+                { tag: 'And', type: P.string.select('tyAnd') },
+                { tag: 'Or', type: P.select('tyOr') },
+              ],
+            },
+          },
+          (bindings): TypeRef => {
+            invariant(bindings.refStr === bindings.tyNot), invariant(bindings.tyAnd === bindings.tyOr)
+            invariant(deepEqual(SchemaId.parse(bindings.tyAnd), new SchemaId('Vec', [bindings.ref])))
+            return { t: 'lib', id: 'CompoundPredicate', params: [this.resolve(bindings.tyAtom)] }
+          },
+        )
+        .with(
+          {
+            ref: { id: 'Mismatch', items: [P._] },
+            schema: { Struct: P.select('fields', [{ name: 'expected' }, { name: 'actual' }]) },
+          },
+          ({ fields }) => {
+            invariant(fields[0].type === fields[1].type)
+            return {
+              t: 'local',
+              id: 'Mismatch',
+              params: [this.resolve(fields[0].type)],
+              emit: () => ({
+                t: 'struct',
+                fields: fields.map((x) => ({ ...x, type: { t: 'param', index: 0 } })),
+              }),
+            }
+          },
+        )
+        .with(
+          {
+            ref: { id: P.union('Ipv4Addr', 'Ipv6Addr').select('ip'), items: [] },
+            schema: P.string.select('arr'),
+          },
+          ({ ip, arr }) => {
+            const { len, type } = match(this.resolve(arr))
+              .with(
+                { t: 'lib-array', len: P.union(4, 8), type: { t: 'lib', id: P.union('U8', 'U16') } },
+                ({ len, type }) => ({ len, type }),
+              )
+              .otherwise(() => {
+                throw new Error(`Unexpected type for ${ip}`)
+              })
+
+            return {
+              t: 'local',
+              id: ip,
+              emit: () => ({
+                t: 'tuple',
+                elements: Array.from({ length: len }, () => type),
+              }),
+            }
+          },
+        )
+        .with(
+          P.union(
+            { ref: { id: 'SignatureOf', items: [P._] }, schema: 'Signature' },
+            { refStr: P.union('TransactionSignature', 'QuerySignature') },
+          ),
+          () => ({ t: 'lib', id: 'SignatureWrap' }),
+        )
+        .with({ ref: { id: 'HashOf', items: [P._] }, schema: 'Hash' }, () => ({ t: 'lib', id: 'HashWrap' }))
+        .with({ refStr: P.union('Hash', 'PublicKey', 'Signature').select() }, (id) => ({
+          t: 'lib',
+          id: `${id}Wrap`,
+        }))
+
+        .with({ refStr: 'FetchSize', schema: { Struct: [{ name: 'fetch_size', type: P.select() }] } }, (type) =>
+          this.resolve(type),
+        )
+
+        .with(
+          { ref: { id: P.select('id'), items: [] }, schema: { Bitmap: { repr: 'u32', masks: P.select('masks') } } },
+          ({ id, masks }) => ({
+            t: 'local',
+            id,
+            emit: () => ({
+              t: 'bitmap',
+              masks,
+              repr: 'U32',
+            }),
+          }),
+        )
+
+        .with(
+          { ref: { id: 'Option', items: [P._] }, schema: { Option: P.string.select() } },
+          (type): TypeRef => ({ t: 'lib', id: 'Option', params: [this.resolve(type)] }),
+        )
+
+        .with(
+          { ref: { id: P.union('Vec', 'SortedVec'), items: [P._] }, schema: { Vec: P.string.select() } },
+          (type): TypeRef => ({
+            t: 'lib',
+            id: 'Vec',
+            params: [this.resolve(type)],
+          }),
+        )
+
+        .with(
+          {
+            ref: { id: 'Array', items: [P._, P._] },
+            schema: { Array: { len: P.select('len'), type: P.select('type') } },
+          },
+          ({ len, type }) => ({
+            t: 'lib-array',
+            len: Number(len),
+            type: this.resolve(type),
+          }),
+        )
+
+        // maps
+        .with(
+          {
+            ref: { id: 'SortedMap', items: [P._, P._] },
+            schema: { Map: { key: P.select('key'), value: P.select('value') } },
+          },
+          ({ key, value }) => ({
+            t: 'lib',
+            id: 'Map',
+            params: [key, value].map((x) => this.resolve(x)),
+          }),
+        )
+
+        // non-specific structures without generics
+        .with(
+          { ref: { id: P.select('id'), items: [] }, schema: { Struct: P.select('fields') } },
+          ({ id, fields }): TypeRefWithEmit => ({
+            t: 'local',
+            id,
+            emit: () => ({
+              t: 'struct',
+              fields: this.mapFields(fields),
+            }),
+          }),
+        )
+
+        // non-specific enums without generics
+        .with(
+          { ref: { id: P.select('id'), items: [] }, schema: { Enum: P.select('variants') } },
+          ({ id, variants }): TypeRefWithEmit => ({
+            t: 'local',
+            id,
+            emit: () => ({
+              t: 'enum',
+              variants: this.mapVariants(variants),
+            }),
+          }),
+        )
+
+        // redundant aliases
+        .with({ schema: P.string.select() }, (target) => this.resolve(target))
+
+        // null types - useless?
+        .with({ schema: null }, () => ({ t: 'null' }))
+
+        .otherwise(({ refStr }) => {
+          throw new Error(`Could not resolve "${refStr}"`)
+        })
+    )
+  }
+
+  private mapFields(items: NamedStructDefinition['Struct']): EmitStructField[] {
+    return items.map((x) => ({ name: x.name, type: this.resolve(x.type) }))
+  }
+
+  private mapVariants(items: EnumDefinition['Enum']): EmitEnumVariant[] {
+    return items.map((x) => {
+      const type = match(x)
+        .returnType<TypeRef>()
+        .with({ type: P.string }, ({ type }) => this.resolve(type))
+        .otherwise(() => ({ t: 'null' }))
+      return { ...x, type }
+    })
+  }
+
+  resolveAll(): TypeRefWithEmit[] {
+    return Object.keys(this.#schema).map((key) => this.resolve(key))
+  }
+}
+
+export class SchemaId {
+  // TODO: remove path check?
+  static parse(src: string): null | SchemaId {
+    const stack: SchemaId[] = [new SchemaId('__root__')]
+
+    for (const [token] of src.matchAll(/(<|>|(?:[\w_]+|::)+)/gi)) {
+      if (token === '<') {
+        const lastItem = stack.at(-1)?.items.at(-1)
+        invariant(lastItem, 'should be')
+        stack.push(lastItem)
+      } else if (token === '>') {
+        invariant(stack.pop(), 'should be')
+      } else {
+        const head = stack.at(-1)
+        invariant(head, 'should be')
+        const idWithPath = token.split('::')
+        const id = idWithPath.at(-1)!
+        // const path = idWithPath.length > 1 ? idWithPath.slice(0, -1) : undefined
+        head.items.push(new SchemaId(id))
+      }
+    }
+
+    return match(stack)
+      .with([{ id: '__root__', items: [P.select()] }], (trueRoot) => trueRoot)
+      .otherwise(() => null)
+  }
+
+  id: string
+  items: SchemaId[]
+
+  constructor(id: string, items: SchemaId[] = []) {
+    this.id = id
+    this.items = items
+  }
+
+  eq(other: SchemaId): boolean {
+    return (
+      this.id === other.id &&
+      this.items.length === other.items.length &&
+      this.items.every((child, i) => child.eq(other.items[i]))
+    )
+  }
+
+  toStr(): string {
+    return this.id + (this.items.length ? '<' + this.items.map((x) => x.toStr()).join(', ') + '>' : '')
+  }
+}
+
+export interface EnumShortcutsTree {
+  id: string
+  variants: EnumShortcutTreeVariant[]
+}
+
+export type EnumShortcutTreeVariant = { name: string } & (
+  | { t: 'unit' }
+  | { t: 'value'; value_ty: TypeRef }
+  | { t: 'enum'; tree: EnumShortcutsTree }
+)
+
+export function enumShortcuts(variants: EmitEnumVariant[], types: EmitsMap): EnumShortcutTreeVariant[] {
+  return variants.map((variant): EnumShortcutTreeVariant & { name: string } => {
+    if (variant.type.t === 'null') return { name: variant.tag, t: 'unit' }
+    if (variant.type.t === 'local') {
+      const type = types.get(variant.type.id)
+      invariant(type, 'must be in schema')
+      if (type.t === 'enum') {
+        return {
+          t: 'enum',
+          name: variant.tag,
+          tree: { id: variant.type.id, variants: enumShortcuts(type.variants, types) },
+        }
+      }
+    }
+    return { t: 'value', value_ty: variant.type, name: variant.tag }
+  })
+}
+
+function postprocessEmits(emits: EmitsMap) {
+  function replace(id: string, f: (emit: EmitCode) => EmitCode) {
+    invariant(emits.has(id))
+    emits.set(id, f(emits.get(id)!))
+  }
+
+  replace('TransactionPayload', (emit) => {
+    invariant(emit.t === 'struct')
+
+    const creationTime = emit.fields.find((x) =>
+      isMatching({ name: 'creation_time_ms', type: { t: 'lib', id: 'U64' } }, x),
+    )
+    invariant(creationTime)
+    creationTime.name = 'creation_time'
+    creationTime.type = { t: 'lib', id: 'Timestamp' }
+
+    const ttl = emit.fields.find((x) =>
+      isMatching({ name: 'time_to_live_ms', type: { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'U64' }] } }, x),
+    )
+    invariant(ttl)
+    ttl.name = 'time_to_live'
+    ttl.type = { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'Duration' }] }
+
+    return emit
+  })
+
+  replace('TimeInterval', (emit) => {
+    invariant(
+      isMatching(
+        {
+          fields: [
+            { name: 'since_ms', type: { t: 'lib', id: 'U64' } },
+            { name: 'length_ms', type: { t: 'lib', id: 'U64' } },
+          ],
+        },
+        emit,
+      ),
+    )
+    return {
+      ...emit,
+      fields: [
+        { name: 'since', type: { t: 'lib', id: 'Timestamp' } },
+        { name: 'length', type: { t: 'lib', id: 'Duration' } },
+      ],
+    }
+  })
+
+  replace('Schedule', (emit) => {
+    invariant(
+      isMatching(
+        {
+          fields: [
+            { name: 'start_ms', type: { t: 'lib', id: 'U64' } },
+            { name: 'period_ms', type: { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'U64' }] } },
+          ],
+        },
+        emit,
+      ),
+    )
+    return {
+      ...emit,
+      fields: [
+        { name: 'start', type: { t: 'lib', id: 'Timestamp' } },
+        { name: 'period', type: { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'Duration' }] } },
+      ],
+    }
+  })
+}
 
 const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
 
 /**
- * Apply custom transformation to the schema
+ * Yields each {@link TypeRef} inside a given one (and including it)
  */
-function transform(schema: Schema, ident: TransformIdent): ActualCodegenSchema {
-  const items: ActualCodegenSchema = [
-    ...['Register', 'Unregister'].map(
-      (id): CodegenEntry => ({
-        t: 'struct-gen',
-        id,
-        genericsCount: 1,
-        fields: [{ name: 'object', type: { t: 'gen', genericIndex: 0 } }],
-      }),
-    ),
-    ...['SetKeyValue', 'RemoveKeyValue'].map(
-      (id): CodegenEntry => ({
-        t: 'struct-gen',
-        id,
-        genericsCount: 1,
-        fields: [
-          { name: 'object', type: { t: 'gen', genericIndex: 0 } },
-          { name: 'key', type: { t: 'lib', id: 'String' } },
-          { name: 'value', type: { t: 'lib', id: 'Json' } },
-        ],
-      }),
-    ),
-    ...['Mint', 'Burn', 'Grant', 'Revoke'].map(
-      (id): CodegenEntry => ({
-        t: 'struct-gen',
-        id,
-        genericsCount: 2,
-        fields: [
-          { name: 'object', type: { t: 'gen', genericIndex: 0 } },
-          { name: 'destination', type: { t: 'gen', genericIndex: 1 } },
-        ],
-      }),
-    ),
-    {
-      t: 'struct-gen',
-      id: 'Transfer',
-      genericsCount: 3,
-      fields: [
-        { name: 'source', type: { t: 'gen', genericIndex: 0 } },
-        { name: 'object', type: { t: 'gen', genericIndex: 1 } },
-        { name: 'destination', type: { t: 'gen', genericIndex: 2 } },
-      ],
-    },
-    {
-      t: 'struct-gen',
-      id: 'MetadataChanged',
-      genericsCount: 1,
-      fields: [
-        { name: 'target', type: { t: 'gen', genericIndex: 0 } },
-        { name: 'key', type: { t: 'lib', id: 'String' } },
-        { name: 'value', type: { t: 'lib', id: 'Json' } },
-      ],
-    },
-    // TODO: move to transform definition
-    {
-      t: 'struct',
-      id: 'EventSubscriptionRequest',
-      fields: [{ name: 'filters', type: ident.transform('Vec<EventFilterBox>') }],
-    },
-    {
-      t: 'struct-gen',
-      id: 'SemiInterval',
-      genericsCount: 1,
-      fields: [
-        { name: 'start', type: { t: 'gen', genericIndex: 0 } },
-        { name: 'limit', type: { t: 'gen', genericIndex: 0 } },
-      ],
-    },
-    {
-      t: 'struct-gen',
-      id: 'QueryWithFilter',
-      genericsCount: 2,
-      fields: [
-        { name: 'query', type: { t: 'gen', genericIndex: 0 } },
-        { name: 'predicate', type: { t: 'lib', id: 'CompoundPredicate', generics: [{ t: 'gen', genericIndex: 1 }] } },
-      ],
-    },
-  ]
-
-  const ignore = new Set([...ident.nulls, ...items.map((x) => x.id)])
-
-  for (const [key, value] of Object.entries(schema)) {
-    if (ignore.has(parseRawIdent(key).id)) continue
-    items.push(...transformDefinition(key, value, ident))
-  }
-
-  return items
-}
-
-function transformDefinition(name: string, item: SchemaTypeDefinition, ident: TransformIdent): CodegenEntry[] {
-  const id = ident.transform(name)
-
-  // console.log(name, item, id)
-
-  // not in-schema reference, don't render
-  if (id.t !== 'ref') return []
-
-  return (
-    match([id, item])
-      .returnType<CodegenEntry[]>()
-
-      // this is not used anywhere
-      .with([{ t: 'ref', id: 'MerkleTree' }, P._], () => [])
-
-      .with([{ generics: P.array() }, P._], () => {
-        throw new Error(`don't know how to transform the definition of "${name}"`)
-      })
-      .with([{ id: 'BlockSignature' }, { Tuple: ['u64', P.string.startsWith('Signature')] }], () => [
-        {
-          t: 'struct',
-          id: 'BlockSignature',
-          fields: [
-            { name: 'peer_topology_index', type: { t: 'lib', id: 'U64' } },
-            { name: 'signature', type: { t: 'lib', id: 'Signature' } },
-          ],
-        },
-      ])
-      .with([{ id: 'BlockSubscriptionRequest' }, 'NonZero<u64>'], ([{ id }, type]) => {
-        return [{ t: 'struct', id, fields: [{ name: 'from_block_height', type: ident.transform(type) }] }]
-      })
-      .with(
-        [{ id: 'Duration' }, { Tuple: ['u64', 'u32'] }],
-        ([
-          { id },
-          {
-            Tuple: [secs, nanos],
-          },
-        ]) => [
-          {
-            t: 'struct',
-            id,
-            fields: [
-              {
-                name: 'secs',
-                type: { t: 'lib', id: upcase(secs) },
-              },
-              {
-                name: 'nanos',
-                type: { t: 'lib', id: upcase(nanos) },
-              },
-            ],
-          } satisfies CodegenEntry,
-        ],
-      )
-      .with(
-        [{ id: 'FetchSize' }, { Struct: [{ name: 'fetch_size' }] }],
-        ([
-          { id },
-          {
-            Struct: [{ type }],
-          },
-        ]) => [{ t: 'alias', id, to: ident.transform(type) }],
-      )
-      .with([{ id: 'Algorithm' }, { Enum: P._ }], ([{ id }, { Enum: variants }]) => {
-        const variantsParsed = variants.map<CodegenEnumVariant>((x, i) => {
-          invariant(x.tag === pascalCase(CRYPTO_ALGORITHMS[i]))
-          invariant(!x.type)
-          return { t: 'unit', tag: CRYPTO_ALGORITHMS[i], discriminant: x.discriminant }
-        })
-
-        return [
-          {
-            t: 'enum',
-            id,
-            mode: 'normal',
-            variants: variantsParsed,
-          },
-        ]
-      })
-      .with([{ id: 'NonTrivial' }, 'Vec<GenericPredicateBox<QueryOutputPredicate>>'], () => [
-        {
-          t: 'alias',
-          id: 'NonTrivial',
-          to: ident.transform('Vec<PredicateBox>'),
-        },
-      ])
-      .with([{ id: 'WasmSmartContract' }, 'Vec<u8>'], ([{ id }]) => [
-        {
-          t: 'struct',
-          id,
-          fields: [{ name: 'blob', type: { t: 'lib', id: 'BytesVec' } }],
-        },
-      ])
-      .with([{ id: 'IpfsPath' }, 'String'], ([{ id }]) => [
-        {
-          t: 'branded-alias',
-          id,
-          to: { t: 'lib', id: 'String' },
-        },
-      ])
-      .with(
-        [
-          { id: P.union('DomainId', 'PermissionId', 'TriggerId', 'RoleId').select() },
-          { Struct: [{ name: 'name', type: 'Name' }] },
-        ],
-        (id) => [
-          {
-            t: 'branded-alias',
-            id,
-            to: { t: 'lib', id: 'Name' },
-          },
-        ],
-      )
-      .with([P._, { Enum: [] }], ([{ id }]) => [
-        {
-          t: 'never',
-          id,
-        },
-      ])
-      // just plain struct
-      .with([P._, { Struct: P._ }], ([{ id }, { Struct: fields }]) => {
-        return [
-          {
-            t: 'struct',
-            id,
-            fields: fields.map((x) =>
-              match({ id, field: x })
-                .returnType<(CodegenEntry & { t: 'struct' })['fields'][number]>()
-                .with(
-                  {
-                    id: P.union('BlockHeader', 'TimeInterval', 'Schedule'),
-                    field: { name: P.union('creation_time_ms', 'since_ms', 'start_ms').select(), type: 'u64' },
-                  },
-                  (name) => ({
-                    name: name.slice(0, -3),
-                    type: { t: 'lib', id: 'Timestamp' },
-                  }),
-                )
-                .with(
-                  {
-                    id: P.union('BlockHeader', 'TimeInterval', 'SumeragiParameters'),
-                    field: {
-                      name: P.union('consensus_estimation_ms', 'length_ms', 'block_time_ms', 'commit_time_ms').select(),
-                      type: 'u64',
-                    },
-                  },
-                  (name) => ({
-                    name: name.slice(0, -3),
-                    type: { t: 'lib', id: 'Duration' },
-                  }),
-                )
-                .with({ id: 'TransactionPayload', field: { name: 'creation_time_ms', type: 'u64' } }, () => ({
-                  name: 'creation_time',
-                  type: { t: 'lib', id: 'Timestamp', schema: `lib.Timestamp$schema.default(() => new Date())` },
-                }))
-                .with({ id: 'Schedule', field: { name: 'period_ms', type: 'Option<u64>' } }, () => ({
-                  name: 'period',
-                  type: { t: 'lib', id: 'Option', generics: [{ t: 'lib', id: 'Duration' }] },
-                }))
-                .with(
-                  { id: 'TransactionPayload', field: { name: 'time_to_live_ms', type: 'Option<NonZero<u64>>' } },
-                  () => ({
-                    name: 'time_to_live',
-                    type: {
-                      t: 'lib',
-                      id: 'Option',
-                      generics: [
-                        {
-                          t: 'lib',
-                          id: 'NonZero',
-                          generics: [
-                            {
-                              t: 'lib',
-                              id: 'Duration',
-                              // TODO: add default value as 100 seconds?
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  }),
-                )
-                .otherwise(() => ({
-                  name: x.name,
-                  type: ident.transform(x.type),
-                })),
-            ),
-            schema: match(id)
-              .returnType<undefined | ((base: string) => string)>()
-              .with('Sorting', 'QueryParams', () => (base) => `${base}.default(() => ({}))`)
-              .with('Pagination', () => (base) => base + '.default(() => ({ offset: 0 }))')
-              .otherwise(() => undefined),
-          } satisfies CodegenEntry,
-        ]
-      })
-      // just plain enum
-      .with([P._, { Enum: P._ }], ([{ id }, { Enum: variantsRaw }]) => {
-        const variants = variantsRaw.map((x) =>
-          match([id, x])
-            .returnType<CodegenEnumVariant>()
-            .with(
-              ['SumeragiParameter', { tag: P.union('BlockTimeMs', 'CommitTimeMs'), type: 'u64' }],
-              ([, { tag, discriminant }]) => ({
-                t: 'with-type',
-                type: { t: 'lib', id: 'Duration' },
-                tag:
-                  // remove `Ms`
-                  tag.slice(0, -2),
-                discriminant,
-              }),
-            )
-            .with(
-              ['QueryOutputPredicate', { tag: 'TimeStamp', type: 'SemiInterval<u128>' }],
-              ([, { tag, discriminant }]) => ({
-                t: 'with-type',
-                type: { t: 'ref', id: 'SemiInterval', generics: [{ t: 'lib', id: 'TimestampU128' }] },
-                tag,
-                discriminant,
-              }),
-            )
-            .with(['PredicateBox', { tag: 'Not' }], ([, { tag, discriminant }]) => ({
-              t: 'with-type',
-              tag,
-              discriminant,
-              type: { t: 'special-predicate-box-not-value' },
-            }))
-            .otherwise(() =>
-              match(x)
-                .returnType<CodegenEnumVariant>()
-                .with({ type: P.when((x) => x && ident.nulls.has(x)) }, ({ discriminant, tag }) => ({
-                  t: 'unit',
-                  discriminant,
-                  tag,
-                }))
-                .with({ type: P.string }, ({ type, discriminant, tag }) => ({
-                  t: 'with-type',
-                  type: ident.transform(type),
-                  tag,
-                  discriminant,
-                }))
-                .otherwise(({ discriminant, tag }) => ({
-                  t: 'unit',
-                  discriminant,
-                  tag,
-                })),
-            ),
-        )
-
-        return [
-          match(id)
-            .returnType<CodegenEntry>()
-            .with(
-              P.union(
-                'QueryOutputBatchBox',
-                'QueryBox',
-                'SingularQueryOutputBox',
-                'MetadataValueBox',
-                'InstructionBox',
-                // To reduce load on tsc
-                'EventBox',
-              ),
-              () => ({
-                t: 'enum',
-                mode: 'explicit',
-                id,
-                variants,
-              }),
-            )
-            .with(
-              'PredicateBox',
-              (): CodegenEntry => ({
-                t: 'enum',
-                mode: 'explicit-default',
-                id,
-                variants,
-                default: `() => ({ t: 'Raw', value: {t: 'Pass'}} as const)`,
-              }),
-            )
-            .otherwise(() => ({ t: 'enum', mode: 'normal', id, variants })),
-        ]
-      })
-      .with(
-        [P._, { Bitmap: { repr: 'u32' } }],
-        ([
-          { id },
-          {
-            Bitmap: { masks, repr },
-          },
-        ]) => [
-          {
-            t: 'bitmap',
-            id,
-            repr: upcase(repr),
-            masks,
-          },
-        ],
-      )
-      .with([{ id: P.union('ChainId', 'Name') }, 'String'], ([{ id }]) => [
-        {
-          t: 'branded-alias',
-          id,
-          to: { t: 'lib', id: 'String' },
-        },
-      ])
-      .with([P._, P.string], ([type, aliasTo]) => {
-        const aliasParsed = ident.transform(aliasTo)
-
-        if (aliasParsed.t === 'ref' && !aliasParsed.generics && aliasParsed.id === type.id)
-          // it is a redundant self-alias. hard to formulate "why"... just is
-          return []
-
-        if (type.id === 'Ipv4Addr') {
-          const LEN = 4
-
-          match(aliasParsed)
-            .with({ t: 'lib', id: 'U8Array', generics: [{ t: 'special-array-generic-len', len: LEN }] }, () => {})
-            .otherwise(() => {
-              throw new Error('unexpected shape')
-            })
-
-          return [
-            {
-              t: 'tuple',
-              id: type.id,
-              elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U8' })),
-            } satisfies CodegenEntry,
-          ]
-        }
-
-        if (type.id === 'Ipv6Addr') {
-          const LEN = 8
-
-          match(aliasParsed)
-            .with({ t: 'lib', id: 'U16Array', generics: [{ t: 'special-array-generic-len', len: LEN }] }, () => {})
-            .otherwise(() => {
-              throw new Error('unexpected shape')
-            })
-
-          return [
-            {
-              t: 'tuple',
-              id: type.id,
-              elements: Array.from({ length: LEN }, () => ({ t: 'lib', id: 'U16' })),
-            } satisfies CodegenEntry,
-          ]
-        }
-        // if (type.id === 'Hash') {
-        //   const schemaBase = generateIdent(aliasParsed).schema
-        //   const schemaCrypto = `z.instanceof(crypto.Hash).transform(x => x.payload()).pipe(${schemaBase})`
-        //   const schemaHex = `lib.hex$schema.pipe(${schemaBase})`
-        //   return [
-        //     {
-        //       t: 'branded-alias',
-        //       id: type.id,
-        //       to: {
-        //         ...aliasParsed,
-        //         schema: `${schemaBase}.or(${schemaCrypto}).or(${schemaHex})`,
-        //       },
-        //     },
-        //   ]
-        // }
-
-        return [
-          {
-            t: 'alias',
-            id: type.id,
-            to: aliasParsed,
-          },
-        ]
-      })
-      .otherwise((what) => {
-        console.log(what)
-        throw new Error(`unexpected format of type "${name}"`)
-      })
-  )
-}
-
-class TransformIdent {
-  /**
-   * Null-types
-   */
-  readonly nulls: Set<string>
-
-  constructor(schema: Schema) {
-    this.nulls = Object.entries(schema).reduce((acc, [id, right]) => {
-      if (right === null) acc.add(id)
-      return acc
-    }, new Set<string>())
-  }
-
-  /**
-   * Responsibility: recognise type names in the schema and transform them into items in JS data model schema
-   * (recursively, with respect to generics).
-   */
-  transform(id: string | RawIdent): TypeIdent {
-    return (
-      match(typeof id === 'string' ? parseRawIdent(id) : id)
-        .returnType<TypeIdent>()
-
-        // useless aliases
-        .with({ id: 'BlockMessage', items: [] }, () => ({ t: 'ref', id: 'SignedBlock' }))
-        .with({ id: 'TimeEventFilter', items: [] }, () => ({ t: 'ref', id: 'ExecutionTime' }))
-        .with({ id: 'EventMessage', items: [] }, () => ({ t: 'ref', id: 'EventBox' }))
-        .with({ id: 'HashOf', items: [P.any] }, () => ({ t: 'lib', id: 'Hash' }))
-        .with(
-          P.union(
-            { id: 'TransactionSignature', items: [] },
-            { id: 'QuerySignature', items: [] },
-            { id: 'SignatureOf', items: [P.any] },
-          ),
-          () => ({
-            t: 'lib',
-            id: 'Signature',
-          }),
-        )
-
-        // Library types
-        .with({ id: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
-        .with(
-          {
-            id: P.union(
-              'String',
-              'Json',
-              'Name',
-              'CompoundPredicate',
-              'DomainId',
-              'AccountId',
-              'AssetId',
-              'AssetDefinitionId',
-              'Compact',
-              'Algorithm',
-              'Signature',
-              'Hash',
-              'PublicKey',
-            ).select(),
-            // items: [],
-          },
-          (id) => ({ t: 'lib', id }),
-        )
-        .with({ id: P.union('u8', 'u16', 'u32', 'u64', 'u128') }, ({ id }) => ({
-          t: 'lib',
-          id: upcase(id),
-        }))
-        .with(
-          {
-            id: 'Array',
-            items: [
-              { id: P.union('u8', 'u16').select('int'), items: [] },
-              { id: P.select('len'), items: [] },
-            ],
-          },
-          ({ int, len: lenStr }) => {
-            const len = Number(lenStr)
-            invariant(!Number.isNaN(len))
-            return {
-              t: 'lib',
-              id: `${upcase(int)}Array` satisfies LibType,
-              generics: [{ t: 'special-array-generic-len', len }],
-            } satisfies TypeIdent
-          },
-        )
-
-        // Library containers
-        .with({ id: 'Vec', items: [{ id: 'u8', items: [] }] }, () => ({ t: 'lib', id: 'BytesVec' }))
-        .with({ id: P.union('SortedVec', 'Vec'), items: [P.select()] }, (item) => ({
-          t: 'lib',
-          id: 'Vec',
-          generics: [this.transform(item)],
-        }))
-        .with({ id: 'Option', items: [P.select()] }, (some) => ({
-          t: 'lib',
-          id: 'Option',
-          generics: [this.transform(some)],
-        }))
-        .with({ id: P.union('SortedMap', 'Map'), items: [P._, P._] }, ({ items: [key, value] }) => ({
-          t: 'lib',
-          id: 'Map',
-          generics: [this.transform(key), this.transform(value)],
-        }))
-        .with({ id: 'NonZero', items: [{ id: P.union('u32', 'u64').select() }] }, (int) => ({
-          t: 'lib',
-          id: 'NonZero',
-          generics: [{ t: 'lib', id: upcase(int) }],
-        }))
-
-        // Exists only for AssetType
-        .with({ id: 'Mismatch', items: [{ id: 'AssetType' }] }, () => ({ t: 'ref', id: 'AssetTypeMismatch' }))
-
-        // Just renaming for clarity
-        .with({ id: 'Level', items: [] }, () => ({ t: 'ref', id: 'LogLevel' }))
-
-        // Generics in these ISIs need an addition of `Id` suffix
-        .with(
-          { id: 'Transfer', items: [{ items: [] }, { items: [] }, { items: [] }] },
-          ({ items: [{ id: source }, { id: object }, { id: destination }] }) => ({
-            t: 'ref',
-            id: 'Transfer',
-            generics: [source + 'Id', object, destination + 'Id'].map((id) => this.transform(id)),
-          }),
-        )
-        .with(
-          {
-            id: P.union('Mint', 'Burn', 'Grant', 'Revoke').select('isi'),
-            items: [
-              { items: [], id: P.select('object') },
-              { items: [], id: P.select('destination') },
-            ],
-          },
-          ({ isi, object, destination }) => ({
-            t: 'ref',
-            id: isi,
-            generics: [object, destination + 'Id'].map((id) => this.transform(id)),
-          }),
-        )
-        .with(
-          {
-            id: P.union('SetKeyValue', 'RemoveKeyValue').select('isi'),
-            items: [{ items: [], id: P.select('object') }],
-          },
-          ({ isi, object }) => ({
-            t: 'ref',
-            id: isi,
-            generics: [this.transform(`${object}Id`)],
-          }),
-        )
-        .with(
-          {
-            id: 'Register',
-            items: [{ id: P.select(), items: [] }],
-          },
-          (entity) => ({
-            t: 'ref',
-            id: 'Register',
-            generics: [
-              this.transform(
-                match(entity)
-                  .with('Peer', () => 'PeerId')
-                  .with(P.union('Domain', 'AssetDefinition', 'Account'), (x) => `New${x}`)
-                  .otherwise((x) => x),
-              ),
-            ],
-          }),
-        )
-        .with({ id: 'Unregister', items: [{ id: P.select('object'), items: [] }] }, ({ object }) => ({
-          t: 'ref',
-          id: 'Unregister',
-          generics: [this.transform(`${object}Id`)],
-        }))
-
-        // recognised nulls
-        .with({ id: P.when((x) => this.nulls.has(x)), items: [] }, () => ({ t: 'null' }))
-
-        .otherwise(({ id, items }) => {
-          return {
-            t: 'ref',
-            id,
-            generics: items.length ? items.map((x) => this.transform(x)) : undefined,
-          } as const
-        })
-    )
+function* visitRefs(ref: TypeRef): Generator<TypeRef> {
+  yield ref
+  if ((ref.t === 'lib' || ref.t === 'local') && ref.params) {
+    for (const param of ref.params) {
+      yield* visitRefs(param)
+    }
   }
 }
 
-interface IdentGenerated {
+function* visitEmitRefs(emit: EmitCode): Generator<TypeRef> {
+  switch (emit.t) {
+    case 'enum': {
+      for (const i of emit.variants) yield* visitRefs(i.type)
+      break
+    }
+    case 'struct': {
+      for (const i of emit.fields) yield* visitRefs(i.type)
+      break
+    }
+    case 'tuple': {
+      for (const i of emit.elements) yield* visitRefs(i)
+      break
+    }
+    case 'alias': {
+      yield* visitRefs(emit.to)
+      break
+    }
+  }
+}
+
+/**
+ * See {@link arrangeEmits}
+ */
+const CYCLE_BREAK_POINTS = new Set(['InstructionBox'])
+
+/**
+ * Arranges entries in a _topological order_ using [depth-first search](https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search).
+ *
+ * The algorithm is designed for DAGs (directed **acyclic** graphs).
+ * However, the schema has _one_ cycle, with `InstructionBox` type.
+ * To resolve this, the algorithm pretends as if no one refers to `InstructionBox`.
+ * For this reason, all references to `InstructionBox` in the emitted code **must be lazy**.
+ */
+function arrangeEmits(map: EmitsMap): string[] {
+  const graph = new Map<string, Set<string>>()
+  for (const [key, emit] of map) {
+    const refs = new Set<string>()
+    for (const ident of visitEmitRefs(emit)) {
+      if (ident.t === 'local')
+        if (CYCLE_BREAK_POINTS.has(ident.id)) invariant(ident.lazy, `reference from ${key} to ${ident.id} must be lazy`)
+        else refs.add(ident.id)
+    }
+    graph.set(key, refs)
+  }
+
+  const temporary = new Set<string>()
+  const permanent = new Set<string>()
+  const sorted = new Array<string>()
+
+  function visit(n: string) {
+    if (permanent.has(n)) return
+    if (temporary.has(n)) throw new Error(`cycle: ${n}`)
+
+    temporary.add(n)
+    for (const m of graph.get(n)!) visit(m)
+
+    temporary.delete(n)
+    permanent.add(n)
+    sorted.push(n)
+  }
+
+  for (const n of graph.keys()) {
+    visit(n)
+  }
+
+  invariant(sorted.length === map.size)
+  return sorted
+}
+
+interface RefRender {
   /** type-layer, `T` */
   type: string
-  /** value that has type `Codec<T>` */
+  /** expression of type `Codec<T>` */
   codec: string
-  /** Zod schema */
-  schema: string
-  /** typeof schema */
-  typeofSchema: string
 }
 
-function generateIdent(ident: TypeIdent, params?: { removeDefault?: boolean }): IdentGenerated {
-  return match(ident)
-    .returnType<IdentGenerated>()
-    .with({ t: 'ref', generics: P.array() }, ({ id, generics, schema }) => {
+function renderRef(ref: TypeRef): RefRender {
+  return match(ref)
+    .returnType<RefRender>()
+    .with({ t: 'local', params: P.array() }, ({ id, params }) => {
       return {
-        type: id + `<${generics.map((x) => generateIdent(x).type).join(', ')}>`,
-        codec: `lib.lazyCodec(() => ${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')}))`,
-        schema: schema ?? `z.lazy(() => ${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')}))`,
-        typeofSchema: `ReturnType<typeof ${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
+        type: id + `<${params.map((x) => renderRef(x).type).join(', ')}>`,
+        codec: `lib.codecOf(${id}.with(${params.map((x) => renderRef(x).codec).join(', ')}))`,
       }
     })
-    .with({ t: 'ref' }, ({ id, schema }) => ({
-      type: id,
-      codec: `lib.lazyCodec(() => ${id}$codec)`,
-      schema: schema ?? `z.lazy(() => ${id}$schema)`,
-      typeofSchema: `z.ZodLazy<typeof ${id}$schema>`,
-    }))
-    .with({ t: 'lib', generics: P.array() }, ({ id, generics, schema }) => {
-      const maybeRemoveDefault = (params?.removeDefault ?? false) && id === 'Vec' ? '.removeDefault()' : ''
-      const typeGenerics = match({ id, generics })
-        .with({ id: P.union('U8Array', 'U16Array'), generics: [{ t: 'special-array-generic-len' }] }, () => '')
-        .otherwise(() => `<${generics.map((x) => generateIdent(x).type).join(', ')}>`)
+    .with({ t: 'local' }, ({ id, lazy }) => {
+      const codec = `lib.codecOf(${id})`
+      return {
+        type: id,
+        codec: lazy ? `lib.lazyCodec(() => ${codec})` : codec,
+      }
+    })
+    .with({ t: 'lib', params: P.array() }, ({ id, params: params }) => {
+      const typeGenerics = `<${params.map((x) => renderRef(x).type).join(', ')}>`
 
       return {
         type: `lib.${id}${typeGenerics}`,
-        codec: `lib.${id}$codec(${generics.map((x) => generateIdent(x).codec).join(', ')})`,
-        schema:
-          schema ?? `lib.${id}$schema(${generics.map((x) => generateIdent(x).schema).join(', ')})${maybeRemoveDefault}`,
-        typeofSchema: `ReturnType<typeof lib.${id}$schema<${generics.map((x) => generateIdent(x).typeofSchema).join(', ')}>>`,
+        codec: `lib.codecOf(lib.${id}.with(${params.map((x) => renderRef(x).codec).join(', ')}))`,
       }
     })
-    .with({ t: 'lib' }, ({ id, schema }) => {
+    .with({ t: 'lib' }, ({ id }) => {
       return {
         type: `lib.${id}`,
-        codec: `lib.${id}$codec`,
-        schema:
-          schema ??
-          match(id)
-            .with('String', () => `z.string()`)
-            .with('Bool', () => `z.boolean()`)
-            .otherwise(() => `lib.${id}$schema`),
-        typeofSchema: match(id)
-          .with('String', () => `z.ZodString`)
-          .with('Bool', () => `z.ZodBoolean`)
-          .otherwise(() => `typeof lib.${id}$schema`),
+        codec: `lib.codecOf(lib.${id})`,
       }
     })
-    .with({ t: 'special-array-generic-len' }, ({ len }) => ({
+    .with({ t: 'lib-array' }, ({ len }) => ({
       type: String(len),
       codec: String(len),
-      schema: String(len),
-      typeofSchema: String(len),
     }))
-    .with({ t: 'special-predicate-box-not-value' }, () => {
-      const base = generateIdent({ t: 'ref', id: 'PredicateBox' })
-      // need to remove default here
-      return { ...base, schema: `z.lazy(() => PredicateBox$schema.removeDefault())` }
-    })
-    .with({ t: 'gen' }, ({ genericIndex }) => {
+    .with({ t: 'param' }, ({ index }) => {
       return {
-        type: `T${genericIndex}`,
-        codec: `t${genericIndex}`,
-        schema: `t${genericIndex}`,
-        typeofSchema: '???', // TODO
+        type: `T${index}`,
+        codec: `t${index}`,
       }
     })
     .with({ t: 'null' }, () => ({
       type: 'null',
       codec: 'lib.nullCodec',
-      schema: 'z.null().default(null)',
-      typeofSchema: 'z.ZodDefault<z.ZodNull>',
     }))
     .exhaustive()
 }
 
-function generateZodDiscriminatedUnion(variants: CodegenEnumVariant[], params?: { removeDefault?: boolean }): string {
-  const options = variants.map((variant) => {
-    return match(variant)
-      .with(
-        { t: 'with-type' },
-        ({ tag, type }) => `z.object({ t: z.literal('${tag}'), value: ${generateIdent(type, params).schema} })`,
-      )
-      .with({ t: 'unit' }, ({ tag }) => `z.object({ t: z.literal('${tag}') })`)
-      .exhaustive()
-  })
-
-  return `z.discriminatedUnion('t', [${options.join(', ')}])`
-}
-
-function generateBaseEnumCodec(variants: CodegenEnumVariant[]): string {
+function renderBaseEnumCodec(variants: EmitEnumVariant[]): string {
   const types = variants.map((variant) =>
     match(variant)
-      .with({ t: 'unit' }, ({ tag }) => `${tag}: []`)
-      .with({ t: 'with-type' }, ({ tag, type }) => `${tag}: [${generateIdent(type).type}]`)
-      .exhaustive(),
+      .with({ type: { t: 'null' } }, ({ tag }) => `${tag}: []`)
+      .otherwise(({ tag, type }) => `${tag}: [${renderRef(type).type}]`),
   )
   const options = variants.map((variant) =>
     match(variant)
-      .with({ t: 'unit' }, ({ tag, discriminant }) => `[${discriminant}, '${tag}']`)
-      .with(
-        { t: 'with-type' },
-        ({ tag, discriminant, type }) => `[${discriminant}, '${tag}', ${generateIdent(type).codec}]`,
-      )
-      .exhaustive(),
+      .with({ type: { t: 'null' } }, ({ tag, discriminant }) => `[${discriminant}, '${tag}']`)
+      .otherwise(({ tag, discriminant, type }) => `[${discriminant}, '${tag}', ${renderRef(type).codec}]`),
   )
   return `lib.enumCodec<{ ${types.join(', ')} }>([${options.join(', ')}])`
 }
 
-function generateDiscriminatedUnionExplicitTypes(variants: CodegenEnumVariant[]) {
-  const typeInputOutput = variants
-    .map((variant) =>
-      match(variant)
-        .with({ t: 'unit' }, ({ tag }) => `{ t: '${tag}' }`)
-        .with({ t: 'with-type' }, ({ tag, type }) => ({
-          output: `{ t: '${tag}', value: ${generateIdent(type).type} }`,
-          input: `{ t: '${tag}', value: z.input<${generateIdent(type).typeofSchema}> }`,
-        }))
-        .exhaustive(),
-    )
-    .map((x) =>
-      match(x)
-        .with(P.string, (output) => ({ output, input: output }))
-        .otherwise((x) => x),
-    )
+function renderSumTypes(variants: EmitEnumVariant[]) {
+  const mapped = variants.map((variant) =>
+    match(variant)
+      .with({ type: { t: 'null' } }, ({ tag }) => `lib.SumTypeKind<'${tag}'>`)
+      .otherwise(({ tag, type }) => `lib.SumTypeKindValue<'${tag}', ${renderRef(type).type}>`),
+  )
 
-  const output = typeInputOutput.map((x) => x.output).join(' | ')
-  const input = typeInputOutput.map((x) => x.input).join(' | ')
-
-  return { input, output }
+  return mapped.join(' | ')
 }
 
-function generateParseFn(id: string) {
-  return `export const ${id} = (input: z.input<typeof ${id}$schema>): ${id} => ${id}$schema.parse(input)`
+export function renderShortcutsTree(root: EnumShortcutsTree): string {
+  interface State {
+    head: { id0: string; var0: string }
+    chain: string[]
+  }
+
+  const genChain = (chain: string[]) => chain.join('.')
+
+  function iter(tree: EnumShortcutsTree, stateIn: State | null = null) {
+    return tree.variants
+      .map((variant): string => {
+        const state = match(stateIn)
+          .returnType<State>()
+          .with(null, () => ({ head: { id0: tree.id, var0: variant.name }, chain: [] }))
+          .with({ chain: [] }, ({ head }) => ({ head, chain: [tree.id, variant.name] }))
+          .otherwise(({ head, chain }) => ({ head, chain: [...chain, variant.name] }))
+
+        const right = match(variant)
+          .returnType<string>()
+          .with({ t: 'unit' }, () =>
+            match(state)
+              .with({ chain: [] }, ({ head }) => `Object.freeze<${head.id0}>({ kind: '${head.var0}' })`)
+              .otherwise(
+                ({ head, chain }) => `Object.freeze<${head.id0}>({ kind: '${head.var0}', value: ${genChain(chain)} })`,
+              ),
+          )
+          .with({ t: 'value' }, ({ value_ty }) =>
+            match(state)
+              .with(
+                { chain: [] },
+                ({ head }) => `(value: ${renderRef(value_ty).type}): ${head.id0} => ({ kind: '${head.var0}', value })`,
+              )
+              .otherwise(
+                ({ head, chain }) =>
+                  `(value: ${renderRef(value_ty).type}): ${head.id0} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
+              ),
+          )
+          .with({ t: 'enum' }, ({ tree }) => {
+            const nested = iter(tree, state)
+            return `{ ${nested} }`
+          })
+          .exhaustive()
+
+        return `${variant.name}: ${right}`
+      })
+      .join(', ')
+  }
+
+  return iter(root)
+}
+const CODEC_SYMBOL = `[lib.CodecSymbol]`
+
+function renderCodecKeyValue(id: string, content: string): string {
+  return `${CODEC_SYMBOL}: ${content} satisfies lib.Codec<${id}>`
 }
 
-/**
- * TODO:
- *
- * - tx payload: time to live default to some value
- * - query payload:
- *   - default pagination with nones
- * - Discriminated unions: extend objects??
- * - implement conversions between ids/names via zod transform!
- * - ip adds with string inputs!
- */
-function generateSingleEntry(item: CodegenEntry): string {
-  return match(item)
-    .returnType<string[]>()
-    .with({ t: 'enum', mode: 'normal', variants: P.array({ t: 'unit' }) }, ({ id, variants }) => {
-      const literals = variants.map((x) => `z.literal('${x.tag}')`)
-      const zodSchema = literals.length === 1 ? literals.at(0)! : `z.union([${literals.join(', ')}])`
-      return [
-        `export type ${id} = z.infer<typeof ${id}$schema>`,
-        generateParseFn(id),
-        `export const ${id}$schema = ${zodSchema}`,
-        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.literalUnion()`,
-      ]
-    })
-    .with({ t: 'enum', mode: 'normal' }, ({ variants, id }) => {
-      return [
-        `export type ${id} = z.infer<typeof ${id}$schema>`,
-        generateParseFn(id),
-        `export const ${id}$schema  = ${generateZodDiscriminatedUnion(variants)}`,
-        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
-      ]
-    })
-    .with({ t: 'enum', mode: 'explicit' }, ({ id, variants }) => {
-      const type = generateDiscriminatedUnionExplicitTypes(variants)
-      return [
-        `export type ${id} = ${type.output}`,
-        generateParseFn(id),
-        `type ${id}$input = ${type.input}`,
-        `export const ${id}$schema: z.ZodType<${id}, z.ZodTypeDef, ${id}$input> = ${generateZodDiscriminatedUnion(variants, { removeDefault: true })}`,
-        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
-      ]
-    })
-    .with({ t: 'enum', mode: 'explicit-default' }, ({ id, variants, default: _default }) => {
-      const type = generateDiscriminatedUnionExplicitTypes(variants)
-      return [
-        `export type ${id} = ${type.output}`,
-        generateParseFn(id),
-        `type ${id}$input = ${type.input}`,
-        `export const ${id}$schema: z.ZodDefault<z.ZodType<${id}, z.ZodTypeDef, ${id}$input>> = ` +
-          generateZodDiscriminatedUnion(variants, { removeDefault: true }) +
-          `.default(${_default})`,
-        `export const ${id}$codec: lib.Codec<${id}> = ${generateBaseEnumCodec(variants)}.discriminated()`,
-      ]
-    })
-    .with({ t: 'struct' }, ({ id, fields, schema: schemaFn }) => {
-      const schemaFields = fields.map((x) => `${camelCase(x.name)}: ${generateIdent(x.type).schema}`).join(', ')
-      const schemaBase = `z.object({ ${schemaFields} })`
-      const schema = schemaFn?.(schemaBase) ?? schemaBase
-      const codecFields = fields.map((x) => `['${camelCase(x.name)}', ${generateIdent(x.type).codec}]`).join(', ')
+function renderEmit(id: string, map: EmitsMap): string {
+  const emit = map.get(id)
+  invariant(emit)
+  return (
+    match(emit)
+      .returnType<string[]>()
+      // TODO: simple enums
+      // .with({ t: 'enum', variants: P.array({ t: 'unit' }) }, ({ id, variants }) => {
+      //   return [`// TODO simple enum ${id}`]
+      // })
+      // .with({ t: 'enum', variants: [] }, () => ({}))
+      .with({ t: 'enum', variants: [] }, () => [
+        `export type ${id} = never`,
+        `export const ${id} = { ${CODEC_SYMBOL}: lib.neverCodec }`,
+      ])
+      .with({ t: 'enum' }, ({ variants }) => {
+        const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
+        const codec = renderBaseEnumCodec(variants) + `.discriminated()`
 
-      return [
-        `export type ${id} = z.infer<typeof ${id}$schema>`,
-        generateParseFn(id),
-        `export const ${id}$schema = ${schema}`,
-        `export const ${id}$codec = lib.structCodec<${id}>([${codecFields}])`,
-      ]
-    })
-    .with({ t: 'tuple' }, ({ id, elements }) => {
-      const schemaElements = elements.map((x) => generateIdent(x).schema)
-      const codecElements = elements.map((x) => generateIdent(x).codec)
-      return [
-        `export type ${id} = z.infer<typeof ${id}$schema>`,
-        generateParseFn(id),
-        `export const ${id}$schema = z.tuple([${schemaElements.join(', ')}])`,
-        `export const ${id}$codec: lib.Codec<${id}> = lib.tupleCodec([${codecElements.join(', ')}])`,
-      ]
-    })
-    .with({ t: 'bitmap' }, ({ id, masks, repr }) => {
-      invariant(repr === 'U32')
+        return [
+          // `/** */`,
+          `export type ${id} = ${renderSumTypes(variants)}`,
+          `export const ${id} = { ${shortcuts}, ${CODEC_SYMBOL}: ${codec} }`,
+        ]
+      })
+      .with({ t: 'struct' }, ({ fields }) => {
+        let maxGenericsIndex = -1
+        for (const field of fields) {
+          for (const ty of visitRefs(field.type)) {
+            if (ty.t === 'param') maxGenericsIndex = Math.max(maxGenericsIndex, ty.index)
+          }
+        }
 
-      const literal = (x: string) => `z.literal('${x}')`
-      const literalSchema = match(masks)
-        .with([], () => {
-          throw new Error('bitmask has zero masks')
-        })
-        .with([P._], ([{ name }]) => literal(name))
-        .otherwise((twoOrMore) => `z.union([${twoOrMore.map((x) => literal(x.name)).join(', ')}])`)
-      const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
+        const typeFields = fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).type}`).join(', ')
+        const codecFieldsOrder = '[' + fields.map((x) => `'${camelCase(x.name)}'`).join(', ') + ']'
+        const codecFieldsMap =
+          '{' + fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).codec}`).join(', ') + '}'
+        const codec = (codecTy: string) => `lib.structCodec<${codecTy}>(${codecFieldsOrder}, ${codecFieldsMap})`
 
-      return [
-        `export type ${id} = z.infer<typeof ${id}$schema>`,
-        generateParseFn(id),
-        `const ${id}$literalSchema = ${literalSchema}`,
-        `export const ${id}$schema = z.set(${id}$literalSchema).or(z.array(${id}$literalSchema).transform(arr => new Set(arr)))`,
-        `export const ${id}$codec = lib.bitmap<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`,
-      ]
-    })
-    .with({ t: 'struct-gen' }, ({ id, genericsCount, fields }) => {
-      const mapGenerics = <T>(f: (index: number) => T): Array<T> =>
-        Array.from({ length: genericsCount }, (_v, i) => f(i))
+        if (maxGenericsIndex >= 0) {
+          const generics = Array.from({ length: maxGenericsIndex + 1 }, (_v, i) => renderRef({ t: 'param', index: i }))
 
-      const genericsTypes = mapGenerics((i) => `T${i}`).join(', ')
-      const typeFields = fields.map(({ name, type }) => `${camelCase(name)}: ` + generateIdent(type).type).join(', ')
+          const genericTypes = generics.map((x) => x.type).join(', ')
+          const withArgs = generics.map((x) => `${x.codec}: lib.Codec<${x.type}>`).join(', ')
+          const withRet = `({ ${CODEC_SYMBOL}: ${codec(`${id}<${genericTypes}>`)} })`
 
-      const zodFields = fields
-        .map(({ name, type }) => {
-          const schema = generateIdent(type).schema
-          return `${camelCase(name)}: ${schema}`
-        })
-        .join(', ')
-      const schemaFn = `<${mapGenerics((i) => `T${i} extends z.ZodType`).join(', ')}>(${mapGenerics(
-        (i) => `t${i}: T${i}`,
-      ).join(', ')}) => z.object({ ${zodFields} })`
+          return [
+            `export interface ${id}<${genericTypes}> { ${typeFields} }`,
+            `export const ${id} = { ` +
+              `with: <${genericTypes}>(${withArgs}): lib.CodecProvider<${id}<${genericTypes}>> => ${withRet} }`,
+          ]
+        } else {
+          return [
+            `export interface ${id} { ${typeFields} }`,
+            `export const ${id}: lib.CodecProvider<${id}> = { ${CODEC_SYMBOL}: ${codec(id)} }`,
+          ]
+        }
+      })
+      .with({ t: 'tuple' }, ({ elements }) => {
+        const typeElements = elements.map((x) => renderRef(x).type)
+        const codecElements = elements.map((x) => renderRef(x).codec)
+        const codec = `lib.tupleCodec([${codecElements.join(', ')}])`
+        return [
+          `export type ${id} = [${typeElements.join(', ')}]`,
+          `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
+        ]
+      })
+      .with({ t: 'bitmap' }, ({ masks, repr }) => {
+        invariant(repr === 'U32')
 
-      const codecSchemaItems = fields
-        .map(({ name, type }) => {
-          const codec = generateIdent(type).codec
-          return `['${camelCase(name)}', ${codec}]`
-        })
-        .join(', ')
-      const codecFn = `<${mapGenerics((i) => `T${i}`).join(', ')}>(${mapGenerics((i) => `t${i}: lib.Codec<T${i}>`).join(
-        ', ',
-      )}) => lib.structCodec([${codecSchemaItems}])`
+        const typeLiterals = masks.map((x) => `'${x.name}'`)
+        const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
+        const codec = `lib.bitmapCodec<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`
 
-      return [
-        `export interface ${id}<${genericsTypes}> { ${typeFields} }`,
-        `export const ${id}$schema = ${schemaFn}`,
-        `export const ${id}$codec = ${codecFn}`,
-        // TODO: parse fn?
-      ]
-    })
-    .with({ t: 'alias' }, ({ id, to }) => {
-      return [
-        `export type ${id} = ${generateIdent(to).type}`,
-        generateParseFn(id),
-        `export const ${id}$schema = ${generateIdent(to).schema}`,
-        `export const ${id}$codec = ${generateIdent(to).codec}`,
-      ]
-    })
-    .with({ t: 'branded-alias' }, ({ id, to }) => {
-      return [
-        `export type ${id} = z.infer<typeof ${id}$schema>`,
-        generateParseFn(id),
-        `export const ${id}$schema = ${generateIdent(to).schema}.brand<'${id}'>()`,
-        `export const ${id}$codec = ${generateIdent(to).codec} as lib.Codec<${id}>`,
-      ]
-    })
-    .with({ t: 'never' }, ({ id }) => [
-      `export type ${id} = never`,
-      `export const ${id}$schema = z.never()`,
-      `export const ${id}$codec = lib.neverCodec`,
-    ])
-    .exhaustive()
-    .join('\n')
+        return [
+          `export type ${id} = Set<${typeLiterals.join(' | ')}>`,
+          `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
+        ]
+      })
+      .with({ t: 'alias' }, ({ to }) => {
+        return [
+          `export type ${id} = ${renderRef(to).type}`,
+          `export const ${id} = { ${CODEC_SYMBOL}: ${renderRef(to).codec} }`,
+        ]
+      })
+      .exhaustive()
+      .join('\n')
+  )
 }
 
 function upcase<S extends string>(s: S): Uppercase<S> {
   return s.toUpperCase() as Uppercase<S>
 }
 
-/**
- * Structured model of an identifier from Iroha schema, e.g. `Map<Key, Option<T>>`
- */
-interface RawIdent {
-  id: string
-  items: RawIdent[]
-  path?: string[]
-}
+// function generateQueryImpls(schema: EmitTypesMap, queryImpls: QueryImpl[], resolver: Resolver) {
+//   const iterableOutputVariants = match(schema.get('QueryOutputBatchBox'))
+//     .with({ t: 'enum' }, ({ variants }) => variants)
+//     .otherwise((x) => {
+//       throw new Error(`unexpected iterable query output box: ${String(x)}`)
+//     })
+//     .map((x) =>
+//       match(x)
+//         .with({ tag: P.select('tag'), type: { t: 'lib', id: 'Vec', generics: [P.select('type')] } }, (x) => x)
+//         .otherwise(() => {
+//           throw new Error('bad variant')
+//         }),
+//     )
+//   const singularOutputVariants = match(schema.get('SingularQueryOutputBox'))
+//     .with({ t: 'enum' }, ({ variants }) => variants)
+//     .otherwise((x) => {
+//       throw new Error(`unexpected singular query output box: ${String(x)}`)
+//     })
+//     .map((x) =>
+//       match(x)
+//         .with({ tag: P.select('tag'), type: P.select('type') }, (x) => x)
+//         .otherwise(() => {
+//           throw new Error('bad variant')
+//         }),
+//     )
 
-export function parseRawIdent(src: string): RawIdent {
-  const stack: RawIdent[] = [{ id: '__root__', items: [] }]
+//   const { singular, iter } = queryImpls.reduce(
+//     (acc, impl) => {
+//       if (impl.t === 'singular') acc.singular.push(impl)
+//       else acc.iter.push(impl)
+//       return acc
+//     },
+//     { singular: new Array<QueryImpl>(), iter: new Array<QueryImpl>() },
+//   )
 
-  for (const [token] of src.matchAll(/(<|>|(?:[\w_]+|::)+)/gi)) {
-    if (token === '<') {
-      const lastItem = stack.at(-1)?.items.at(-1)
-      invariant(lastItem, 'should be')
-      stack.push(lastItem)
-    } else if (token === '>') {
-      invariant(stack.pop(), 'should be')
-    } else {
-      const head = stack.at(-1)
-      invariant(head, 'should be')
-      const idWithPath = token.split('::')
-      const id = idWithPath.at(-1)!
-      const path = idWithPath.length > 1 ? idWithPath.slice(0, -1) : undefined
-      head.items.push({ id, items: [], path })
-    }
-  }
+//   const outputTypes = (impls: QueryImpl[]) =>
+//     impls
+//       .map((impl) => {
+//         const outputTypeId = ident.transform(impl.output)
+//         const outputIdent = match(impl)
+//           .returnType<TypeRef>()
+//           .with({ t: 'singular' }, () => outputTypeId)
+//           .with({ t: 'iter' }, () => ({ t: 'lib', id: 'Vec', params: [outputTypeId] }))
+//           .exhaustive()
 
-  return match(stack)
-    .with([{ id: '__root__', items: [P.select()] }], (trueRoot) => trueRoot)
-    .otherwise((x) => {
-      console.error('bad state:', x)
-      throw new Error('Bad state')
-    })
-}
+//         return { query: impl.query, type: renderRef(outputIdent).type }
+//       })
+//       .map((x) => `  ${x.query}: ${x.type}`)
+//       .join('\n')
 
-function generateQueryImpls(schema: ActualCodegenSchema, queryImpls: QueryImpl[], ident: TransformIdent) {
-  const iterableOutputVariants = match(schema.find((x) => x.id === 'QueryOutputBatchBox'))
-    .with({ t: 'enum' }, ({ variants }) => variants)
-    .otherwise((x) => {
-      throw new Error(`unexpected iterable query output box: ${String(x)}`)
-    })
-    .map((x) =>
-      match(x)
-        .with(
-          { t: 'with-type', tag: P.select('tag'), type: { t: 'lib', id: 'Vec', generics: [P.select('type')] } },
-          (x) => x,
-        )
-        .otherwise(() => {
-          throw new Error('bad variant')
-        }),
-    )
-  const singularOutputVariants = match(schema.find((x) => x.id === 'SingularQueryOutputBox'))
-    .with({ t: 'enum' }, ({ variants }) => variants)
-    .otherwise((x) => {
-      throw new Error(`unexpected singular query output box: ${String(x)}`)
-    })
-    .map((x) =>
-      match(x)
-        .with({ t: 'with-type', tag: P.select('tag'), type: P.select('type') }, (x) => x)
-        .otherwise(() => {
-          throw new Error('bad variant')
-        }),
-    )
+//   const outputKinds = (impls: QueryImpl[], variants: { tag: string; type: TypeRef }[]) =>
+//     impls
+//       .map(({ query, output }) => {
+//         const outputTypeId = ident.transform(output)
+//         const tag = match(
+//           variants.find((x) =>
+//             match(x)
+//               .with({ type: P.when((x) => deepEqual(x, outputTypeId)) }, () => true)
+//               .otherwise(() => false),
+//           ),
+//         )
+//           .with({ tag: P.select() }, (tag) => tag)
+//           .otherwise(() => {
+//             throw new Error(`Expected to find a variant for '${query}' query`)
+//           })
+//         return `  ${query}: '${tag}',`
+//       })
+//       .join('\n')
 
-  const { singular, iter } = queryImpls.reduce(
-    (acc, impl) => {
-      if (impl.t === 'singular') acc.singular.push(impl)
-      else acc.iter.push(impl)
-      return acc
-    },
-    { singular: new Array<QueryImpl>(), iter: new Array<QueryImpl>() },
-  )
-
-  const outputTypes = (impls: QueryImpl[]) =>
-    impls
-      .map((impl) => {
-        const outputTypeId = ident.transform(impl.output)
-        const outputIdent = match(impl)
-          .returnType<TypeIdent>()
-          .with({ t: 'singular' }, () => outputTypeId)
-          .with({ t: 'iter' }, () => ({ t: 'lib', id: 'Vec', generics: [outputTypeId] }))
-          .exhaustive()
-
-        return { query: impl.query, type: generateIdent(outputIdent).type }
-      })
-      .map((x) => `  ${x.query}: ${x.type}`)
-      .join('\n')
-
-  const outputKinds = (impls: QueryImpl[], variants: { tag: string; type: TypeIdent }[]) =>
-    impls
-      .map(({ query, output }) => {
-        const outputTypeId = ident.transform(output)
-        const tag = match(
-          variants.find((x) =>
-            match(x)
-              .with({ type: P.when((x) => deepEqual(x, outputTypeId)) }, () => true)
-              .otherwise(() => false),
-          ),
-        )
-          .with({ tag: P.select() }, (tag) => tag)
-          .otherwise(() => {
-            throw new Error(`Expected to find a variant for '${query}' query`)
-          })
-        return `  ${query}: '${tag}',`
-      })
-      .join('\n')
-
-  return [
-    `export type QueryOutputMap = {\n${outputTypes(iter)}\n}`,
-    `export const QueryOutputKindMap = {\n${outputKinds(iter, iterableOutputVariants)}\n} as const`,
-    `export type SingularQueryOutputMap = {\n${outputTypes(singular)}\n}`,
-    `export const SingularQueryOutputKindMap = {\n${outputKinds(singular, singularOutputVariants)}\n} as const`,
-  ].join('\n')
-}
+//   return [
+//     `export interface QueryOutputMap {\n${outputTypes(iter)}\n}`,
+//     `export const QueryOutputKindMap = {\n${outputKinds(iter, iterableOutputVariants)}\n} as const`,
+//     `export interface SingularQueryOutputMap {\n${outputTypes(singular)}\n}`,
+//     `export const SingularQueryOutputKindMap = {\n${outputKinds(singular, singularOutputVariants)}\n} as const`,
+//   ].join('\n')
+// }

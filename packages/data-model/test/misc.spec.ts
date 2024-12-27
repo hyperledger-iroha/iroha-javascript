@@ -1,8 +1,8 @@
 import { KeyPair, PublicKey } from '@iroha2/crypto-core'
-import { datamodel } from '@iroha2/data-model'
+import { types } from '@iroha2/data-model'
 import { describe, expect, onTestFinished, test, vi } from 'vitest'
 import type { z } from 'zod'
-import { parseHex } from '../src/util'
+import { hexDecode } from '../src/util'
 import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util'
 
 describe('JSON serialisation', () => {
@@ -11,14 +11,14 @@ describe('JSON serialisation', () => {
     const DOMAIN = 'badland'
     const ID = `${SIGNATORY}@${DOMAIN}`
 
-    expect(datamodel.AccountId.parse(ID).toJSON()).toEqual(ID)
-    expect(datamodel.AccountId.parse({ signatory: SIGNATORY, domain: DOMAIN }).toJSON()).toEqual(ID)
+    expect(types.AccountId.parse(ID).toJSON()).toEqual(ID)
+    expect(types.AccountId.parse({ signatory: SIGNATORY, domain: DOMAIN }).toJSON()).toEqual(ID)
   })
 
   test('AccountId (after being decoded)', () => {
     const pk = KeyPair.random().publicKey()
-    const decoded = datamodel.AccountId$codec.decode(
-      datamodel.AccountId$codec.encode(datamodel.AccountId.parse({ signatory: pk, domain: 'test' })),
+    const decoded = types.AccountId$codec.decode(
+      types.AccountId$codec.encode(types.AccountId.parse({ signatory: pk, domain: 'test' })),
     )
 
     expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)
@@ -27,18 +27,18 @@ describe('JSON serialisation', () => {
 
 describe('Validation', () => {
   test('Empty JSON string', () => {
-    expect(() => datamodel.Json.fromJsonString('')).toThrowErrorMatchingInlineSnapshot(
+    expect(() => types.Json.fromJsonString('')).toThrowErrorMatchingInlineSnapshot(
       `[Error: JSON string cannot be empty]`,
     )
   })
 
   test.each(['  alice  ', 'ali ce', 'ali@ce', '', 'ali#ce'])('Name validation fails for %o', (sample) => {
-    expect(() => datamodel.Name(sample)).toThrowError()
+    expect(() => types.Name(sample)).toThrowError()
   })
 })
 
 test('Parse AssetId with different domains', () => {
-  const parsed = datamodel.AssetId$schema.parse(
+  const parsed = types.AssetId$schema.parse(
     'rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
   )
 
@@ -52,7 +52,7 @@ test('Parse AssetId with different domains', () => {
 })
 
 test('Fails to parse invalid account id with bad signatory', () => {
-  expect(() => datamodel.AccountId$schema.parse('test@test')).toThrowErrorMatchingInlineSnapshot(`
+  expect(() => types.AccountId$schema.parse('test@test')).toThrowErrorMatchingInlineSnapshot(`
     [ZodError: [
       {
         "code": "custom",
@@ -66,7 +66,7 @@ test('Fails to parse invalid account id with bad signatory', () => {
 })
 
 test('Fails to parse account id with multiple @', () => {
-  expect(() => datamodel.AccountId$schema.parse('a@b@c')).toThrowErrorMatchingInlineSnapshot(`
+  expect(() => types.AccountId$schema.parse('a@b@c')).toThrowErrorMatchingInlineSnapshot(`
       [ZodError: [
         {
           "code": "custom",
@@ -84,7 +84,7 @@ test('tx payload default creation time', () => {
     vi.useRealTimers()
   })
 
-  const txPayload = datamodel.TransactionPayload({
+  const txPayload = types.TransactionPayload({
     chain: 'whatever',
     authority: SAMPLE_ACCOUNT_ID,
     instructions: { t: 'Instructions' },
@@ -95,7 +95,7 @@ test('tx payload default creation time', () => {
 
 describe('Status', () => {
   test('Documented example at https://hyperledger.github.io/iroha-2-docs/reference/torii-endpoints.html#status', () => {
-    const STATUS: datamodel.Status = {
+    const STATUS: types.Status = {
       peers: 4n,
       blocks: 5n,
       txsAccepted: 31n,
@@ -109,12 +109,12 @@ describe('Status', () => {
     }
     const ENCODED = '10 14 7C 0C 14 40 7C D9 37 08 48'
 
-    expect(datamodel.Status$codec.encode(STATUS)).toEqual(fromHexWithSpaces(ENCODED))
-    expect(datamodel.Status$codec.decode(fromHexWithSpaces(ENCODED))).toEqual(STATUS)
+    expect(types.Status$codec.encode(STATUS)).toEqual(fromHexWithSpaces(ENCODED))
+    expect(types.Status$codec.decode(fromHexWithSpaces(ENCODED))).toEqual(STATUS)
   })
 
   test('From zeros', () => {
-    expect(datamodel.Status$codec.decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00'))).toMatchInlineSnapshot(`
+    expect(types.Status$codec.decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00'))).toMatchInlineSnapshot(`
         {
           "blocks": 0n,
           "peers": 0n,
@@ -137,10 +137,10 @@ test.each([
   { algorithm: 'ed25519', payload: 'B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E' },
   {
     algorithm: 'ed25519',
-    payload: Uint8Array.from(parseHex('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')),
+    payload: Uint8Array.from(hexDecode('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')),
   },
-] satisfies z.input<typeof datamodel.PublicKey$schema>[])('Parse public key from %o', (input) => {
-  const value = datamodel.PublicKey$schema.parse(input)
+] satisfies z.input<typeof types.PublicKey$schema>[])('Parse public key from %o', (input) => {
+  const value = types.PublicKey$schema.parse(input)
   expect(value.algorithm).toEqual('ed25519')
   expect(toHex(value.payload)).toEqual('B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'.toLowerCase())
 })

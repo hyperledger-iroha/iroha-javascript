@@ -1,80 +1,110 @@
 import * as scale from '@scale-codec/core'
-import type { z } from 'zod'
-import { parseHex } from './util'
-import type { U32 } from './datamodel/index'
-import { U32$codec, U32$schema } from './datamodel/index'
+import { hexDecode } from './util'
+import type { SumTypeKind, SumTypeKindValue } from './util'
 
 export interface RawScaleCodec<T> {
   encode: scale.Encode<T>
   decode: scale.Decode<T>
 }
 
+/**
+ * Symbol used {@link CodecProvider}
+ */
+export const CodecSymbol = Symbol('codec')
+
+/**
+ * Marks an object that provides a codec over some data type.
+ *
+ * Use {@link codecOf} to get the codec from the provider.
+ */
+export interface CodecProvider<T> {
+  [CodecSymbol]: Codec<T>
+}
+
+/**
+ * Get underlying {@link Codec} from the {@link CodecProvider}
+ */
+export function codecOf<T>(provider: CodecProvider<T>): Codec<T> {
+  return provider[CodecSymbol]
+}
+
+/**
+ * Generic codec.
+ *
+ * Unlike {@link RawScaleCodec}, provides higher-level encode/decode functions, as well as some composition utilities.
+ */
 export class Codec<T> {
+  /**
+   * Create a lazy codec, by only having a getter to the actual codec.
+   *
+   * The getter is called for each codec access and is not cached.
+   */
   public static lazy<T>(f: () => Codec<T>): Codec<T> {
-    return new Codec(
-      scale.encodeFactory(
-        (v, w) => f().rawEncode(v, w),
-        (v) => f().rawEncode.sizeHint(v),
+    return new Codec({
+      encode: scale.encodeFactory(
+        (v, w) => f().raw.encode(v, w),
+        (v) => f().raw.encode.sizeHint(v),
       ),
-      (w) => f().rawDecode(w),
-    )
+      decode: (w) => f().raw.decode(w),
+    })
   }
 
-  public rawEncode: scale.Encode<T>
-  public rawDecode: scale.Decode<T>
+  /**
+   * Access lower-level SCALE codec
+   */
+  public readonly raw: RawScaleCodec<T>
 
-  public constructor(encode: scale.Encode<T>, decode: scale.Decode<T>) {
-    this.rawEncode = encode
-    this.rawDecode = decode
+  public constructor(raw: RawScaleCodec<T>) {
+    this.raw = raw
   }
 
   public encode(value: T): Uint8Array {
-    return scale.WalkerImpl.encode(value, this.rawEncode)
+    return scale.WalkerImpl.encode(value, this.raw.encode)
   }
 
   public decode(data: string | ArrayBufferView): T {
-    const parsed = ArrayBuffer.isView(data) ? data : Uint8Array.from(parseHex(data))
-    return scale.WalkerImpl.decode(parsed, this.rawDecode)
+    const parsed = ArrayBuffer.isView(data) ? data : Uint8Array.from(hexDecode(data))
+    return scale.WalkerImpl.decode(parsed, this.raw.decode)
   }
 
-  public wrap<U>(toBase: (value: U) => T, fromBase: (value: T) => U): Codec<U> {
-    return new Codec(
-      scale.encodeFactory(
-        (v, w) => this.rawEncode(toBase(v), w),
-        (v) => this.rawEncode.sizeHint(toBase(v)),
+  public wrap<U>({ toBase, fromBase }: { toBase: (value: U) => T; fromBase: (value: T) => U }): Codec<U> {
+    return new Codec({
+      encode: scale.encodeFactory(
+        (v, w) => this.raw.encode(toBase(v), w),
+        (v) => this.raw.encode.sizeHint(toBase(v)),
       ),
-      (w) => fromBase(this.rawDecode(w)),
-    )
+      decode: (w) => fromBase(this.raw.decode(w)),
+    })
   }
 }
 
 export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate<E>> {
   public discriminated<
     T extends {
-      [Tag in keyof E]: E[Tag] extends [] ? { t: Tag } : E[Tag] extends [infer Value] ? { t: Tag; value: Value } : never
+      [Tag in keyof E]: E[Tag] extends []
+        ? SumTypeKind<Tag>
+        : E[Tag] extends [infer Value]
+          ? SumTypeKindValue<Tag, Value>
+          : never
     }[keyof E],
   >(): Codec<T> {
-    return this.wrap<{ t: string; value?: any }>(
-      (value) => {
+    return this.wrap<{ t: string; value?: any }>({
+      toBase: (value) => {
         if (value.value !== undefined) return scale.variant<any>(value.t, value.value)
         return scale.variant<any>(value.t)
       },
-      (value) => ({ t: value.tag, value: value.content }),
-    ) as any
+      fromBase: (value) => ({ t: value.tag, value: value.content }),
+    }) as any
   }
 
   public literalUnion(): {
     [Tag in keyof E]: E[Tag] extends [] ? Codec<Tag> : never
   }[keyof E] {
-    return this.wrap<string>(
-      (literal) => scale.variant<any>(literal),
-      (variant) => variant.tag,
-    ) as any
+    return this.wrap<string>({
+      toBase: (literal) => scale.variant<any>(literal),
+      fromBase: (variant) => variant.tag,
+    }) as any
   }
-}
-
-export function codec<T>(encode: scale.Encode<T>, decode: scale.Decode<T>): Codec<T> {
-  return new Codec(encode, decode)
 }
 
 export function lazyCodec<T>(f: () => Codec<T>): Codec<T> {
@@ -82,11 +112,6 @@ export function lazyCodec<T>(f: () => Codec<T>): Codec<T> {
 }
 
 export type EnumCodecSchema = [discriminant: number, tag: string, codec?: Codec<any>][]
-
-export interface DatamodelZodEnumGeneric {
-  t: string
-  value?: unknown
-}
 
 export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): EnumCodec<E> {
   const encoders: scale.EnumEncoders<any> = {} as any
@@ -123,7 +148,7 @@ export declare type StructCodecsSchema<T> = {
   [K in keyof T]: [K, Codec<T[K]>]
 }[keyof T][]
 
-export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
+export function structCodec<T>(order: (keyof T)[], schema: { [K in keyof T]: Codec<T[K]> }): Codec<T> {
   const encoders: scale.StructEncoders<any> = []
   const decoders: scale.StructDecoders<any> = []
 
@@ -138,14 +163,14 @@ export function structCodec<T>(schema: StructCodecsSchema<T>): Codec<T> {
 const thisCodecShouldNeverBeCalled = () => {
   throw new Error('This value could never be encoded')
 }
-export const neverCodec: Codec<never> = new Codec(
-  scale.encodeFactory(thisCodecShouldNeverBeCalled, thisCodecShouldNeverBeCalled),
-  thisCodecShouldNeverBeCalled,
-)
+export const neverCodec: Codec<never> = new Codec({
+  encode: scale.encodeFactory(thisCodecShouldNeverBeCalled, thisCodecShouldNeverBeCalled),
+  decode: thisCodecShouldNeverBeCalled,
+})
 
 export const nullCodec: Codec<null> = new Codec(scale.encodeUnit, scale.decodeUnit)
 
-export function bitmap<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
+export function bitmapCodec<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
   const reprCodec = U32$codec
   const reprSchema = U32$schema
   const REPR_MAX = 2 ** 32 - 1

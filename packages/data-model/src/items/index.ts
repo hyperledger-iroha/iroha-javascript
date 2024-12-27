@@ -2,7 +2,9 @@ export * from './core'
 export * from './generated'
 
 import * as core from './core'
-import { structCodec } from '../core'
+import { structCodec } from '../codec'
+
+// TODO: move to codegen
 
 export interface Uptime {
   secs: bigint
