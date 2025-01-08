@@ -2,12 +2,13 @@ export interface Parse<I, O> {
   parse: (input: I) => O
 }
 
-export interface SumTypeKind<K> {
-  kind: K
+export interface Variant<Kind, Value> {
+  kind: Kind
+  value: Value
 }
 
-export interface SumTypeKindValue<K, V> extends SumTypeKind<K> {
-  value: V
+export interface VariantUnit<Kind> {
+  kind: Kind
 }
 
 function hexChar(hex: string, index: number): number {

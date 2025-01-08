@@ -819,8 +819,8 @@ function renderBaseEnumCodec(variants: EmitEnumVariant[]): string {
 function renderSumTypes(variants: EmitEnumVariant[]) {
   const mapped = variants.map((variant) =>
     match(variant)
-      .with({ type: { t: 'null' } }, ({ tag }) => `lib.SumTypeKind<'${tag}'>`)
-      .otherwise(({ tag, type }) => `lib.SumTypeKindValue<'${tag}', ${renderRef(type).type}>`),
+      .with({ type: { t: 'null' } }, ({ tag }) => `lib.VariantUnit<'${tag}'>`)
+      .otherwise(({ tag, type }) => `lib.Variant<'${tag}', ${renderRef(type).type}>`),
   )
 
   return mapped.join(' | ')
@@ -832,35 +832,60 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
     chain: string[]
   }
 
+  const nextState = (stateIn: State | null, tree: EnumShortcutsTree, variant: EnumShortcutTreeVariant): State =>
+    match(stateIn)
+      .returnType<State>()
+      .with(null, () => ({ head: { id0: tree.id, var0: variant.name }, chain: [] }))
+      .with({ chain: [] }, ({ head }) => ({ head, chain: [tree.id, variant.name] }))
+      .otherwise(({ head, chain }) => ({ head, chain: [...chain, variant.name] }))
+
   const genChain = (chain: string[]) => chain.join('.')
+  const genConcreteType = (
+    state: State,
+    variant: Pick<Exclude<EnumShortcutTreeVariant, { t: 'enum' }>, 't' | 'name'>,
+  ): string => {
+    const last = match(variant)
+      .with({ t: 'unit' }, ({ name }) => `lib.VariantUnit<'${name}'>`)
+      .with({ t: 'value' }, ({ name }) => `lib.Variant<'${name}', T>`)
+      .exhaustive()
+
+    const first = match(state)
+      .returnType<string[]>()
+      .with({ chain: [] }, () => [])
+      .otherwise(({ head: { var0 }, chain: [_head, ...tail] }) => [var0, ...tail.slice(0, -1)])
+    first.reverse()
+
+    return first.reduce((acc, item) => `lib.Variant<'${item}', ${acc}>`, last)
+  }
 
   function iter(tree: EnumShortcutsTree, stateIn: State | null = null) {
     return tree.variants
       .map((variant): string => {
-        const state = match(stateIn)
-          .returnType<State>()
-          .with(null, () => ({ head: { id0: tree.id, var0: variant.name }, chain: [] }))
-          .with({ chain: [] }, ({ head }) => ({ head, chain: [tree.id, variant.name] }))
-          .otherwise(({ head, chain }) => ({ head, chain: [...chain, variant.name] }))
+        const state = nextState(stateIn, tree, variant)
 
         const right = match(variant)
           .returnType<string>()
-          .with({ t: 'unit' }, () =>
-            match(state)
-              .with({ chain: [] }, ({ head }) => `Object.freeze<${head.id0}>({ kind: '${head.var0}' })`)
-              .otherwise(
-                ({ head, chain }) => `Object.freeze<${head.id0}>({ kind: '${head.var0}', value: ${genChain(chain)} })`,
-              ),
-          )
-          .with({ t: 'value' }, ({ value_ty }) =>
+          .with({ t: 'unit' }, (variant) =>
             match(state)
               .with(
                 { chain: [] },
-                ({ head }) => `(value: ${renderRef(value_ty).type}): ${head.id0} => ({ kind: '${head.var0}', value })`,
+                ({ head }) => `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}' })`,
               )
               .otherwise(
                 ({ head, chain }) =>
-                  `(value: ${renderRef(value_ty).type}): ${head.id0} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
+                  `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}', value: ${genChain(chain)} })`,
+              ),
+          )
+          .with({ t: 'value' }, (variant) =>
+            match(state)
+              .with(
+                { chain: [] },
+                ({ head }) =>
+                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(state, variant)} => ({ kind: '${head.var0}', value })`,
+              )
+              .otherwise(
+                ({ head, chain }) =>
+                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(state, variant)} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
               ),
           )
           .with({ t: 'enum' }, ({ tree }) => {
@@ -885,91 +910,84 @@ function renderCodecKeyValue(id: string, content: string): string {
 function renderEmit(id: string, map: EmitsMap): string {
   const emit = map.get(id)
   invariant(emit)
-  return (
-    match(emit)
-      .returnType<string[]>()
-      // TODO: simple enums
-      // .with({ t: 'enum', variants: P.array({ t: 'unit' }) }, ({ id, variants }) => {
-      //   return [`// TODO simple enum ${id}`]
-      // })
-      // .with({ t: 'enum', variants: [] }, () => ({}))
-      .with({ t: 'enum', variants: [] }, () => [
-        `export type ${id} = never`,
-        `export const ${id} = { ${CODEC_SYMBOL}: lib.neverCodec }`,
-      ])
-      .with({ t: 'enum' }, ({ variants }) => {
-        const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
-        const codec = renderBaseEnumCodec(variants) + `.discriminated()`
+  return match(emit)
+    .returnType<string[]>()
+    .with({ t: 'enum', variants: [] }, () => [
+      `export type ${id} = never`,
+      `export const ${id} = { ${CODEC_SYMBOL}: lib.neverCodec }`,
+    ])
+    .with({ t: 'enum' }, ({ variants }) => {
+      const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
+      const codec = renderBaseEnumCodec(variants) + `.discriminated()`
 
-        return [
-          // `/** */`,
-          `export type ${id} = ${renderSumTypes(variants)}`,
-          `export const ${id} = { ${shortcuts}, ${CODEC_SYMBOL}: ${codec} }`,
-        ]
-      })
-      .with({ t: 'struct' }, ({ fields }) => {
-        let maxGenericsIndex = -1
-        for (const field of fields) {
-          for (const ty of visitRefs(field.type)) {
-            if (ty.t === 'param') maxGenericsIndex = Math.max(maxGenericsIndex, ty.index)
-          }
+      return [
+        // `/** */`,
+        `export type ${id} = ${renderSumTypes(variants)}`,
+        `export const ${id} = { ${shortcuts}, ${CODEC_SYMBOL}: ${codec} }`,
+      ]
+    })
+    .with({ t: 'struct' }, ({ fields }) => {
+      let maxGenericsIndex = -1
+      for (const field of fields) {
+        for (const ty of visitRefs(field.type)) {
+          if (ty.t === 'param') maxGenericsIndex = Math.max(maxGenericsIndex, ty.index)
         }
+      }
 
-        const typeFields = fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).type}`).join(', ')
-        const codecFieldsOrder = '[' + fields.map((x) => `'${camelCase(x.name)}'`).join(', ') + ']'
-        const codecFieldsMap =
-          '{' + fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).codec}`).join(', ') + '}'
-        const codec = (codecTy: string) => `lib.structCodec<${codecTy}>(${codecFieldsOrder}, ${codecFieldsMap})`
+      const typeFields = fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).type}`).join(', ')
+      const codecFieldsOrder = '[' + fields.map((x) => `'${camelCase(x.name)}'`).join(', ') + ']'
+      const codecFieldsMap =
+        '{' + fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).codec}`).join(', ') + '}'
+      const codec = (codecTy: string) => `lib.structCodec<${codecTy}>(${codecFieldsOrder}, ${codecFieldsMap})`
 
-        if (maxGenericsIndex >= 0) {
-          const generics = Array.from({ length: maxGenericsIndex + 1 }, (_v, i) => renderRef({ t: 'param', index: i }))
+      if (maxGenericsIndex >= 0) {
+        const generics = Array.from({ length: maxGenericsIndex + 1 }, (_v, i) => renderRef({ t: 'param', index: i }))
 
-          const genericTypes = generics.map((x) => x.type).join(', ')
-          const withArgs = generics.map((x) => `${x.codec}: lib.Codec<${x.type}>`).join(', ')
-          const withRet = `({ ${CODEC_SYMBOL}: ${codec(`${id}<${genericTypes}>`)} })`
-
-          return [
-            `export interface ${id}<${genericTypes}> { ${typeFields} }`,
-            `export const ${id} = { ` +
-              `with: <${genericTypes}>(${withArgs}): lib.CodecProvider<${id}<${genericTypes}>> => ${withRet} }`,
-          ]
-        } else {
-          return [
-            `export interface ${id} { ${typeFields} }`,
-            `export const ${id}: lib.CodecProvider<${id}> = { ${CODEC_SYMBOL}: ${codec(id)} }`,
-          ]
-        }
-      })
-      .with({ t: 'tuple' }, ({ elements }) => {
-        const typeElements = elements.map((x) => renderRef(x).type)
-        const codecElements = elements.map((x) => renderRef(x).codec)
-        const codec = `lib.tupleCodec([${codecElements.join(', ')}])`
-        return [
-          `export type ${id} = [${typeElements.join(', ')}]`,
-          `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
-        ]
-      })
-      .with({ t: 'bitmap' }, ({ masks, repr }) => {
-        invariant(repr === 'U32')
-
-        const typeLiterals = masks.map((x) => `'${x.name}'`)
-        const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
-        const codec = `lib.bitmapCodec<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`
+        const genericTypes = generics.map((x) => x.type).join(', ')
+        const withArgs = generics.map((x) => `${x.codec}: lib.Codec<${x.type}>`).join(', ')
+        const withRet = `({ ${CODEC_SYMBOL}: ${codec(`${id}<${genericTypes}>`)} })`
 
         return [
-          `export type ${id} = Set<${typeLiterals.join(' | ')}>`,
-          `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
+          `export interface ${id}<${genericTypes}> { ${typeFields} }`,
+          `export const ${id} = { ` +
+            `with: <${genericTypes}>(${withArgs}): lib.CodecProvider<${id}<${genericTypes}>> => ${withRet} }`,
         ]
-      })
-      .with({ t: 'alias' }, ({ to }) => {
+      } else {
         return [
-          `export type ${id} = ${renderRef(to).type}`,
-          `export const ${id} = { ${CODEC_SYMBOL}: ${renderRef(to).codec} }`,
+          `export interface ${id} { ${typeFields} }`,
+          `export const ${id}: lib.CodecProvider<${id}> = { ${CODEC_SYMBOL}: ${codec(id)} }`,
         ]
-      })
-      .exhaustive()
-      .join('\n')
-  )
+      }
+    })
+    .with({ t: 'tuple' }, ({ elements }) => {
+      const typeElements = elements.map((x) => renderRef(x).type)
+      const codecElements = elements.map((x) => renderRef(x).codec)
+      const codec = `lib.tupleCodec([${codecElements.join(', ')}])`
+      return [
+        `export type ${id} = [${typeElements.join(', ')}]`,
+        `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
+      ]
+    })
+    .with({ t: 'bitmap' }, ({ masks, repr }) => {
+      invariant(repr === 'U32')
+
+      const typeLiterals = masks.map((x) => `'${x.name}'`)
+      const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
+      const codec = `lib.bitmapCodec<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`
+
+      return [
+        `export type ${id} = Set<${typeLiterals.join(' | ')}>`,
+        `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
+      ]
+    })
+    .with({ t: 'alias' }, ({ to }) => {
+      return [
+        `export type ${id} = ${renderRef(to).type}`,
+        `export const ${id} = { ${CODEC_SYMBOL}: ${renderRef(to).codec} }`,
+      ]
+    })
+    .exhaustive()
+    .join('\n')
 }
 
 function upcase<S extends string>(s: S): Uppercase<S> {

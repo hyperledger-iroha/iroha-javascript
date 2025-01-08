@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import type { Schema} from '@iroha2/data-model-schema';
+import type { Schema } from '@iroha2/data-model-schema'
 import { SCHEMA } from '@iroha2/data-model-schema'
 import { type EmitCode, enumShortcuts, generate, renderShortcutsTree } from './codegen'
 import { format } from 'prettier'
@@ -134,7 +134,7 @@ describe('enum shortcuts', () => {
     const generated = renderShortcutsTree({ id: 'A', variants: enumShortcuts(SAMPLE.A.variants, SAMPLE_MAP) })
 
     expect(generated).toMatchInlineSnapshot(
-      `"Unit: Object.freeze<A>({ kind: 'Unit' }), WithType: (value: Whichever): A => ({ kind: 'WithType', value }), Nested: { Bunit: Object.freeze<A>({ kind: 'Nested', value: B.Bunit }), Bnested: { CUnit: Object.freeze<A>({ kind: 'Nested', value: B.Bnested.CUnit }), Cfinal: (value: Whichever): A => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }) } }"`,
+      `"Unit: Object.freeze<lib.VariantUnit<'Unit'>>({ kind: 'Unit' }), WithType: <const T extends Whichever>(value: T): lib.Variant<'WithType', T> => ({ kind: 'WithType', value }), Nested: { Bunit: Object.freeze<lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>>({ kind: 'Nested', value: B.Bunit }), Bnested: { CUnit: Object.freeze<lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>>({ kind: 'Nested', value: B.Bnested.CUnit }), Cfinal: <const T extends Whichever>(value: T): lib.Variant<'Nested', lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>> => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }) } }"`,
     )
   })
 })

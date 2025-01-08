@@ -22,12 +22,10 @@ export const Numeric: lib.CodecProvider<Numeric> = {
   }),
 }
 
-export type AssetValue =
-  | lib.SumTypeKindValue<'Numeric', Numeric>
-  | lib.SumTypeKindValue<'Store', lib.Map<lib.Name, lib.Json>>
+export type AssetValue = lib.Variant<'Numeric', Numeric> | lib.Variant<'Store', lib.Map<lib.Name, lib.Json>>
 export const AssetValue = {
-  Numeric: (value: Numeric): AssetValue => ({ kind: 'Numeric', value }),
-  Store: (value: lib.Map<lib.Name, lib.Json>): AssetValue => ({ kind: 'Store', value }),
+  Numeric: <const T extends Numeric>(value: T): lib.Variant<'Numeric', T> => ({ kind: 'Numeric', value }),
+  Store: <const T extends lib.Map<lib.Name, lib.Json>>(value: T): lib.Variant<'Store', T> => ({ kind: 'Store', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Numeric: [Numeric]; Store: [lib.Map<lib.Name, lib.Json>] }>([
       [0, 'Numeric', lib.codecOf(Numeric)],
@@ -74,19 +72,25 @@ export const MetadataChanged = {
 }
 
 export type AssetEvent =
-  | lib.SumTypeKindValue<'Created', Asset>
-  | lib.SumTypeKindValue<'Deleted', lib.AssetId>
-  | lib.SumTypeKindValue<'Added', AssetChanged>
-  | lib.SumTypeKindValue<'Removed', AssetChanged>
-  | lib.SumTypeKindValue<'MetadataInserted', MetadataChanged<lib.AssetId>>
-  | lib.SumTypeKindValue<'MetadataRemoved', MetadataChanged<lib.AssetId>>
+  | lib.Variant<'Created', Asset>
+  | lib.Variant<'Deleted', lib.AssetId>
+  | lib.Variant<'Added', AssetChanged>
+  | lib.Variant<'Removed', AssetChanged>
+  | lib.Variant<'MetadataInserted', MetadataChanged<lib.AssetId>>
+  | lib.Variant<'MetadataRemoved', MetadataChanged<lib.AssetId>>
 export const AssetEvent = {
-  Created: (value: Asset): AssetEvent => ({ kind: 'Created', value }),
-  Deleted: (value: lib.AssetId): AssetEvent => ({ kind: 'Deleted', value }),
-  Added: (value: AssetChanged): AssetEvent => ({ kind: 'Added', value }),
-  Removed: (value: AssetChanged): AssetEvent => ({ kind: 'Removed', value }),
-  MetadataInserted: (value: MetadataChanged<lib.AssetId>): AssetEvent => ({ kind: 'MetadataInserted', value }),
-  MetadataRemoved: (value: MetadataChanged<lib.AssetId>): AssetEvent => ({ kind: 'MetadataRemoved', value }),
+  Created: <const T extends Asset>(value: T): lib.Variant<'Created', T> => ({ kind: 'Created', value }),
+  Deleted: <const T extends lib.AssetId>(value: T): lib.Variant<'Deleted', T> => ({ kind: 'Deleted', value }),
+  Added: <const T extends AssetChanged>(value: T): lib.Variant<'Added', T> => ({ kind: 'Added', value }),
+  Removed: <const T extends AssetChanged>(value: T): lib.Variant<'Removed', T> => ({ kind: 'Removed', value }),
+  MetadataInserted: <const T extends MetadataChanged<lib.AssetId>>(value: T): lib.Variant<'MetadataInserted', T> => ({
+    kind: 'MetadataInserted',
+    value,
+  }),
+  MetadataRemoved: <const T extends MetadataChanged<lib.AssetId>>(value: T): lib.Variant<'MetadataRemoved', T> => ({
+    kind: 'MetadataRemoved',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Created: [Asset]
@@ -147,38 +151,72 @@ export const AccountRoleChanged: lib.CodecProvider<AccountRoleChanged> = {
 }
 
 export type AccountEvent =
-  | lib.SumTypeKindValue<'Created', Account>
-  | lib.SumTypeKindValue<'Deleted', lib.AccountId>
-  | lib.SumTypeKindValue<'Asset', AssetEvent>
-  | lib.SumTypeKindValue<'PermissionAdded', AccountPermissionChanged>
-  | lib.SumTypeKindValue<'PermissionRemoved', AccountPermissionChanged>
-  | lib.SumTypeKindValue<'RoleGranted', AccountRoleChanged>
-  | lib.SumTypeKindValue<'RoleRevoked', AccountRoleChanged>
-  | lib.SumTypeKindValue<'MetadataInserted', MetadataChanged<lib.AccountId>>
-  | lib.SumTypeKindValue<'MetadataRemoved', MetadataChanged<lib.AccountId>>
+  | lib.Variant<'Created', Account>
+  | lib.Variant<'Deleted', lib.AccountId>
+  | lib.Variant<'Asset', AssetEvent>
+  | lib.Variant<'PermissionAdded', AccountPermissionChanged>
+  | lib.Variant<'PermissionRemoved', AccountPermissionChanged>
+  | lib.Variant<'RoleGranted', AccountRoleChanged>
+  | lib.Variant<'RoleRevoked', AccountRoleChanged>
+  | lib.Variant<'MetadataInserted', MetadataChanged<lib.AccountId>>
+  | lib.Variant<'MetadataRemoved', MetadataChanged<lib.AccountId>>
 export const AccountEvent = {
-  Created: (value: Account): AccountEvent => ({ kind: 'Created', value }),
-  Deleted: (value: lib.AccountId): AccountEvent => ({ kind: 'Deleted', value }),
+  Created: <const T extends Account>(value: T): lib.Variant<'Created', T> => ({ kind: 'Created', value }),
+  Deleted: <const T extends lib.AccountId>(value: T): lib.Variant<'Deleted', T> => ({ kind: 'Deleted', value }),
   Asset: {
-    Created: (value: Asset): AccountEvent => ({ kind: 'Asset', value: AssetEvent.Created(value) }),
-    Deleted: (value: lib.AssetId): AccountEvent => ({ kind: 'Asset', value: AssetEvent.Deleted(value) }),
-    Added: (value: AssetChanged): AccountEvent => ({ kind: 'Asset', value: AssetEvent.Added(value) }),
-    Removed: (value: AssetChanged): AccountEvent => ({ kind: 'Asset', value: AssetEvent.Removed(value) }),
-    MetadataInserted: (value: MetadataChanged<lib.AssetId>): AccountEvent => ({
+    Created: <const T extends Asset>(value: T): lib.Variant<'Asset', lib.Variant<'Created', T>> => ({
+      kind: 'Asset',
+      value: AssetEvent.Created(value),
+    }),
+    Deleted: <const T extends lib.AssetId>(value: T): lib.Variant<'Asset', lib.Variant<'Deleted', T>> => ({
+      kind: 'Asset',
+      value: AssetEvent.Deleted(value),
+    }),
+    Added: <const T extends AssetChanged>(value: T): lib.Variant<'Asset', lib.Variant<'Added', T>> => ({
+      kind: 'Asset',
+      value: AssetEvent.Added(value),
+    }),
+    Removed: <const T extends AssetChanged>(value: T): lib.Variant<'Asset', lib.Variant<'Removed', T>> => ({
+      kind: 'Asset',
+      value: AssetEvent.Removed(value),
+    }),
+    MetadataInserted: <const T extends MetadataChanged<lib.AssetId>>(
+      value: T,
+    ): lib.Variant<'Asset', lib.Variant<'MetadataInserted', T>> => ({
       kind: 'Asset',
       value: AssetEvent.MetadataInserted(value),
     }),
-    MetadataRemoved: (value: MetadataChanged<lib.AssetId>): AccountEvent => ({
+    MetadataRemoved: <const T extends MetadataChanged<lib.AssetId>>(
+      value: T,
+    ): lib.Variant<'Asset', lib.Variant<'MetadataRemoved', T>> => ({
       kind: 'Asset',
       value: AssetEvent.MetadataRemoved(value),
     }),
   },
-  PermissionAdded: (value: AccountPermissionChanged): AccountEvent => ({ kind: 'PermissionAdded', value }),
-  PermissionRemoved: (value: AccountPermissionChanged): AccountEvent => ({ kind: 'PermissionRemoved', value }),
-  RoleGranted: (value: AccountRoleChanged): AccountEvent => ({ kind: 'RoleGranted', value }),
-  RoleRevoked: (value: AccountRoleChanged): AccountEvent => ({ kind: 'RoleRevoked', value }),
-  MetadataInserted: (value: MetadataChanged<lib.AccountId>): AccountEvent => ({ kind: 'MetadataInserted', value }),
-  MetadataRemoved: (value: MetadataChanged<lib.AccountId>): AccountEvent => ({ kind: 'MetadataRemoved', value }),
+  PermissionAdded: <const T extends AccountPermissionChanged>(value: T): lib.Variant<'PermissionAdded', T> => ({
+    kind: 'PermissionAdded',
+    value,
+  }),
+  PermissionRemoved: <const T extends AccountPermissionChanged>(value: T): lib.Variant<'PermissionRemoved', T> => ({
+    kind: 'PermissionRemoved',
+    value,
+  }),
+  RoleGranted: <const T extends AccountRoleChanged>(value: T): lib.Variant<'RoleGranted', T> => ({
+    kind: 'RoleGranted',
+    value,
+  }),
+  RoleRevoked: <const T extends AccountRoleChanged>(value: T): lib.Variant<'RoleRevoked', T> => ({
+    kind: 'RoleRevoked',
+    value,
+  }),
+  MetadataInserted: <const T extends MetadataChanged<lib.AccountId>>(value: T): lib.Variant<'MetadataInserted', T> => ({
+    kind: 'MetadataInserted',
+    value,
+  }),
+  MetadataRemoved: <const T extends MetadataChanged<lib.AccountId>>(value: T): lib.Variant<'MetadataRemoved', T> => ({
+    kind: 'MetadataRemoved',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Created: [Account]
@@ -240,32 +278,32 @@ export const AccountEventFilter: lib.CodecProvider<AccountEventFilter> = {
   }),
 }
 
-export type AccountIdPredicateAtom = lib.SumTypeKindValue<'Equals', lib.AccountId>
+export type AccountIdPredicateAtom = lib.Variant<'Equals', lib.AccountId>
 export const AccountIdPredicateAtom = {
-  Equals: (value: lib.AccountId): AccountIdPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.AccountId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.AccountId] }>([[0, 'Equals', lib.codecOf(lib.AccountId)]])
     .discriminated(),
 }
 
-export type DomainIdPredicateAtom = lib.SumTypeKindValue<'Equals', lib.DomainId>
+export type DomainIdPredicateAtom = lib.Variant<'Equals', lib.DomainId>
 export const DomainIdPredicateAtom = {
-  Equals: (value: lib.DomainId): DomainIdPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.DomainId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.DomainId] }>([[0, 'Equals', lib.codecOf(lib.DomainId)]])
     .discriminated(),
 }
 
 export type StringPredicateAtom =
-  | lib.SumTypeKindValue<'Equals', lib.String>
-  | lib.SumTypeKindValue<'Contains', lib.String>
-  | lib.SumTypeKindValue<'StartsWith', lib.String>
-  | lib.SumTypeKindValue<'EndsWith', lib.String>
+  | lib.Variant<'Equals', lib.String>
+  | lib.Variant<'Contains', lib.String>
+  | lib.Variant<'StartsWith', lib.String>
+  | lib.Variant<'EndsWith', lib.String>
 export const StringPredicateAtom = {
-  Equals: (value: lib.String): StringPredicateAtom => ({ kind: 'Equals', value }),
-  Contains: (value: lib.String): StringPredicateAtom => ({ kind: 'Contains', value }),
-  StartsWith: (value: lib.String): StringPredicateAtom => ({ kind: 'StartsWith', value }),
-  EndsWith: (value: lib.String): StringPredicateAtom => ({ kind: 'EndsWith', value }),
+  Equals: <const T extends lib.String>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
+  Contains: <const T extends lib.String>(value: T): lib.Variant<'Contains', T> => ({ kind: 'Contains', value }),
+  StartsWith: <const T extends lib.String>(value: T): lib.Variant<'StartsWith', T> => ({ kind: 'StartsWith', value }),
+  EndsWith: <const T extends lib.String>(value: T): lib.Variant<'EndsWith', T> => ({ kind: 'EndsWith', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.String]; Contains: [lib.String]; StartsWith: [lib.String]; EndsWith: [lib.String] }>([
       [0, 'Equals', lib.codecOf(lib.String)],
@@ -276,22 +314,22 @@ export const StringPredicateAtom = {
     .discriminated(),
 }
 
-export type NameProjectionPredicate = lib.SumTypeKindValue<'Atom', StringPredicateAtom>
+export type NameProjectionPredicate = lib.Variant<'Atom', StringPredicateAtom>
 export const NameProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.String): NameProjectionPredicate => ({
+    Equals: <const T extends lib.String>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: StringPredicateAtom.Equals(value),
     }),
-    Contains: (value: lib.String): NameProjectionPredicate => ({
+    Contains: <const T extends lib.String>(value: T): lib.Variant<'Atom', lib.Variant<'Contains', T>> => ({
       kind: 'Atom',
       value: StringPredicateAtom.Contains(value),
     }),
-    StartsWith: (value: lib.String): NameProjectionPredicate => ({
+    StartsWith: <const T extends lib.String>(value: T): lib.Variant<'Atom', lib.Variant<'StartsWith', T>> => ({
       kind: 'Atom',
       value: StringPredicateAtom.StartsWith(value),
     }),
-    EndsWith: (value: lib.String): NameProjectionPredicate => ({
+    EndsWith: <const T extends lib.String>(value: T): lib.Variant<'Atom', lib.Variant<'EndsWith', T>> => ({
       kind: 'Atom',
       value: StringPredicateAtom.EndsWith(value),
     }),
@@ -302,30 +340,38 @@ export const NameProjectionPredicate = {
 }
 
 export type DomainIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', DomainIdPredicateAtom>
-  | lib.SumTypeKindValue<'Name', NameProjectionPredicate>
+  | lib.Variant<'Atom', DomainIdPredicateAtom>
+  | lib.Variant<'Name', NameProjectionPredicate>
 export const DomainIdProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.DomainId): DomainIdProjectionPredicate => ({
+    Equals: <const T extends lib.DomainId>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: DomainIdPredicateAtom.Equals(value),
     }),
   },
   Name: {
     Atom: {
-      Equals: (value: lib.String): DomainIdProjectionPredicate => ({
+      Equals: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Equals(value),
       }),
-      Contains: (value: lib.String): DomainIdProjectionPredicate => ({
+      Contains: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Contains(value),
       }),
-      StartsWith: (value: lib.String): DomainIdProjectionPredicate => ({
+      StartsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.StartsWith(value),
       }),
-      EndsWith: (value: lib.String): DomainIdProjectionPredicate => ({
+      EndsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.EndsWith(value),
       }),
@@ -339,18 +385,18 @@ export const DomainIdProjectionPredicate = {
     .discriminated(),
 }
 
-export type PublicKeyPredicateAtom = lib.SumTypeKindValue<'Equals', lib.PublicKeyWrap>
+export type PublicKeyPredicateAtom = lib.Variant<'Equals', lib.PublicKeyWrap>
 export const PublicKeyPredicateAtom = {
-  Equals: (value: lib.PublicKeyWrap): PublicKeyPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.PublicKeyWrap>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.PublicKeyWrap] }>([[0, 'Equals', lib.codecOf(lib.PublicKeyWrap)]])
     .discriminated(),
 }
 
-export type PublicKeyProjectionPredicate = lib.SumTypeKindValue<'Atom', PublicKeyPredicateAtom>
+export type PublicKeyProjectionPredicate = lib.Variant<'Atom', PublicKeyPredicateAtom>
 export const PublicKeyProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.PublicKeyWrap): PublicKeyProjectionPredicate => ({
+    Equals: <const T extends lib.PublicKeyWrap>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: PublicKeyPredicateAtom.Equals(value),
     }),
@@ -361,38 +407,48 @@ export const PublicKeyProjectionPredicate = {
 }
 
 export type AccountIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AccountIdPredicateAtom>
-  | lib.SumTypeKindValue<'Domain', DomainIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Signatory', PublicKeyProjectionPredicate>
+  | lib.Variant<'Atom', AccountIdPredicateAtom>
+  | lib.Variant<'Domain', DomainIdProjectionPredicate>
+  | lib.Variant<'Signatory', PublicKeyProjectionPredicate>
 export const AccountIdProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.AccountId): AccountIdProjectionPredicate => ({
+    Equals: <const T extends lib.AccountId>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: AccountIdPredicateAtom.Equals(value),
     }),
   },
   Domain: {
     Atom: {
-      Equals: (value: lib.DomainId): AccountIdProjectionPredicate => ({
+      Equals: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Domain',
         value: DomainIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): AccountIdProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): AccountIdProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): AccountIdProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): AccountIdProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -401,7 +457,9 @@ export const AccountIdProjectionPredicate = {
   },
   Signatory: {
     Atom: {
-      Equals: (value: lib.PublicKeyWrap): AccountIdProjectionPredicate => ({
+      Equals: <const T extends lib.PublicKeyWrap>(
+        value: T,
+      ): lib.Variant<'Signatory', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Signatory',
         value: PublicKeyProjectionPredicate.Atom.Equals(value),
       }),
@@ -420,16 +478,21 @@ export const AccountIdProjectionPredicate = {
     .discriminated(),
 }
 
-export type NameProjectionSelector = lib.SumTypeKind<'Atom'>
+export type NameProjectionSelector = lib.VariantUnit<'Atom'>
 export const NameProjectionSelector = {
-  Atom: Object.freeze<NameProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
-export type DomainIdProjectionSelector = lib.SumTypeKind<'Atom'> | lib.SumTypeKindValue<'Name', NameProjectionSelector>
+export type DomainIdProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'Name', NameProjectionSelector>
 export const DomainIdProjectionSelector = {
-  Atom: Object.freeze<DomainIdProjectionSelector>({ kind: 'Atom' }),
-  Name: { Atom: Object.freeze<DomainIdProjectionSelector>({ kind: 'Name', value: NameProjectionSelector.Atom }) },
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
+  Name: {
+    Atom: Object.freeze<lib.Variant<'Name', lib.VariantUnit<'Atom'>>>({
+      kind: 'Name',
+      value: NameProjectionSelector.Atom,
+    }),
+  },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
@@ -438,26 +501,35 @@ export const DomainIdProjectionSelector = {
     .discriminated(),
 }
 
-export type PublicKeyProjectionSelector = lib.SumTypeKind<'Atom'>
+export type PublicKeyProjectionSelector = lib.VariantUnit<'Atom'>
 export const PublicKeyProjectionSelector = {
-  Atom: Object.freeze<PublicKeyProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
 export type AccountIdProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Domain', DomainIdProjectionSelector>
-  | lib.SumTypeKindValue<'Signatory', PublicKeyProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Domain', DomainIdProjectionSelector>
+  | lib.Variant<'Signatory', PublicKeyProjectionSelector>
 export const AccountIdProjectionSelector = {
-  Atom: Object.freeze<AccountIdProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Domain: {
-    Atom: Object.freeze<AccountIdProjectionSelector>({ kind: 'Domain', value: DomainIdProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>({
+      kind: 'Domain',
+      value: DomainIdProjectionSelector.Atom,
+    }),
     Name: {
-      Atom: Object.freeze<AccountIdProjectionSelector>({ kind: 'Domain', value: DomainIdProjectionSelector.Name.Atom }),
+      Atom: Object.freeze<lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Domain',
+        value: DomainIdProjectionSelector.Name.Atom,
+      }),
     },
   },
   Signatory: {
-    Atom: Object.freeze<AccountIdProjectionSelector>({ kind: 'Signatory', value: PublicKeyProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Signatory', lib.VariantUnit<'Atom'>>>({
+      kind: 'Signatory',
+      value: PublicKeyProjectionSelector.Atom,
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Domain: [DomainIdProjectionSelector]; Signatory: [PublicKeyProjectionSelector] }>([
@@ -474,16 +546,19 @@ export const AccountPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 export type MetadataPredicateAtom = never
 export const MetadataPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
-export type JsonPredicateAtom = lib.SumTypeKindValue<'Equals', lib.Json>
+export type JsonPredicateAtom = lib.Variant<'Equals', lib.Json>
 export const JsonPredicateAtom = {
-  Equals: (value: lib.Json): JsonPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.Json>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib.enumCodec<{ Equals: [lib.Json] }>([[0, 'Equals', lib.codecOf(lib.Json)]]).discriminated(),
 }
 
-export type JsonProjectionPredicate = lib.SumTypeKindValue<'Atom', JsonPredicateAtom>
+export type JsonProjectionPredicate = lib.Variant<'Atom', JsonPredicateAtom>
 export const JsonProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.Json): JsonProjectionPredicate => ({ kind: 'Atom', value: JsonPredicateAtom.Equals(value) }),
+    Equals: <const T extends lib.Json>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
+      kind: 'Atom',
+      value: JsonPredicateAtom.Equals(value),
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [JsonPredicateAtom] }>([[0, 'Atom', lib.codecOf(JsonPredicateAtom)]])
@@ -502,11 +577,11 @@ export const MetadataKeyProjectionPredicate: lib.CodecProvider<MetadataKeyProjec
 }
 
 export type MetadataProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', MetadataPredicateAtom>
-  | lib.SumTypeKindValue<'Key', MetadataKeyProjectionPredicate>
+  | lib.Variant<'Atom', MetadataPredicateAtom>
+  | lib.Variant<'Key', MetadataKeyProjectionPredicate>
 export const MetadataProjectionPredicate = {
   Atom: {},
-  Key: (value: MetadataKeyProjectionPredicate): MetadataProjectionPredicate => ({ kind: 'Key', value }),
+  Key: <const T extends MetadataKeyProjectionPredicate>(value: T): lib.Variant<'Key', T> => ({ kind: 'Key', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [MetadataPredicateAtom]; Key: [MetadataKeyProjectionPredicate] }>([
       [0, 'Atom', lib.codecOf(MetadataPredicateAtom)],
@@ -516,49 +591,63 @@ export const MetadataProjectionPredicate = {
 }
 
 export type AccountProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AccountPredicateAtom>
-  | lib.SumTypeKindValue<'Id', AccountIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionPredicate>
+  | lib.Variant<'Atom', AccountPredicateAtom>
+  | lib.Variant<'Id', AccountIdProjectionPredicate>
+  | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const AccountProjectionPredicate = {
   Atom: {},
   Id: {
     Atom: {
-      Equals: (value: lib.AccountId): AccountProjectionPredicate => ({
+      Equals: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'Id', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Id',
         value: AccountIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Domain: {
       Atom: {
-        Equals: (value: lib.DomainId): AccountProjectionPredicate => ({
+        Equals: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: AccountIdProjectionPredicate.Domain.Atom.Equals(value),
         }),
       },
       Name: {
         Atom: {
-          Equals: (value: lib.String): AccountProjectionPredicate => ({
-            kind: 'Id',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.Equals(value),
-          }),
-          Contains: (value: lib.String): AccountProjectionPredicate => ({
-            kind: 'Id',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.Contains(value),
-          }),
-          StartsWith: (value: lib.String): AccountProjectionPredicate => ({
-            kind: 'Id',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.StartsWith(value),
-          }),
-          EndsWith: (value: lib.String): AccountProjectionPredicate => ({
-            kind: 'Id',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.EndsWith(value),
-          }),
+          Equals: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Id', value: AccountIdProjectionPredicate.Domain.Name.Atom.Equals(value) }),
+          Contains: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+          > => ({ kind: 'Id', value: AccountIdProjectionPredicate.Domain.Name.Atom.Contains(value) }),
+          StartsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+          > => ({ kind: 'Id', value: AccountIdProjectionPredicate.Domain.Name.Atom.StartsWith(value) }),
+          EndsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+          > => ({ kind: 'Id', value: AccountIdProjectionPredicate.Domain.Name.Atom.EndsWith(value) }),
         },
       },
     },
     Signatory: {
       Atom: {
-        Equals: (value: lib.PublicKeyWrap): AccountProjectionPredicate => ({
+        Equals: <const T extends lib.PublicKeyWrap>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Signatory', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: AccountIdProjectionPredicate.Signatory.Atom.Equals(value),
         }),
@@ -567,7 +656,9 @@ export const AccountProjectionPredicate = {
   },
   Metadata: {
     Atom: {},
-    Key: (value: MetadataKeyProjectionPredicate): AccountProjectionPredicate => ({
+    Key: <const T extends MetadataKeyProjectionPredicate>(
+      value: T,
+    ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionPredicate.Key(value),
     }),
@@ -585,9 +676,9 @@ export const AccountProjectionPredicate = {
     .discriminated(),
 }
 
-export type JsonProjectionSelector = lib.SumTypeKind<'Atom'>
+export type JsonProjectionSelector = lib.VariantUnit<'Atom'>
 export const JsonProjectionSelector = {
-  Atom: Object.freeze<JsonProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
@@ -602,12 +693,10 @@ export const MetadataKeyProjectionSelector: lib.CodecProvider<MetadataKeyProject
   }),
 }
 
-export type MetadataProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Key', MetadataKeyProjectionSelector>
+export type MetadataProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'Key', MetadataKeyProjectionSelector>
 export const MetadataProjectionSelector = {
-  Atom: Object.freeze<MetadataProjectionSelector>({ kind: 'Atom' }),
-  Key: (value: MetadataKeyProjectionSelector): MetadataProjectionSelector => ({ kind: 'Key', value }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
+  Key: <const T extends MetadataKeyProjectionSelector>(value: T): lib.Variant<'Key', T> => ({ kind: 'Key', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Key: [MetadataKeyProjectionSelector] }>([
       [0, 'Atom'],
@@ -617,29 +706,41 @@ export const MetadataProjectionSelector = {
 }
 
 export type AccountProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Id', AccountIdProjectionSelector>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Id', AccountIdProjectionSelector>
+  | lib.Variant<'Metadata', MetadataProjectionSelector>
 export const AccountProjectionSelector = {
-  Atom: Object.freeze<AccountProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Id: {
-    Atom: Object.freeze<AccountProjectionSelector>({ kind: 'Id', value: AccountIdProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Id', lib.VariantUnit<'Atom'>>>({
+      kind: 'Id',
+      value: AccountIdProjectionSelector.Atom,
+    }),
     Domain: {
-      Atom: Object.freeze<AccountProjectionSelector>({ kind: 'Id', value: AccountIdProjectionSelector.Domain.Atom }),
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: AccountIdProjectionSelector.Domain.Atom,
+      }),
       Name: {
-        Atom: Object.freeze<AccountProjectionSelector>({
+        Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>>({
           kind: 'Id',
           value: AccountIdProjectionSelector.Domain.Name.Atom,
         }),
       },
     },
     Signatory: {
-      Atom: Object.freeze<AccountProjectionSelector>({ kind: 'Id', value: AccountIdProjectionSelector.Signatory.Atom }),
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Signatory', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: AccountIdProjectionSelector.Signatory.Atom,
+      }),
     },
   },
   Metadata: {
-    Atom: Object.freeze<AccountProjectionSelector>({ kind: 'Metadata', value: MetadataProjectionSelector.Atom }),
-    Key: (value: MetadataKeyProjectionSelector): AccountProjectionSelector => ({
+    Atom: Object.freeze<lib.Variant<'Metadata', lib.VariantUnit<'Atom'>>>({
+      kind: 'Metadata',
+      value: MetadataProjectionSelector.Atom,
+    }),
+    Key: <const T extends MetadataKeyProjectionSelector>(value: T): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionSelector.Key(value),
     }),
@@ -653,12 +754,13 @@ export const AccountProjectionSelector = {
     .discriminated(),
 }
 
-export type Executable =
-  | lib.SumTypeKindValue<'Instructions', lib.Vec<InstructionBox>>
-  | lib.SumTypeKindValue<'Wasm', lib.Vec<lib.U8>>
+export type Executable = lib.Variant<'Instructions', lib.Vec<InstructionBox>> | lib.Variant<'Wasm', lib.Vec<lib.U8>>
 export const Executable = {
-  Instructions: (value: lib.Vec<InstructionBox>): Executable => ({ kind: 'Instructions', value }),
-  Wasm: (value: lib.Vec<lib.U8>): Executable => ({ kind: 'Wasm', value }),
+  Instructions: <const T extends lib.Vec<InstructionBox>>(value: T): lib.Variant<'Instructions', T> => ({
+    kind: 'Instructions',
+    value,
+  }),
+  Wasm: <const T extends lib.Vec<lib.U8>>(value: T): lib.Variant<'Wasm', T> => ({ kind: 'Wasm', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Instructions: [lib.Vec<InstructionBox>]; Wasm: [lib.Vec<lib.U8>] }>([
       [0, 'Instructions', lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox))))],
@@ -667,10 +769,10 @@ export const Executable = {
     .discriminated(),
 }
 
-export type Repeats = lib.SumTypeKind<'Indefinitely'> | lib.SumTypeKindValue<'Exactly', lib.U32>
+export type Repeats = lib.VariantUnit<'Indefinitely'> | lib.Variant<'Exactly', lib.U32>
 export const Repeats = {
-  Indefinitely: Object.freeze<Repeats>({ kind: 'Indefinitely' }),
-  Exactly: (value: lib.U32): Repeats => ({ kind: 'Exactly', value }),
+  Indefinitely: Object.freeze<lib.VariantUnit<'Indefinitely'>>({ kind: 'Indefinitely' }),
+  Exactly: <const T extends lib.U32>(value: T): lib.Variant<'Exactly', T> => ({ kind: 'Exactly', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Indefinitely: []; Exactly: [lib.U32] }>([
       [0, 'Indefinitely'],
@@ -694,31 +796,40 @@ export const TriggerId: lib.CodecProvider<TriggerId> = {
 }
 
 export type FindError =
-  | lib.SumTypeKindValue<'Asset', lib.AssetId>
-  | lib.SumTypeKindValue<'AssetDefinition', lib.AssetDefinitionId>
-  | lib.SumTypeKindValue<'Account', lib.AccountId>
-  | lib.SumTypeKindValue<'Domain', lib.DomainId>
-  | lib.SumTypeKindValue<'MetadataKey', lib.Name>
-  | lib.SumTypeKindValue<'Block', lib.HashWrap>
-  | lib.SumTypeKindValue<'Transaction', lib.HashWrap>
-  | lib.SumTypeKindValue<'Peer', PeerId>
-  | lib.SumTypeKindValue<'Trigger', TriggerId>
-  | lib.SumTypeKindValue<'Role', RoleId>
-  | lib.SumTypeKindValue<'Permission', Permission>
-  | lib.SumTypeKindValue<'PublicKey', lib.PublicKeyWrap>
+  | lib.Variant<'Asset', lib.AssetId>
+  | lib.Variant<'AssetDefinition', lib.AssetDefinitionId>
+  | lib.Variant<'Account', lib.AccountId>
+  | lib.Variant<'Domain', lib.DomainId>
+  | lib.Variant<'MetadataKey', lib.Name>
+  | lib.Variant<'Block', lib.HashWrap>
+  | lib.Variant<'Transaction', lib.HashWrap>
+  | lib.Variant<'Peer', PeerId>
+  | lib.Variant<'Trigger', TriggerId>
+  | lib.Variant<'Role', RoleId>
+  | lib.Variant<'Permission', Permission>
+  | lib.Variant<'PublicKey', lib.PublicKeyWrap>
 export const FindError = {
-  Asset: (value: lib.AssetId): FindError => ({ kind: 'Asset', value }),
-  AssetDefinition: (value: lib.AssetDefinitionId): FindError => ({ kind: 'AssetDefinition', value }),
-  Account: (value: lib.AccountId): FindError => ({ kind: 'Account', value }),
-  Domain: (value: lib.DomainId): FindError => ({ kind: 'Domain', value }),
-  MetadataKey: (value: lib.Name): FindError => ({ kind: 'MetadataKey', value }),
-  Block: (value: lib.HashWrap): FindError => ({ kind: 'Block', value }),
-  Transaction: (value: lib.HashWrap): FindError => ({ kind: 'Transaction', value }),
-  Peer: (value: PeerId): FindError => ({ kind: 'Peer', value }),
-  Trigger: (value: TriggerId): FindError => ({ kind: 'Trigger', value }),
-  Role: (value: RoleId): FindError => ({ kind: 'Role', value }),
-  Permission: (value: Permission): FindError => ({ kind: 'Permission', value }),
-  PublicKey: (value: lib.PublicKeyWrap): FindError => ({ kind: 'PublicKey', value }),
+  Asset: <const T extends lib.AssetId>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  AssetDefinition: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'AssetDefinition', T> => ({
+    kind: 'AssetDefinition',
+    value,
+  }),
+  Account: <const T extends lib.AccountId>(value: T): lib.Variant<'Account', T> => ({ kind: 'Account', value }),
+  Domain: <const T extends lib.DomainId>(value: T): lib.Variant<'Domain', T> => ({ kind: 'Domain', value }),
+  MetadataKey: <const T extends lib.Name>(value: T): lib.Variant<'MetadataKey', T> => ({ kind: 'MetadataKey', value }),
+  Block: <const T extends lib.HashWrap>(value: T): lib.Variant<'Block', T> => ({ kind: 'Block', value }),
+  Transaction: <const T extends lib.HashWrap>(value: T): lib.Variant<'Transaction', T> => ({
+    kind: 'Transaction',
+    value,
+  }),
+  Peer: <const T extends PeerId>(value: T): lib.Variant<'Peer', T> => ({ kind: 'Peer', value }),
+  Trigger: <const T extends TriggerId>(value: T): lib.Variant<'Trigger', T> => ({ kind: 'Trigger', value }),
+  Role: <const T extends RoleId>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  Permission: <const T extends Permission>(value: T): lib.Variant<'Permission', T> => ({ kind: 'Permission', value }),
+  PublicKey: <const T extends lib.PublicKeyWrap>(value: T): lib.Variant<'PublicKey', T> => ({
+    kind: 'PublicKey',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Asset: [lib.AssetId]
@@ -758,35 +869,35 @@ export const TransactionLimitError: lib.CodecProvider<TransactionLimitError> = {
 }
 
 export type InstructionType =
-  | lib.SumTypeKind<'Register'>
-  | lib.SumTypeKind<'Unregister'>
-  | lib.SumTypeKind<'Mint'>
-  | lib.SumTypeKind<'Burn'>
-  | lib.SumTypeKind<'Transfer'>
-  | lib.SumTypeKind<'SetKeyValue'>
-  | lib.SumTypeKind<'RemoveKeyValue'>
-  | lib.SumTypeKind<'Grant'>
-  | lib.SumTypeKind<'Revoke'>
-  | lib.SumTypeKind<'ExecuteTrigger'>
-  | lib.SumTypeKind<'SetParameter'>
-  | lib.SumTypeKind<'Upgrade'>
-  | lib.SumTypeKind<'Log'>
-  | lib.SumTypeKind<'Custom'>
+  | lib.VariantUnit<'Register'>
+  | lib.VariantUnit<'Unregister'>
+  | lib.VariantUnit<'Mint'>
+  | lib.VariantUnit<'Burn'>
+  | lib.VariantUnit<'Transfer'>
+  | lib.VariantUnit<'SetKeyValue'>
+  | lib.VariantUnit<'RemoveKeyValue'>
+  | lib.VariantUnit<'Grant'>
+  | lib.VariantUnit<'Revoke'>
+  | lib.VariantUnit<'ExecuteTrigger'>
+  | lib.VariantUnit<'SetParameter'>
+  | lib.VariantUnit<'Upgrade'>
+  | lib.VariantUnit<'Log'>
+  | lib.VariantUnit<'Custom'>
 export const InstructionType = {
-  Register: Object.freeze<InstructionType>({ kind: 'Register' }),
-  Unregister: Object.freeze<InstructionType>({ kind: 'Unregister' }),
-  Mint: Object.freeze<InstructionType>({ kind: 'Mint' }),
-  Burn: Object.freeze<InstructionType>({ kind: 'Burn' }),
-  Transfer: Object.freeze<InstructionType>({ kind: 'Transfer' }),
-  SetKeyValue: Object.freeze<InstructionType>({ kind: 'SetKeyValue' }),
-  RemoveKeyValue: Object.freeze<InstructionType>({ kind: 'RemoveKeyValue' }),
-  Grant: Object.freeze<InstructionType>({ kind: 'Grant' }),
-  Revoke: Object.freeze<InstructionType>({ kind: 'Revoke' }),
-  ExecuteTrigger: Object.freeze<InstructionType>({ kind: 'ExecuteTrigger' }),
-  SetParameter: Object.freeze<InstructionType>({ kind: 'SetParameter' }),
-  Upgrade: Object.freeze<InstructionType>({ kind: 'Upgrade' }),
-  Log: Object.freeze<InstructionType>({ kind: 'Log' }),
-  Custom: Object.freeze<InstructionType>({ kind: 'Custom' }),
+  Register: Object.freeze<lib.VariantUnit<'Register'>>({ kind: 'Register' }),
+  Unregister: Object.freeze<lib.VariantUnit<'Unregister'>>({ kind: 'Unregister' }),
+  Mint: Object.freeze<lib.VariantUnit<'Mint'>>({ kind: 'Mint' }),
+  Burn: Object.freeze<lib.VariantUnit<'Burn'>>({ kind: 'Burn' }),
+  Transfer: Object.freeze<lib.VariantUnit<'Transfer'>>({ kind: 'Transfer' }),
+  SetKeyValue: Object.freeze<lib.VariantUnit<'SetKeyValue'>>({ kind: 'SetKeyValue' }),
+  RemoveKeyValue: Object.freeze<lib.VariantUnit<'RemoveKeyValue'>>({ kind: 'RemoveKeyValue' }),
+  Grant: Object.freeze<lib.VariantUnit<'Grant'>>({ kind: 'Grant' }),
+  Revoke: Object.freeze<lib.VariantUnit<'Revoke'>>({ kind: 'Revoke' }),
+  ExecuteTrigger: Object.freeze<lib.VariantUnit<'ExecuteTrigger'>>({ kind: 'ExecuteTrigger' }),
+  SetParameter: Object.freeze<lib.VariantUnit<'SetParameter'>>({ kind: 'SetParameter' }),
+  Upgrade: Object.freeze<lib.VariantUnit<'Upgrade'>>({ kind: 'Upgrade' }),
+  Log: Object.freeze<lib.VariantUnit<'Log'>>({ kind: 'Log' }),
+  Custom: Object.freeze<lib.VariantUnit<'Custom'>>({ kind: 'Custom' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Register: []
@@ -841,10 +952,10 @@ export const NumericSpec: lib.CodecProvider<NumericSpec> = {
   }),
 }
 
-export type AssetType = lib.SumTypeKindValue<'Numeric', NumericSpec> | lib.SumTypeKind<'Store'>
+export type AssetType = lib.Variant<'Numeric', NumericSpec> | lib.VariantUnit<'Store'>
 export const AssetType = {
-  Numeric: (value: NumericSpec): AssetType => ({ kind: 'Numeric', value }),
-  Store: Object.freeze<AssetType>({ kind: 'Store' }),
+  Numeric: <const T extends NumericSpec>(value: T): lib.Variant<'Numeric', T> => ({ kind: 'Numeric', value }),
+  Store: Object.freeze<lib.VariantUnit<'Store'>>({ kind: 'Store' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Numeric: [NumericSpec]; Store: [] }>([
       [0, 'Numeric', lib.codecOf(NumericSpec)],
@@ -854,13 +965,24 @@ export const AssetType = {
 }
 
 export type TypeError =
-  | lib.SumTypeKindValue<'AssetType', Mismatch<AssetType>>
-  | lib.SumTypeKindValue<'NumericAssetTypeExpected', AssetType>
+  | lib.Variant<'AssetType', Mismatch<AssetType>>
+  | lib.Variant<'NumericAssetTypeExpected', AssetType>
 export const TypeError = {
-  AssetType: (value: Mismatch<AssetType>): TypeError => ({ kind: 'AssetType', value }),
+  AssetType: <const T extends Mismatch<AssetType>>(value: T): lib.Variant<'AssetType', T> => ({
+    kind: 'AssetType',
+    value,
+  }),
   NumericAssetTypeExpected: {
-    Numeric: (value: NumericSpec): TypeError => ({ kind: 'NumericAssetTypeExpected', value: AssetType.Numeric(value) }),
-    Store: Object.freeze<TypeError>({ kind: 'NumericAssetTypeExpected', value: AssetType.Store }),
+    Numeric: <const T extends NumericSpec>(
+      value: T,
+    ): lib.Variant<'NumericAssetTypeExpected', lib.Variant<'Numeric', T>> => ({
+      kind: 'NumericAssetTypeExpected',
+      value: AssetType.Numeric(value),
+    }),
+    Store: Object.freeze<lib.Variant<'NumericAssetTypeExpected', lib.VariantUnit<'Store'>>>({
+      kind: 'NumericAssetTypeExpected',
+      value: AssetType.Store,
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ AssetType: [Mismatch<AssetType>]; NumericAssetTypeExpected: [AssetType] }>([
@@ -871,47 +993,85 @@ export const TypeError = {
 }
 
 export type InstructionEvaluationError =
-  | lib.SumTypeKindValue<'Unsupported', InstructionType>
-  | lib.SumTypeKindValue<'PermissionParameter', lib.String>
-  | lib.SumTypeKindValue<'Type', TypeError>
+  | lib.Variant<'Unsupported', InstructionType>
+  | lib.Variant<'PermissionParameter', lib.String>
+  | lib.Variant<'Type', TypeError>
 export const InstructionEvaluationError = {
   Unsupported: {
-    Register: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Register }),
-    Unregister: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Unregister }),
-    Mint: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Mint }),
-    Burn: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Burn }),
-    Transfer: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Transfer }),
-    SetKeyValue: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.SetKeyValue }),
-    RemoveKeyValue: Object.freeze<InstructionEvaluationError>({
+    Register: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Register'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Register,
+    }),
+    Unregister: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Unregister'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Unregister,
+    }),
+    Mint: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Mint'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Mint,
+    }),
+    Burn: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Burn'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Burn,
+    }),
+    Transfer: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Transfer'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Transfer,
+    }),
+    SetKeyValue: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'SetKeyValue'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.SetKeyValue,
+    }),
+    RemoveKeyValue: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'RemoveKeyValue'>>>({
       kind: 'Unsupported',
       value: InstructionType.RemoveKeyValue,
     }),
-    Grant: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Grant }),
-    Revoke: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Revoke }),
-    ExecuteTrigger: Object.freeze<InstructionEvaluationError>({
+    Grant: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Grant'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Grant,
+    }),
+    Revoke: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Revoke'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Revoke,
+    }),
+    ExecuteTrigger: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'ExecuteTrigger'>>>({
       kind: 'Unsupported',
       value: InstructionType.ExecuteTrigger,
     }),
-    SetParameter: Object.freeze<InstructionEvaluationError>({
+    SetParameter: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'SetParameter'>>>({
       kind: 'Unsupported',
       value: InstructionType.SetParameter,
     }),
-    Upgrade: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Upgrade }),
-    Log: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Log }),
-    Custom: Object.freeze<InstructionEvaluationError>({ kind: 'Unsupported', value: InstructionType.Custom }),
+    Upgrade: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Upgrade'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Upgrade,
+    }),
+    Log: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Log'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Log,
+    }),
+    Custom: Object.freeze<lib.Variant<'Unsupported', lib.VariantUnit<'Custom'>>>({
+      kind: 'Unsupported',
+      value: InstructionType.Custom,
+    }),
   },
-  PermissionParameter: (value: lib.String): InstructionEvaluationError => ({ kind: 'PermissionParameter', value }),
+  PermissionParameter: <const T extends lib.String>(value: T): lib.Variant<'PermissionParameter', T> => ({
+    kind: 'PermissionParameter',
+    value,
+  }),
   Type: {
-    AssetType: (value: Mismatch<AssetType>): InstructionEvaluationError => ({
+    AssetType: <const T extends Mismatch<AssetType>>(value: T): lib.Variant<'Type', lib.Variant<'AssetType', T>> => ({
       kind: 'Type',
       value: TypeError.AssetType(value),
     }),
     NumericAssetTypeExpected: {
-      Numeric: (value: NumericSpec): InstructionEvaluationError => ({
+      Numeric: <const T extends NumericSpec>(
+        value: T,
+      ): lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.Variant<'Numeric', T>>> => ({
         kind: 'Type',
         value: TypeError.NumericAssetTypeExpected.Numeric(value),
       }),
-      Store: Object.freeze<InstructionEvaluationError>({
+      Store: Object.freeze<lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.VariantUnit<'Store'>>>>({
         kind: 'Type',
         value: TypeError.NumericAssetTypeExpected.Store,
       }),
@@ -927,39 +1087,76 @@ export const InstructionEvaluationError = {
 }
 
 export type QueryExecutionFail =
-  | lib.SumTypeKindValue<'Find', FindError>
-  | lib.SumTypeKindValue<'Conversion', lib.String>
-  | lib.SumTypeKind<'NotFound'>
-  | lib.SumTypeKind<'CursorMismatch'>
-  | lib.SumTypeKind<'CursorDone'>
-  | lib.SumTypeKind<'FetchSizeTooBig'>
-  | lib.SumTypeKind<'InvalidSingularParameters'>
-  | lib.SumTypeKind<'CapacityLimit'>
+  | lib.Variant<'Find', FindError>
+  | lib.Variant<'Conversion', lib.String>
+  | lib.VariantUnit<'NotFound'>
+  | lib.VariantUnit<'CursorMismatch'>
+  | lib.VariantUnit<'CursorDone'>
+  | lib.VariantUnit<'FetchSizeTooBig'>
+  | lib.VariantUnit<'InvalidSingularParameters'>
+  | lib.VariantUnit<'CapacityLimit'>
 export const QueryExecutionFail = {
   Find: {
-    Asset: (value: lib.AssetId): QueryExecutionFail => ({ kind: 'Find', value: FindError.Asset(value) }),
-    AssetDefinition: (value: lib.AssetDefinitionId): QueryExecutionFail => ({
+    Asset: <const T extends lib.AssetId>(value: T): lib.Variant<'Find', lib.Variant<'Asset', T>> => ({
+      kind: 'Find',
+      value: FindError.Asset(value),
+    }),
+    AssetDefinition: <const T extends lib.AssetDefinitionId>(
+      value: T,
+    ): lib.Variant<'Find', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'Find',
       value: FindError.AssetDefinition(value),
     }),
-    Account: (value: lib.AccountId): QueryExecutionFail => ({ kind: 'Find', value: FindError.Account(value) }),
-    Domain: (value: lib.DomainId): QueryExecutionFail => ({ kind: 'Find', value: FindError.Domain(value) }),
-    MetadataKey: (value: lib.Name): QueryExecutionFail => ({ kind: 'Find', value: FindError.MetadataKey(value) }),
-    Block: (value: lib.HashWrap): QueryExecutionFail => ({ kind: 'Find', value: FindError.Block(value) }),
-    Transaction: (value: lib.HashWrap): QueryExecutionFail => ({ kind: 'Find', value: FindError.Transaction(value) }),
-    Peer: (value: PeerId): QueryExecutionFail => ({ kind: 'Find', value: FindError.Peer(value) }),
-    Trigger: (value: TriggerId): QueryExecutionFail => ({ kind: 'Find', value: FindError.Trigger(value) }),
-    Role: (value: RoleId): QueryExecutionFail => ({ kind: 'Find', value: FindError.Role(value) }),
-    Permission: (value: Permission): QueryExecutionFail => ({ kind: 'Find', value: FindError.Permission(value) }),
-    PublicKey: (value: lib.PublicKeyWrap): QueryExecutionFail => ({ kind: 'Find', value: FindError.PublicKey(value) }),
+    Account: <const T extends lib.AccountId>(value: T): lib.Variant<'Find', lib.Variant<'Account', T>> => ({
+      kind: 'Find',
+      value: FindError.Account(value),
+    }),
+    Domain: <const T extends lib.DomainId>(value: T): lib.Variant<'Find', lib.Variant<'Domain', T>> => ({
+      kind: 'Find',
+      value: FindError.Domain(value),
+    }),
+    MetadataKey: <const T extends lib.Name>(value: T): lib.Variant<'Find', lib.Variant<'MetadataKey', T>> => ({
+      kind: 'Find',
+      value: FindError.MetadataKey(value),
+    }),
+    Block: <const T extends lib.HashWrap>(value: T): lib.Variant<'Find', lib.Variant<'Block', T>> => ({
+      kind: 'Find',
+      value: FindError.Block(value),
+    }),
+    Transaction: <const T extends lib.HashWrap>(value: T): lib.Variant<'Find', lib.Variant<'Transaction', T>> => ({
+      kind: 'Find',
+      value: FindError.Transaction(value),
+    }),
+    Peer: <const T extends PeerId>(value: T): lib.Variant<'Find', lib.Variant<'Peer', T>> => ({
+      kind: 'Find',
+      value: FindError.Peer(value),
+    }),
+    Trigger: <const T extends TriggerId>(value: T): lib.Variant<'Find', lib.Variant<'Trigger', T>> => ({
+      kind: 'Find',
+      value: FindError.Trigger(value),
+    }),
+    Role: <const T extends RoleId>(value: T): lib.Variant<'Find', lib.Variant<'Role', T>> => ({
+      kind: 'Find',
+      value: FindError.Role(value),
+    }),
+    Permission: <const T extends Permission>(value: T): lib.Variant<'Find', lib.Variant<'Permission', T>> => ({
+      kind: 'Find',
+      value: FindError.Permission(value),
+    }),
+    PublicKey: <const T extends lib.PublicKeyWrap>(value: T): lib.Variant<'Find', lib.Variant<'PublicKey', T>> => ({
+      kind: 'Find',
+      value: FindError.PublicKey(value),
+    }),
   },
-  Conversion: (value: lib.String): QueryExecutionFail => ({ kind: 'Conversion', value }),
-  NotFound: Object.freeze<QueryExecutionFail>({ kind: 'NotFound' }),
-  CursorMismatch: Object.freeze<QueryExecutionFail>({ kind: 'CursorMismatch' }),
-  CursorDone: Object.freeze<QueryExecutionFail>({ kind: 'CursorDone' }),
-  FetchSizeTooBig: Object.freeze<QueryExecutionFail>({ kind: 'FetchSizeTooBig' }),
-  InvalidSingularParameters: Object.freeze<QueryExecutionFail>({ kind: 'InvalidSingularParameters' }),
-  CapacityLimit: Object.freeze<QueryExecutionFail>({ kind: 'CapacityLimit' }),
+  Conversion: <const T extends lib.String>(value: T): lib.Variant<'Conversion', T> => ({ kind: 'Conversion', value }),
+  NotFound: Object.freeze<lib.VariantUnit<'NotFound'>>({ kind: 'NotFound' }),
+  CursorMismatch: Object.freeze<lib.VariantUnit<'CursorMismatch'>>({ kind: 'CursorMismatch' }),
+  CursorDone: Object.freeze<lib.VariantUnit<'CursorDone'>>({ kind: 'CursorDone' }),
+  FetchSizeTooBig: Object.freeze<lib.VariantUnit<'FetchSizeTooBig'>>({ kind: 'FetchSizeTooBig' }),
+  InvalidSingularParameters: Object.freeze<lib.VariantUnit<'InvalidSingularParameters'>>({
+    kind: 'InvalidSingularParameters',
+  }),
+  CapacityLimit: Object.freeze<lib.VariantUnit<'CapacityLimit'>>({ kind: 'CapacityLimit' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Find: [FindError]
@@ -984,25 +1181,31 @@ export const QueryExecutionFail = {
 }
 
 export type IdBox =
-  | lib.SumTypeKindValue<'DomainId', lib.DomainId>
-  | lib.SumTypeKindValue<'AccountId', lib.AccountId>
-  | lib.SumTypeKindValue<'AssetDefinitionId', lib.AssetDefinitionId>
-  | lib.SumTypeKindValue<'AssetId', lib.AssetId>
-  | lib.SumTypeKindValue<'PeerId', PeerId>
-  | lib.SumTypeKindValue<'TriggerId', TriggerId>
-  | lib.SumTypeKindValue<'RoleId', RoleId>
-  | lib.SumTypeKindValue<'Permission', Permission>
-  | lib.SumTypeKindValue<'CustomParameterId', lib.Name>
+  | lib.Variant<'DomainId', lib.DomainId>
+  | lib.Variant<'AccountId', lib.AccountId>
+  | lib.Variant<'AssetDefinitionId', lib.AssetDefinitionId>
+  | lib.Variant<'AssetId', lib.AssetId>
+  | lib.Variant<'PeerId', PeerId>
+  | lib.Variant<'TriggerId', TriggerId>
+  | lib.Variant<'RoleId', RoleId>
+  | lib.Variant<'Permission', Permission>
+  | lib.Variant<'CustomParameterId', lib.Name>
 export const IdBox = {
-  DomainId: (value: lib.DomainId): IdBox => ({ kind: 'DomainId', value }),
-  AccountId: (value: lib.AccountId): IdBox => ({ kind: 'AccountId', value }),
-  AssetDefinitionId: (value: lib.AssetDefinitionId): IdBox => ({ kind: 'AssetDefinitionId', value }),
-  AssetId: (value: lib.AssetId): IdBox => ({ kind: 'AssetId', value }),
-  PeerId: (value: PeerId): IdBox => ({ kind: 'PeerId', value }),
-  TriggerId: (value: TriggerId): IdBox => ({ kind: 'TriggerId', value }),
-  RoleId: (value: RoleId): IdBox => ({ kind: 'RoleId', value }),
-  Permission: (value: Permission): IdBox => ({ kind: 'Permission', value }),
-  CustomParameterId: (value: lib.Name): IdBox => ({ kind: 'CustomParameterId', value }),
+  DomainId: <const T extends lib.DomainId>(value: T): lib.Variant<'DomainId', T> => ({ kind: 'DomainId', value }),
+  AccountId: <const T extends lib.AccountId>(value: T): lib.Variant<'AccountId', T> => ({ kind: 'AccountId', value }),
+  AssetDefinitionId: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'AssetDefinitionId', T> => ({
+    kind: 'AssetDefinitionId',
+    value,
+  }),
+  AssetId: <const T extends lib.AssetId>(value: T): lib.Variant<'AssetId', T> => ({ kind: 'AssetId', value }),
+  PeerId: <const T extends PeerId>(value: T): lib.Variant<'PeerId', T> => ({ kind: 'PeerId', value }),
+  TriggerId: <const T extends TriggerId>(value: T): lib.Variant<'TriggerId', T> => ({ kind: 'TriggerId', value }),
+  RoleId: <const T extends RoleId>(value: T): lib.Variant<'RoleId', T> => ({ kind: 'RoleId', value }),
+  Permission: <const T extends Permission>(value: T): lib.Variant<'Permission', T> => ({ kind: 'Permission', value }),
+  CustomParameterId: <const T extends lib.Name>(value: T): lib.Variant<'CustomParameterId', T> => ({
+    kind: 'CustomParameterId',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       DomainId: [lib.DomainId]
@@ -1039,10 +1242,10 @@ export const RepetitionError: lib.CodecProvider<RepetitionError> = {
   }),
 }
 
-export type MintabilityError = lib.SumTypeKind<'MintUnmintable'> | lib.SumTypeKind<'ForbidMintOnMintable'>
+export type MintabilityError = lib.VariantUnit<'MintUnmintable'> | lib.VariantUnit<'ForbidMintOnMintable'>
 export const MintabilityError = {
-  MintUnmintable: Object.freeze<MintabilityError>({ kind: 'MintUnmintable' }),
-  ForbidMintOnMintable: Object.freeze<MintabilityError>({ kind: 'ForbidMintOnMintable' }),
+  MintUnmintable: Object.freeze<lib.VariantUnit<'MintUnmintable'>>({ kind: 'MintUnmintable' }),
+  ForbidMintOnMintable: Object.freeze<lib.VariantUnit<'ForbidMintOnMintable'>>({ kind: 'ForbidMintOnMintable' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ MintUnmintable: []; ForbidMintOnMintable: [] }>([
       [0, 'MintUnmintable'],
@@ -1052,21 +1255,24 @@ export const MintabilityError = {
 }
 
 export type MathError =
-  | lib.SumTypeKind<'Overflow'>
-  | lib.SumTypeKind<'NotEnoughQuantity'>
-  | lib.SumTypeKind<'DivideByZero'>
-  | lib.SumTypeKind<'NegativeValue'>
-  | lib.SumTypeKind<'DomainViolation'>
-  | lib.SumTypeKind<'Unknown'>
-  | lib.SumTypeKindValue<'FixedPointConversion', lib.String>
+  | lib.VariantUnit<'Overflow'>
+  | lib.VariantUnit<'NotEnoughQuantity'>
+  | lib.VariantUnit<'DivideByZero'>
+  | lib.VariantUnit<'NegativeValue'>
+  | lib.VariantUnit<'DomainViolation'>
+  | lib.VariantUnit<'Unknown'>
+  | lib.Variant<'FixedPointConversion', lib.String>
 export const MathError = {
-  Overflow: Object.freeze<MathError>({ kind: 'Overflow' }),
-  NotEnoughQuantity: Object.freeze<MathError>({ kind: 'NotEnoughQuantity' }),
-  DivideByZero: Object.freeze<MathError>({ kind: 'DivideByZero' }),
-  NegativeValue: Object.freeze<MathError>({ kind: 'NegativeValue' }),
-  DomainViolation: Object.freeze<MathError>({ kind: 'DomainViolation' }),
-  Unknown: Object.freeze<MathError>({ kind: 'Unknown' }),
-  FixedPointConversion: (value: lib.String): MathError => ({ kind: 'FixedPointConversion', value }),
+  Overflow: Object.freeze<lib.VariantUnit<'Overflow'>>({ kind: 'Overflow' }),
+  NotEnoughQuantity: Object.freeze<lib.VariantUnit<'NotEnoughQuantity'>>({ kind: 'NotEnoughQuantity' }),
+  DivideByZero: Object.freeze<lib.VariantUnit<'DivideByZero'>>({ kind: 'DivideByZero' }),
+  NegativeValue: Object.freeze<lib.VariantUnit<'NegativeValue'>>({ kind: 'NegativeValue' }),
+  DomainViolation: Object.freeze<lib.VariantUnit<'DomainViolation'>>({ kind: 'DomainViolation' }),
+  Unknown: Object.freeze<lib.VariantUnit<'Unknown'>>({ kind: 'Unknown' }),
+  FixedPointConversion: <const T extends lib.String>(value: T): lib.Variant<'FixedPointConversion', T> => ({
+    kind: 'FixedPointConversion',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Overflow: []
@@ -1088,10 +1294,10 @@ export const MathError = {
     .discriminated(),
 }
 
-export type InvalidParameterError = lib.SumTypeKindValue<'Wasm', lib.String> | lib.SumTypeKind<'TimeTriggerInThePast'>
+export type InvalidParameterError = lib.Variant<'Wasm', lib.String> | lib.VariantUnit<'TimeTriggerInThePast'>
 export const InvalidParameterError = {
-  Wasm: (value: lib.String): InvalidParameterError => ({ kind: 'Wasm', value }),
-  TimeTriggerInThePast: Object.freeze<InvalidParameterError>({ kind: 'TimeTriggerInThePast' }),
+  Wasm: <const T extends lib.String>(value: T): lib.Variant<'Wasm', T> => ({ kind: 'Wasm', value }),
+  TimeTriggerInThePast: Object.freeze<lib.VariantUnit<'TimeTriggerInThePast'>>({ kind: 'TimeTriggerInThePast' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Wasm: [lib.String]; TimeTriggerInThePast: [] }>([
       [0, 'Wasm', lib.codecOf(lib.String)],
@@ -1101,231 +1307,311 @@ export const InvalidParameterError = {
 }
 
 export type InstructionExecutionError =
-  | lib.SumTypeKindValue<'Evaluate', InstructionEvaluationError>
-  | lib.SumTypeKindValue<'Query', QueryExecutionFail>
-  | lib.SumTypeKindValue<'Conversion', lib.String>
-  | lib.SumTypeKindValue<'Find', FindError>
-  | lib.SumTypeKindValue<'Repetition', RepetitionError>
-  | lib.SumTypeKindValue<'Mintability', MintabilityError>
-  | lib.SumTypeKindValue<'Math', MathError>
-  | lib.SumTypeKindValue<'InvalidParameter', InvalidParameterError>
-  | lib.SumTypeKindValue<'InvariantViolation', lib.String>
+  | lib.Variant<'Evaluate', InstructionEvaluationError>
+  | lib.Variant<'Query', QueryExecutionFail>
+  | lib.Variant<'Conversion', lib.String>
+  | lib.Variant<'Find', FindError>
+  | lib.Variant<'Repetition', RepetitionError>
+  | lib.Variant<'Mintability', MintabilityError>
+  | lib.Variant<'Math', MathError>
+  | lib.Variant<'InvalidParameter', InvalidParameterError>
+  | lib.Variant<'InvariantViolation', lib.String>
 export const InstructionExecutionError = {
   Evaluate: {
     Unsupported: {
-      Register: Object.freeze<InstructionExecutionError>({
+      Register: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Register'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Register,
       }),
-      Unregister: Object.freeze<InstructionExecutionError>({
+      Unregister: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Unregister'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Unregister,
       }),
-      Mint: Object.freeze<InstructionExecutionError>({
+      Mint: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Mint'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Mint,
       }),
-      Burn: Object.freeze<InstructionExecutionError>({
+      Burn: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Burn'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Burn,
       }),
-      Transfer: Object.freeze<InstructionExecutionError>({
+      Transfer: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Transfer'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Transfer,
       }),
-      SetKeyValue: Object.freeze<InstructionExecutionError>({
+      SetKeyValue: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetKeyValue'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.SetKeyValue,
       }),
-      RemoveKeyValue: Object.freeze<InstructionExecutionError>({
-        kind: 'Evaluate',
-        value: InstructionEvaluationError.Unsupported.RemoveKeyValue,
-      }),
-      Grant: Object.freeze<InstructionExecutionError>({
+      RemoveKeyValue: Object.freeze<
+        lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'RemoveKeyValue'>>>
+      >({ kind: 'Evaluate', value: InstructionEvaluationError.Unsupported.RemoveKeyValue }),
+      Grant: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Grant'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Grant,
       }),
-      Revoke: Object.freeze<InstructionExecutionError>({
+      Revoke: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Revoke'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Revoke,
       }),
-      ExecuteTrigger: Object.freeze<InstructionExecutionError>({
-        kind: 'Evaluate',
-        value: InstructionEvaluationError.Unsupported.ExecuteTrigger,
-      }),
-      SetParameter: Object.freeze<InstructionExecutionError>({
-        kind: 'Evaluate',
-        value: InstructionEvaluationError.Unsupported.SetParameter,
-      }),
-      Upgrade: Object.freeze<InstructionExecutionError>({
+      ExecuteTrigger: Object.freeze<
+        lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'ExecuteTrigger'>>>
+      >({ kind: 'Evaluate', value: InstructionEvaluationError.Unsupported.ExecuteTrigger }),
+      SetParameter: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetParameter'>>>>(
+        { kind: 'Evaluate', value: InstructionEvaluationError.Unsupported.SetParameter },
+      ),
+      Upgrade: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Upgrade'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Upgrade,
       }),
-      Log: Object.freeze<InstructionExecutionError>({
+      Log: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Log'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Log,
       }),
-      Custom: Object.freeze<InstructionExecutionError>({
+      Custom: Object.freeze<lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Custom'>>>>({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Unsupported.Custom,
       }),
     },
-    PermissionParameter: (value: lib.String): InstructionExecutionError => ({
+    PermissionParameter: <const T extends lib.String>(
+      value: T,
+    ): lib.Variant<'Evaluate', lib.Variant<'PermissionParameter', T>> => ({
       kind: 'Evaluate',
       value: InstructionEvaluationError.PermissionParameter(value),
     }),
     Type: {
-      AssetType: (value: Mismatch<AssetType>): InstructionExecutionError => ({
+      AssetType: <const T extends Mismatch<AssetType>>(
+        value: T,
+      ): lib.Variant<'Evaluate', lib.Variant<'Type', lib.Variant<'AssetType', T>>> => ({
         kind: 'Evaluate',
         value: InstructionEvaluationError.Type.AssetType(value),
       }),
       NumericAssetTypeExpected: {
-        Numeric: (value: NumericSpec): InstructionExecutionError => ({
-          kind: 'Evaluate',
-          value: InstructionEvaluationError.Type.NumericAssetTypeExpected.Numeric(value),
-        }),
-        Store: Object.freeze<InstructionExecutionError>({
-          kind: 'Evaluate',
-          value: InstructionEvaluationError.Type.NumericAssetTypeExpected.Store,
-        }),
+        Numeric: <const T extends NumericSpec>(
+          value: T,
+        ): lib.Variant<
+          'Evaluate',
+          lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.Variant<'Numeric', T>>>
+        > => ({ kind: 'Evaluate', value: InstructionEvaluationError.Type.NumericAssetTypeExpected.Numeric(value) }),
+        Store: Object.freeze<
+          lib.Variant<
+            'Evaluate',
+            lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.VariantUnit<'Store'>>>
+          >
+        >({ kind: 'Evaluate', value: InstructionEvaluationError.Type.NumericAssetTypeExpected.Store }),
       },
     },
   },
   Query: {
     Find: {
-      Asset: (value: lib.AssetId): InstructionExecutionError => ({
+      Asset: <const T extends lib.AssetId>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Asset', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Asset(value),
       }),
-      AssetDefinition: (value: lib.AssetDefinitionId): InstructionExecutionError => ({
+      AssetDefinition: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.AssetDefinition(value),
       }),
-      Account: (value: lib.AccountId): InstructionExecutionError => ({
+      Account: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Account', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Account(value),
       }),
-      Domain: (value: lib.DomainId): InstructionExecutionError => ({
+      Domain: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Domain', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Domain(value),
       }),
-      MetadataKey: (value: lib.Name): InstructionExecutionError => ({
+      MetadataKey: <const T extends lib.Name>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.MetadataKey(value),
       }),
-      Block: (value: lib.HashWrap): InstructionExecutionError => ({
+      Block: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Block', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Block(value),
       }),
-      Transaction: (value: lib.HashWrap): InstructionExecutionError => ({
+      Transaction: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Transaction', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Transaction(value),
       }),
-      Peer: (value: PeerId): InstructionExecutionError => ({
+      Peer: <const T extends PeerId>(value: T): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Peer', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Peer(value),
       }),
-      Trigger: (value: TriggerId): InstructionExecutionError => ({
+      Trigger: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Trigger', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Trigger(value),
       }),
-      Role: (value: RoleId): InstructionExecutionError => ({
+      Role: <const T extends RoleId>(value: T): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Role', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Role(value),
       }),
-      Permission: (value: Permission): InstructionExecutionError => ({
+      Permission: <const T extends Permission>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Permission', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.Permission(value),
       }),
-      PublicKey: (value: lib.PublicKeyWrap): InstructionExecutionError => ({
+      PublicKey: <const T extends lib.PublicKeyWrap>(
+        value: T,
+      ): lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'PublicKey', T>>> => ({
         kind: 'Query',
         value: QueryExecutionFail.Find.PublicKey(value),
       }),
     },
-    Conversion: (value: lib.String): InstructionExecutionError => ({
+    Conversion: <const T extends lib.String>(value: T): lib.Variant<'Query', lib.Variant<'Conversion', T>> => ({
       kind: 'Query',
       value: QueryExecutionFail.Conversion(value),
     }),
-    NotFound: Object.freeze<InstructionExecutionError>({ kind: 'Query', value: QueryExecutionFail.NotFound }),
-    CursorMismatch: Object.freeze<InstructionExecutionError>({
+    NotFound: Object.freeze<lib.Variant<'Query', lib.VariantUnit<'NotFound'>>>({
+      kind: 'Query',
+      value: QueryExecutionFail.NotFound,
+    }),
+    CursorMismatch: Object.freeze<lib.Variant<'Query', lib.VariantUnit<'CursorMismatch'>>>({
       kind: 'Query',
       value: QueryExecutionFail.CursorMismatch,
     }),
-    CursorDone: Object.freeze<InstructionExecutionError>({ kind: 'Query', value: QueryExecutionFail.CursorDone }),
-    FetchSizeTooBig: Object.freeze<InstructionExecutionError>({
+    CursorDone: Object.freeze<lib.Variant<'Query', lib.VariantUnit<'CursorDone'>>>({
+      kind: 'Query',
+      value: QueryExecutionFail.CursorDone,
+    }),
+    FetchSizeTooBig: Object.freeze<lib.Variant<'Query', lib.VariantUnit<'FetchSizeTooBig'>>>({
       kind: 'Query',
       value: QueryExecutionFail.FetchSizeTooBig,
     }),
-    InvalidSingularParameters: Object.freeze<InstructionExecutionError>({
+    InvalidSingularParameters: Object.freeze<lib.Variant<'Query', lib.VariantUnit<'InvalidSingularParameters'>>>({
       kind: 'Query',
       value: QueryExecutionFail.InvalidSingularParameters,
     }),
-    CapacityLimit: Object.freeze<InstructionExecutionError>({ kind: 'Query', value: QueryExecutionFail.CapacityLimit }),
+    CapacityLimit: Object.freeze<lib.Variant<'Query', lib.VariantUnit<'CapacityLimit'>>>({
+      kind: 'Query',
+      value: QueryExecutionFail.CapacityLimit,
+    }),
   },
-  Conversion: (value: lib.String): InstructionExecutionError => ({ kind: 'Conversion', value }),
+  Conversion: <const T extends lib.String>(value: T): lib.Variant<'Conversion', T> => ({ kind: 'Conversion', value }),
   Find: {
-    Asset: (value: lib.AssetId): InstructionExecutionError => ({ kind: 'Find', value: FindError.Asset(value) }),
-    AssetDefinition: (value: lib.AssetDefinitionId): InstructionExecutionError => ({
+    Asset: <const T extends lib.AssetId>(value: T): lib.Variant<'Find', lib.Variant<'Asset', T>> => ({
+      kind: 'Find',
+      value: FindError.Asset(value),
+    }),
+    AssetDefinition: <const T extends lib.AssetDefinitionId>(
+      value: T,
+    ): lib.Variant<'Find', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'Find',
       value: FindError.AssetDefinition(value),
     }),
-    Account: (value: lib.AccountId): InstructionExecutionError => ({ kind: 'Find', value: FindError.Account(value) }),
-    Domain: (value: lib.DomainId): InstructionExecutionError => ({ kind: 'Find', value: FindError.Domain(value) }),
-    MetadataKey: (value: lib.Name): InstructionExecutionError => ({
+    Account: <const T extends lib.AccountId>(value: T): lib.Variant<'Find', lib.Variant<'Account', T>> => ({
+      kind: 'Find',
+      value: FindError.Account(value),
+    }),
+    Domain: <const T extends lib.DomainId>(value: T): lib.Variant<'Find', lib.Variant<'Domain', T>> => ({
+      kind: 'Find',
+      value: FindError.Domain(value),
+    }),
+    MetadataKey: <const T extends lib.Name>(value: T): lib.Variant<'Find', lib.Variant<'MetadataKey', T>> => ({
       kind: 'Find',
       value: FindError.MetadataKey(value),
     }),
-    Block: (value: lib.HashWrap): InstructionExecutionError => ({ kind: 'Find', value: FindError.Block(value) }),
-    Transaction: (value: lib.HashWrap): InstructionExecutionError => ({
+    Block: <const T extends lib.HashWrap>(value: T): lib.Variant<'Find', lib.Variant<'Block', T>> => ({
+      kind: 'Find',
+      value: FindError.Block(value),
+    }),
+    Transaction: <const T extends lib.HashWrap>(value: T): lib.Variant<'Find', lib.Variant<'Transaction', T>> => ({
       kind: 'Find',
       value: FindError.Transaction(value),
     }),
-    Peer: (value: PeerId): InstructionExecutionError => ({ kind: 'Find', value: FindError.Peer(value) }),
-    Trigger: (value: TriggerId): InstructionExecutionError => ({ kind: 'Find', value: FindError.Trigger(value) }),
-    Role: (value: RoleId): InstructionExecutionError => ({ kind: 'Find', value: FindError.Role(value) }),
-    Permission: (value: Permission): InstructionExecutionError => ({
+    Peer: <const T extends PeerId>(value: T): lib.Variant<'Find', lib.Variant<'Peer', T>> => ({
+      kind: 'Find',
+      value: FindError.Peer(value),
+    }),
+    Trigger: <const T extends TriggerId>(value: T): lib.Variant<'Find', lib.Variant<'Trigger', T>> => ({
+      kind: 'Find',
+      value: FindError.Trigger(value),
+    }),
+    Role: <const T extends RoleId>(value: T): lib.Variant<'Find', lib.Variant<'Role', T>> => ({
+      kind: 'Find',
+      value: FindError.Role(value),
+    }),
+    Permission: <const T extends Permission>(value: T): lib.Variant<'Find', lib.Variant<'Permission', T>> => ({
       kind: 'Find',
       value: FindError.Permission(value),
     }),
-    PublicKey: (value: lib.PublicKeyWrap): InstructionExecutionError => ({
+    PublicKey: <const T extends lib.PublicKeyWrap>(value: T): lib.Variant<'Find', lib.Variant<'PublicKey', T>> => ({
       kind: 'Find',
       value: FindError.PublicKey(value),
     }),
   },
-  Repetition: (value: RepetitionError): InstructionExecutionError => ({ kind: 'Repetition', value }),
+  Repetition: <const T extends RepetitionError>(value: T): lib.Variant<'Repetition', T> => ({
+    kind: 'Repetition',
+    value,
+  }),
   Mintability: {
-    MintUnmintable: Object.freeze<InstructionExecutionError>({
+    MintUnmintable: Object.freeze<lib.Variant<'Mintability', lib.VariantUnit<'MintUnmintable'>>>({
       kind: 'Mintability',
       value: MintabilityError.MintUnmintable,
     }),
-    ForbidMintOnMintable: Object.freeze<InstructionExecutionError>({
+    ForbidMintOnMintable: Object.freeze<lib.Variant<'Mintability', lib.VariantUnit<'ForbidMintOnMintable'>>>({
       kind: 'Mintability',
       value: MintabilityError.ForbidMintOnMintable,
     }),
   },
   Math: {
-    Overflow: Object.freeze<InstructionExecutionError>({ kind: 'Math', value: MathError.Overflow }),
-    NotEnoughQuantity: Object.freeze<InstructionExecutionError>({ kind: 'Math', value: MathError.NotEnoughQuantity }),
-    DivideByZero: Object.freeze<InstructionExecutionError>({ kind: 'Math', value: MathError.DivideByZero }),
-    NegativeValue: Object.freeze<InstructionExecutionError>({ kind: 'Math', value: MathError.NegativeValue }),
-    DomainViolation: Object.freeze<InstructionExecutionError>({ kind: 'Math', value: MathError.DomainViolation }),
-    Unknown: Object.freeze<InstructionExecutionError>({ kind: 'Math', value: MathError.Unknown }),
-    FixedPointConversion: (value: lib.String): InstructionExecutionError => ({
+    Overflow: Object.freeze<lib.Variant<'Math', lib.VariantUnit<'Overflow'>>>({
+      kind: 'Math',
+      value: MathError.Overflow,
+    }),
+    NotEnoughQuantity: Object.freeze<lib.Variant<'Math', lib.VariantUnit<'NotEnoughQuantity'>>>({
+      kind: 'Math',
+      value: MathError.NotEnoughQuantity,
+    }),
+    DivideByZero: Object.freeze<lib.Variant<'Math', lib.VariantUnit<'DivideByZero'>>>({
+      kind: 'Math',
+      value: MathError.DivideByZero,
+    }),
+    NegativeValue: Object.freeze<lib.Variant<'Math', lib.VariantUnit<'NegativeValue'>>>({
+      kind: 'Math',
+      value: MathError.NegativeValue,
+    }),
+    DomainViolation: Object.freeze<lib.Variant<'Math', lib.VariantUnit<'DomainViolation'>>>({
+      kind: 'Math',
+      value: MathError.DomainViolation,
+    }),
+    Unknown: Object.freeze<lib.Variant<'Math', lib.VariantUnit<'Unknown'>>>({ kind: 'Math', value: MathError.Unknown }),
+    FixedPointConversion: <const T extends lib.String>(
+      value: T,
+    ): lib.Variant<'Math', lib.Variant<'FixedPointConversion', T>> => ({
       kind: 'Math',
       value: MathError.FixedPointConversion(value),
     }),
   },
   InvalidParameter: {
-    Wasm: (value: lib.String): InstructionExecutionError => ({
+    Wasm: <const T extends lib.String>(value: T): lib.Variant<'InvalidParameter', lib.Variant<'Wasm', T>> => ({
       kind: 'InvalidParameter',
       value: InvalidParameterError.Wasm(value),
     }),
-    TimeTriggerInThePast: Object.freeze<InstructionExecutionError>({
+    TimeTriggerInThePast: Object.freeze<lib.Variant<'InvalidParameter', lib.VariantUnit<'TimeTriggerInThePast'>>>({
       kind: 'InvalidParameter',
       value: InvalidParameterError.TimeTriggerInThePast,
     }),
   },
-  InvariantViolation: (value: lib.String): InstructionExecutionError => ({ kind: 'InvariantViolation', value }),
+  InvariantViolation: <const T extends lib.String>(value: T): lib.Variant<'InvariantViolation', T> => ({
+    kind: 'InvariantViolation',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Evaluate: [InstructionEvaluationError]
@@ -1352,88 +1638,130 @@ export const InstructionExecutionError = {
 }
 
 export type ValidationFail =
-  | lib.SumTypeKindValue<'NotPermitted', lib.String>
-  | lib.SumTypeKindValue<'InstructionFailed', InstructionExecutionError>
-  | lib.SumTypeKindValue<'QueryFailed', QueryExecutionFail>
-  | lib.SumTypeKind<'TooComplex'>
-  | lib.SumTypeKind<'InternalError'>
+  | lib.Variant<'NotPermitted', lib.String>
+  | lib.Variant<'InstructionFailed', InstructionExecutionError>
+  | lib.Variant<'QueryFailed', QueryExecutionFail>
+  | lib.VariantUnit<'TooComplex'>
+  | lib.VariantUnit<'InternalError'>
 export const ValidationFail = {
-  NotPermitted: (value: lib.String): ValidationFail => ({ kind: 'NotPermitted', value }),
+  NotPermitted: <const T extends lib.String>(value: T): lib.Variant<'NotPermitted', T> => ({
+    kind: 'NotPermitted',
+    value,
+  }),
   InstructionFailed: {
     Evaluate: {
       Unsupported: {
-        Register: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Register,
-        }),
-        Unregister: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Unregister,
-        }),
-        Mint: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Mint,
-        }),
-        Burn: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Burn,
-        }),
-        Transfer: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Transfer,
-        }),
-        SetKeyValue: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.SetKeyValue,
-        }),
-        RemoveKeyValue: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.RemoveKeyValue,
-        }),
-        Grant: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Grant,
-        }),
-        Revoke: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Revoke,
-        }),
-        ExecuteTrigger: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.ExecuteTrigger,
-        }),
-        SetParameter: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.SetParameter,
-        }),
-        Upgrade: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Upgrade,
-        }),
-        Log: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Log,
-        }),
-        Custom: Object.freeze<ValidationFail>({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Unsupported.Custom,
-        }),
+        Register: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Register'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Register }),
+        Unregister: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Unregister'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Unregister }),
+        Mint: Object.freeze<
+          lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Mint'>>>>
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Mint }),
+        Burn: Object.freeze<
+          lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Burn'>>>>
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Burn }),
+        Transfer: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Transfer'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Transfer }),
+        SetKeyValue: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetKeyValue'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.SetKeyValue }),
+        RemoveKeyValue: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'RemoveKeyValue'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.RemoveKeyValue }),
+        Grant: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Grant'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Grant }),
+        Revoke: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Revoke'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Revoke }),
+        ExecuteTrigger: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'ExecuteTrigger'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.ExecuteTrigger }),
+        SetParameter: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetParameter'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.SetParameter }),
+        Upgrade: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Upgrade'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Upgrade }),
+        Log: Object.freeze<
+          lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Log'>>>>
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Log }),
+        Custom: Object.freeze<
+          lib.Variant<
+            'InstructionFailed',
+            lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Custom'>>>
+          >
+        >({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Unsupported.Custom }),
       },
-      PermissionParameter: (value: lib.String): ValidationFail => ({
+      PermissionParameter: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'PermissionParameter', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Evaluate.PermissionParameter(value),
       }),
       Type: {
-        AssetType: (value: Mismatch<AssetType>): ValidationFail => ({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Evaluate.Type.AssetType(value),
-        }),
+        AssetType: <const T extends Mismatch<AssetType>>(
+          value: T,
+        ): lib.Variant<
+          'InstructionFailed',
+          lib.Variant<'Evaluate', lib.Variant<'Type', lib.Variant<'AssetType', T>>>
+        > => ({ kind: 'InstructionFailed', value: InstructionExecutionError.Evaluate.Type.AssetType(value) }),
         NumericAssetTypeExpected: {
-          Numeric: (value: NumericSpec): ValidationFail => ({
+          Numeric: <const T extends NumericSpec>(
+            value: T,
+          ): lib.Variant<
+            'InstructionFailed',
+            lib.Variant<
+              'Evaluate',
+              lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.Variant<'Numeric', T>>>
+            >
+          > => ({
             kind: 'InstructionFailed',
             value: InstructionExecutionError.Evaluate.Type.NumericAssetTypeExpected.Numeric(value),
           }),
-          Store: Object.freeze<ValidationFail>({
+          Store: Object.freeze<
+            lib.Variant<
+              'InstructionFailed',
+              lib.Variant<
+                'Evaluate',
+                lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.VariantUnit<'Store'>>>
+              >
+            >
+          >({
             kind: 'InstructionFailed',
             value: InstructionExecutionError.Evaluate.Type.NumericAssetTypeExpected.Store,
           }),
@@ -1442,258 +1770,352 @@ export const ValidationFail = {
     },
     Query: {
       Find: {
-        Asset: (value: lib.AssetId): ValidationFail => ({
+        Asset: <const T extends lib.AssetId>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Asset', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Asset(value),
         }),
-        AssetDefinition: (value: lib.AssetDefinitionId): ValidationFail => ({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Query.Find.AssetDefinition(value),
-        }),
-        Account: (value: lib.AccountId): ValidationFail => ({
+        AssetDefinition: <const T extends lib.AssetDefinitionId>(
+          value: T,
+        ): lib.Variant<
+          'InstructionFailed',
+          lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+        > => ({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.Find.AssetDefinition(value) }),
+        Account: <const T extends lib.AccountId>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Account', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Account(value),
         }),
-        Domain: (value: lib.DomainId): ValidationFail => ({
+        Domain: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Domain', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Domain(value),
         }),
-        MetadataKey: (value: lib.Name): ValidationFail => ({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Query.Find.MetadataKey(value),
-        }),
-        Block: (value: lib.HashWrap): ValidationFail => ({
+        MetadataKey: <const T extends lib.Name>(
+          value: T,
+        ): lib.Variant<
+          'InstructionFailed',
+          lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>
+        > => ({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.Find.MetadataKey(value) }),
+        Block: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Block', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Block(value),
         }),
-        Transaction: (value: lib.HashWrap): ValidationFail => ({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Query.Find.Transaction(value),
-        }),
-        Peer: (value: PeerId): ValidationFail => ({
+        Transaction: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<
+          'InstructionFailed',
+          lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Transaction', T>>>
+        > => ({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.Find.Transaction(value) }),
+        Peer: <const T extends PeerId>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Peer', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Peer(value),
         }),
-        Trigger: (value: TriggerId): ValidationFail => ({
+        Trigger: <const T extends TriggerId>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Trigger', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Trigger(value),
         }),
-        Role: (value: RoleId): ValidationFail => ({
+        Role: <const T extends RoleId>(
+          value: T,
+        ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Role', T>>>> => ({
           kind: 'InstructionFailed',
           value: InstructionExecutionError.Query.Find.Role(value),
         }),
-        Permission: (value: Permission): ValidationFail => ({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Query.Find.Permission(value),
-        }),
-        PublicKey: (value: lib.PublicKeyWrap): ValidationFail => ({
-          kind: 'InstructionFailed',
-          value: InstructionExecutionError.Query.Find.PublicKey(value),
-        }),
+        Permission: <const T extends Permission>(
+          value: T,
+        ): lib.Variant<
+          'InstructionFailed',
+          lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Permission', T>>>
+        > => ({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.Find.Permission(value) }),
+        PublicKey: <const T extends lib.PublicKeyWrap>(
+          value: T,
+        ): lib.Variant<
+          'InstructionFailed',
+          lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>
+        > => ({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.Find.PublicKey(value) }),
       },
-      Conversion: (value: lib.String): ValidationFail => ({
+      Conversion: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Conversion', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Query.Conversion(value),
       }),
-      NotFound: Object.freeze<ValidationFail>({
+      NotFound: Object.freeze<lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'NotFound'>>>>({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Query.NotFound,
       }),
-      CursorMismatch: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Query.CursorMismatch,
-      }),
-      CursorDone: Object.freeze<ValidationFail>({
+      CursorMismatch: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CursorMismatch'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.CursorMismatch }),
+      CursorDone: Object.freeze<lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CursorDone'>>>>({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Query.CursorDone,
       }),
-      FetchSizeTooBig: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Query.FetchSizeTooBig,
-      }),
-      InvalidSingularParameters: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Query.InvalidSingularParameters,
-      }),
-      CapacityLimit: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Query.CapacityLimit,
-      }),
+      FetchSizeTooBig: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'FetchSizeTooBig'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.FetchSizeTooBig }),
+      InvalidSingularParameters: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'InvalidSingularParameters'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.InvalidSingularParameters }),
+      CapacityLimit: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CapacityLimit'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Query.CapacityLimit }),
     },
-    Conversion: (value: lib.String): ValidationFail => ({
+    Conversion: <const T extends lib.String>(
+      value: T,
+    ): lib.Variant<'InstructionFailed', lib.Variant<'Conversion', T>> => ({
       kind: 'InstructionFailed',
       value: InstructionExecutionError.Conversion(value),
     }),
     Find: {
-      Asset: (value: lib.AssetId): ValidationFail => ({
+      Asset: <const T extends lib.AssetId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Asset', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Asset(value),
       }),
-      AssetDefinition: (value: lib.AssetDefinitionId): ValidationFail => ({
+      AssetDefinition: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.AssetDefinition(value),
       }),
-      Account: (value: lib.AccountId): ValidationFail => ({
+      Account: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Account', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Account(value),
       }),
-      Domain: (value: lib.DomainId): ValidationFail => ({
+      Domain: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Domain', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Domain(value),
       }),
-      MetadataKey: (value: lib.Name): ValidationFail => ({
+      MetadataKey: <const T extends lib.Name>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.MetadataKey(value),
       }),
-      Block: (value: lib.HashWrap): ValidationFail => ({
+      Block: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Block', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Block(value),
       }),
-      Transaction: (value: lib.HashWrap): ValidationFail => ({
+      Transaction: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Transaction', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Transaction(value),
       }),
-      Peer: (value: PeerId): ValidationFail => ({
+      Peer: <const T extends PeerId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Peer', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Peer(value),
       }),
-      Trigger: (value: TriggerId): ValidationFail => ({
+      Trigger: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Trigger', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Trigger(value),
       }),
-      Role: (value: RoleId): ValidationFail => ({
+      Role: <const T extends RoleId>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Role', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Role(value),
       }),
-      Permission: (value: Permission): ValidationFail => ({
+      Permission: <const T extends Permission>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Permission', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.Permission(value),
       }),
-      PublicKey: (value: lib.PublicKeyWrap): ValidationFail => ({
+      PublicKey: <const T extends lib.PublicKeyWrap>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'PublicKey', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Find.PublicKey(value),
       }),
     },
-    Repetition: (value: RepetitionError): ValidationFail => ({
+    Repetition: <const T extends RepetitionError>(
+      value: T,
+    ): lib.Variant<'InstructionFailed', lib.Variant<'Repetition', T>> => ({
       kind: 'InstructionFailed',
       value: InstructionExecutionError.Repetition(value),
     }),
     Mintability: {
-      MintUnmintable: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Mintability.MintUnmintable,
-      }),
-      ForbidMintOnMintable: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Mintability.ForbidMintOnMintable,
-      }),
+      MintUnmintable: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Mintability', lib.VariantUnit<'MintUnmintable'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Mintability.MintUnmintable }),
+      ForbidMintOnMintable: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Mintability', lib.VariantUnit<'ForbidMintOnMintable'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Mintability.ForbidMintOnMintable }),
     },
     Math: {
-      Overflow: Object.freeze<ValidationFail>({
+      Overflow: Object.freeze<lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'Overflow'>>>>({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Math.Overflow,
       }),
-      NotEnoughQuantity: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Math.NotEnoughQuantity,
-      }),
-      DivideByZero: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Math.DivideByZero,
-      }),
-      NegativeValue: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Math.NegativeValue,
-      }),
-      DomainViolation: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.Math.DomainViolation,
-      }),
-      Unknown: Object.freeze<ValidationFail>({
+      NotEnoughQuantity: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'NotEnoughQuantity'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Math.NotEnoughQuantity }),
+      DivideByZero: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'DivideByZero'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Math.DivideByZero }),
+      NegativeValue: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'NegativeValue'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Math.NegativeValue }),
+      DomainViolation: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'DomainViolation'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.Math.DomainViolation }),
+      Unknown: Object.freeze<lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'Unknown'>>>>({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Math.Unknown,
       }),
-      FixedPointConversion: (value: lib.String): ValidationFail => ({
+      FixedPointConversion: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.Variant<'FixedPointConversion', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.Math.FixedPointConversion(value),
       }),
     },
     InvalidParameter: {
-      Wasm: (value: lib.String): ValidationFail => ({
+      Wasm: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'InstructionFailed', lib.Variant<'InvalidParameter', lib.Variant<'Wasm', T>>> => ({
         kind: 'InstructionFailed',
         value: InstructionExecutionError.InvalidParameter.Wasm(value),
       }),
-      TimeTriggerInThePast: Object.freeze<ValidationFail>({
-        kind: 'InstructionFailed',
-        value: InstructionExecutionError.InvalidParameter.TimeTriggerInThePast,
-      }),
+      TimeTriggerInThePast: Object.freeze<
+        lib.Variant<'InstructionFailed', lib.Variant<'InvalidParameter', lib.VariantUnit<'TimeTriggerInThePast'>>>
+      >({ kind: 'InstructionFailed', value: InstructionExecutionError.InvalidParameter.TimeTriggerInThePast }),
     },
-    InvariantViolation: (value: lib.String): ValidationFail => ({
+    InvariantViolation: <const T extends lib.String>(
+      value: T,
+    ): lib.Variant<'InstructionFailed', lib.Variant<'InvariantViolation', T>> => ({
       kind: 'InstructionFailed',
       value: InstructionExecutionError.InvariantViolation(value),
     }),
   },
   QueryFailed: {
     Find: {
-      Asset: (value: lib.AssetId): ValidationFail => ({
+      Asset: <const T extends lib.AssetId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Asset', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Asset(value),
       }),
-      AssetDefinition: (value: lib.AssetDefinitionId): ValidationFail => ({
+      AssetDefinition: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.AssetDefinition(value),
       }),
-      Account: (value: lib.AccountId): ValidationFail => ({
+      Account: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Account', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Account(value),
       }),
-      Domain: (value: lib.DomainId): ValidationFail => ({
+      Domain: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Domain', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Domain(value),
       }),
-      MetadataKey: (value: lib.Name): ValidationFail => ({
+      MetadataKey: <const T extends lib.Name>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.MetadataKey(value),
       }),
-      Block: (value: lib.HashWrap): ValidationFail => ({
+      Block: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Block', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Block(value),
       }),
-      Transaction: (value: lib.HashWrap): ValidationFail => ({
+      Transaction: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Transaction', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Transaction(value),
       }),
-      Peer: (value: PeerId): ValidationFail => ({ kind: 'QueryFailed', value: QueryExecutionFail.Find.Peer(value) }),
-      Trigger: (value: TriggerId): ValidationFail => ({
+      Peer: <const T extends PeerId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Peer', T>>> => ({
+        kind: 'QueryFailed',
+        value: QueryExecutionFail.Find.Peer(value),
+      }),
+      Trigger: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Trigger', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Trigger(value),
       }),
-      Role: (value: RoleId): ValidationFail => ({ kind: 'QueryFailed', value: QueryExecutionFail.Find.Role(value) }),
-      Permission: (value: Permission): ValidationFail => ({
+      Role: <const T extends RoleId>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Role', T>>> => ({
+        kind: 'QueryFailed',
+        value: QueryExecutionFail.Find.Role(value),
+      }),
+      Permission: <const T extends Permission>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Permission', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.Permission(value),
       }),
-      PublicKey: (value: lib.PublicKeyWrap): ValidationFail => ({
+      PublicKey: <const T extends lib.PublicKeyWrap>(
+        value: T,
+      ): lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'PublicKey', T>>> => ({
         kind: 'QueryFailed',
         value: QueryExecutionFail.Find.PublicKey(value),
       }),
     },
-    Conversion: (value: lib.String): ValidationFail => ({
+    Conversion: <const T extends lib.String>(value: T): lib.Variant<'QueryFailed', lib.Variant<'Conversion', T>> => ({
       kind: 'QueryFailed',
       value: QueryExecutionFail.Conversion(value),
     }),
-    NotFound: Object.freeze<ValidationFail>({ kind: 'QueryFailed', value: QueryExecutionFail.NotFound }),
-    CursorMismatch: Object.freeze<ValidationFail>({ kind: 'QueryFailed', value: QueryExecutionFail.CursorMismatch }),
-    CursorDone: Object.freeze<ValidationFail>({ kind: 'QueryFailed', value: QueryExecutionFail.CursorDone }),
-    FetchSizeTooBig: Object.freeze<ValidationFail>({ kind: 'QueryFailed', value: QueryExecutionFail.FetchSizeTooBig }),
-    InvalidSingularParameters: Object.freeze<ValidationFail>({
+    NotFound: Object.freeze<lib.Variant<'QueryFailed', lib.VariantUnit<'NotFound'>>>({
+      kind: 'QueryFailed',
+      value: QueryExecutionFail.NotFound,
+    }),
+    CursorMismatch: Object.freeze<lib.Variant<'QueryFailed', lib.VariantUnit<'CursorMismatch'>>>({
+      kind: 'QueryFailed',
+      value: QueryExecutionFail.CursorMismatch,
+    }),
+    CursorDone: Object.freeze<lib.Variant<'QueryFailed', lib.VariantUnit<'CursorDone'>>>({
+      kind: 'QueryFailed',
+      value: QueryExecutionFail.CursorDone,
+    }),
+    FetchSizeTooBig: Object.freeze<lib.Variant<'QueryFailed', lib.VariantUnit<'FetchSizeTooBig'>>>({
+      kind: 'QueryFailed',
+      value: QueryExecutionFail.FetchSizeTooBig,
+    }),
+    InvalidSingularParameters: Object.freeze<lib.Variant<'QueryFailed', lib.VariantUnit<'InvalidSingularParameters'>>>({
       kind: 'QueryFailed',
       value: QueryExecutionFail.InvalidSingularParameters,
     }),
-    CapacityLimit: Object.freeze<ValidationFail>({ kind: 'QueryFailed', value: QueryExecutionFail.CapacityLimit }),
+    CapacityLimit: Object.freeze<lib.Variant<'QueryFailed', lib.VariantUnit<'CapacityLimit'>>>({
+      kind: 'QueryFailed',
+      value: QueryExecutionFail.CapacityLimit,
+    }),
   },
-  TooComplex: Object.freeze<ValidationFail>({ kind: 'TooComplex' }),
-  InternalError: Object.freeze<ValidationFail>({ kind: 'InternalError' }),
+  TooComplex: Object.freeze<lib.VariantUnit<'TooComplex'>>({ kind: 'TooComplex' }),
+  InternalError: Object.freeze<lib.VariantUnit<'InternalError'>>({ kind: 'InternalError' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       NotPermitted: [lib.String]
@@ -1730,143 +2152,256 @@ export const WasmExecutionFail: lib.CodecProvider<WasmExecutionFail> = {
 }
 
 export type TransactionRejectionReason =
-  | lib.SumTypeKindValue<'AccountDoesNotExist', FindError>
-  | lib.SumTypeKindValue<'LimitCheck', TransactionLimitError>
-  | lib.SumTypeKindValue<'Validation', ValidationFail>
-  | lib.SumTypeKindValue<'InstructionExecution', InstructionExecutionFail>
-  | lib.SumTypeKindValue<'WasmExecution', WasmExecutionFail>
+  | lib.Variant<'AccountDoesNotExist', FindError>
+  | lib.Variant<'LimitCheck', TransactionLimitError>
+  | lib.Variant<'Validation', ValidationFail>
+  | lib.Variant<'InstructionExecution', InstructionExecutionFail>
+  | lib.Variant<'WasmExecution', WasmExecutionFail>
 export const TransactionRejectionReason = {
   AccountDoesNotExist: {
-    Asset: (value: lib.AssetId): TransactionRejectionReason => ({
+    Asset: <const T extends lib.AssetId>(value: T): lib.Variant<'AccountDoesNotExist', lib.Variant<'Asset', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Asset(value),
     }),
-    AssetDefinition: (value: lib.AssetDefinitionId): TransactionRejectionReason => ({
+    AssetDefinition: <const T extends lib.AssetDefinitionId>(
+      value: T,
+    ): lib.Variant<'AccountDoesNotExist', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.AssetDefinition(value),
     }),
-    Account: (value: lib.AccountId): TransactionRejectionReason => ({
+    Account: <const T extends lib.AccountId>(
+      value: T,
+    ): lib.Variant<'AccountDoesNotExist', lib.Variant<'Account', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Account(value),
     }),
-    Domain: (value: lib.DomainId): TransactionRejectionReason => ({
+    Domain: <const T extends lib.DomainId>(value: T): lib.Variant<'AccountDoesNotExist', lib.Variant<'Domain', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Domain(value),
     }),
-    MetadataKey: (value: lib.Name): TransactionRejectionReason => ({
+    MetadataKey: <const T extends lib.Name>(
+      value: T,
+    ): lib.Variant<'AccountDoesNotExist', lib.Variant<'MetadataKey', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.MetadataKey(value),
     }),
-    Block: (value: lib.HashWrap): TransactionRejectionReason => ({
+    Block: <const T extends lib.HashWrap>(value: T): lib.Variant<'AccountDoesNotExist', lib.Variant<'Block', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Block(value),
     }),
-    Transaction: (value: lib.HashWrap): TransactionRejectionReason => ({
+    Transaction: <const T extends lib.HashWrap>(
+      value: T,
+    ): lib.Variant<'AccountDoesNotExist', lib.Variant<'Transaction', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Transaction(value),
     }),
-    Peer: (value: PeerId): TransactionRejectionReason => ({
+    Peer: <const T extends PeerId>(value: T): lib.Variant<'AccountDoesNotExist', lib.Variant<'Peer', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Peer(value),
     }),
-    Trigger: (value: TriggerId): TransactionRejectionReason => ({
+    Trigger: <const T extends TriggerId>(value: T): lib.Variant<'AccountDoesNotExist', lib.Variant<'Trigger', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Trigger(value),
     }),
-    Role: (value: RoleId): TransactionRejectionReason => ({
+    Role: <const T extends RoleId>(value: T): lib.Variant<'AccountDoesNotExist', lib.Variant<'Role', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Role(value),
     }),
-    Permission: (value: Permission): TransactionRejectionReason => ({
+    Permission: <const T extends Permission>(
+      value: T,
+    ): lib.Variant<'AccountDoesNotExist', lib.Variant<'Permission', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.Permission(value),
     }),
-    PublicKey: (value: lib.PublicKeyWrap): TransactionRejectionReason => ({
+    PublicKey: <const T extends lib.PublicKeyWrap>(
+      value: T,
+    ): lib.Variant<'AccountDoesNotExist', lib.Variant<'PublicKey', T>> => ({
       kind: 'AccountDoesNotExist',
       value: FindError.PublicKey(value),
     }),
   },
-  LimitCheck: (value: TransactionLimitError): TransactionRejectionReason => ({ kind: 'LimitCheck', value }),
+  LimitCheck: <const T extends TransactionLimitError>(value: T): lib.Variant<'LimitCheck', T> => ({
+    kind: 'LimitCheck',
+    value,
+  }),
   Validation: {
-    NotPermitted: (value: lib.String): TransactionRejectionReason => ({
+    NotPermitted: <const T extends lib.String>(
+      value: T,
+    ): lib.Variant<'Validation', lib.Variant<'NotPermitted', T>> => ({
       kind: 'Validation',
       value: ValidationFail.NotPermitted(value),
     }),
     InstructionFailed: {
       Evaluate: {
         Unsupported: {
-          Register: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Register,
-          }),
-          Unregister: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Unregister,
-          }),
-          Mint: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Mint,
-          }),
-          Burn: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Burn,
-          }),
-          Transfer: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Transfer,
-          }),
-          SetKeyValue: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.SetKeyValue,
-          }),
-          RemoveKeyValue: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.RemoveKeyValue,
-          }),
-          Grant: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Grant,
-          }),
-          Revoke: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Revoke,
-          }),
-          ExecuteTrigger: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.ExecuteTrigger,
-          }),
-          SetParameter: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.SetParameter,
-          }),
-          Upgrade: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Upgrade,
-          }),
-          Log: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Log,
-          }),
-          Custom: Object.freeze<TransactionRejectionReason>({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Custom,
-          }),
+          Register: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Register'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Register }),
+          Unregister: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Unregister'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Unregister }),
+          Mint: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Mint'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Mint }),
+          Burn: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Burn'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Burn }),
+          Transfer: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Transfer'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Transfer }),
+          SetKeyValue: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetKeyValue'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.SetKeyValue }),
+          RemoveKeyValue: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'RemoveKeyValue'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.RemoveKeyValue }),
+          Grant: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Grant'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Grant }),
+          Revoke: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Revoke'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Revoke }),
+          ExecuteTrigger: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'ExecuteTrigger'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.ExecuteTrigger }),
+          SetParameter: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetParameter'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.SetParameter }),
+          Upgrade: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Upgrade'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Upgrade }),
+          Log: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Log'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Log }),
+          Custom: Object.freeze<
+            lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Custom'>>>
+              >
+            >
+          >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Custom }),
         },
-        PermissionParameter: (value: lib.String): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Evaluate.PermissionParameter(value),
-        }),
+        PermissionParameter: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'PermissionParameter', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.PermissionParameter(value) }),
         Type: {
-          AssetType: (value: Mismatch<AssetType>): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Type.AssetType(value),
-          }),
+          AssetType: <const T extends Mismatch<AssetType>>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'Type', lib.Variant<'AssetType', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Evaluate.Type.AssetType(value) }),
           NumericAssetTypeExpected: {
-            Numeric: (value: NumericSpec): TransactionRejectionReason => ({
+            Numeric: <const T extends NumericSpec>(
+              value: T,
+            ): lib.Variant<
+              'Validation',
+              lib.Variant<
+                'InstructionFailed',
+                lib.Variant<
+                  'Evaluate',
+                  lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.Variant<'Numeric', T>>>
+                >
+              >
+            > => ({
               kind: 'Validation',
               value: ValidationFail.InstructionFailed.Evaluate.Type.NumericAssetTypeExpected.Numeric(value),
             }),
-            Store: Object.freeze<TransactionRejectionReason>({
+            Store: Object.freeze<
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<
+                    'Evaluate',
+                    lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.VariantUnit<'Store'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Validation',
               value: ValidationFail.InstructionFailed.Evaluate.Type.NumericAssetTypeExpected.Store,
             }),
@@ -1875,288 +2410,399 @@ export const TransactionRejectionReason = {
       },
       Query: {
         Find: {
-          Asset: (value: lib.AssetId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Asset(value),
-          }),
-          AssetDefinition: (value: lib.AssetDefinitionId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.AssetDefinition(value),
-          }),
-          Account: (value: lib.AccountId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Account(value),
-          }),
-          Domain: (value: lib.DomainId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Domain(value),
-          }),
-          MetadataKey: (value: lib.Name): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.MetadataKey(value),
-          }),
-          Block: (value: lib.HashWrap): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Block(value),
-          }),
-          Transaction: (value: lib.HashWrap): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Transaction(value),
-          }),
-          Peer: (value: PeerId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Peer(value),
-          }),
-          Trigger: (value: TriggerId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Trigger(value),
-          }),
-          Role: (value: RoleId): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Role(value),
-          }),
-          Permission: (value: Permission): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.Permission(value),
-          }),
-          PublicKey: (value: lib.PublicKeyWrap): TransactionRejectionReason => ({
-            kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Query.Find.PublicKey(value),
-          }),
+          Asset: <const T extends lib.AssetId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Asset', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Asset(value) }),
+          AssetDefinition: <const T extends lib.AssetDefinitionId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<
+              'InstructionFailed',
+              lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+            >
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.AssetDefinition(value) }),
+          Account: <const T extends lib.AccountId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Account', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Account(value) }),
+          Domain: <const T extends lib.DomainId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Domain', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Domain(value) }),
+          MetadataKey: <const T extends lib.Name>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.MetadataKey(value) }),
+          Block: <const T extends lib.HashWrap>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Block', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Block(value) }),
+          Transaction: <const T extends lib.HashWrap>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Transaction', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Transaction(value) }),
+          Peer: <const T extends PeerId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Peer', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Peer(value) }),
+          Trigger: <const T extends TriggerId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Trigger', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Trigger(value) }),
+          Role: <const T extends RoleId>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Role', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Role(value) }),
+          Permission: <const T extends Permission>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Permission', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.Permission(value) }),
+          PublicKey: <const T extends lib.PublicKeyWrap>(
+            value: T,
+          ): lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>>
+          > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Find.PublicKey(value) }),
         },
-        Conversion: (value: lib.String): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.Conversion(value),
-        }),
-        NotFound: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.NotFound,
-        }),
-        CursorMismatch: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.CursorMismatch,
-        }),
-        CursorDone: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.CursorDone,
-        }),
-        FetchSizeTooBig: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.FetchSizeTooBig,
-        }),
-        InvalidSingularParameters: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.InvalidSingularParameters,
-        }),
-        CapacityLimit: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.CapacityLimit,
-        }),
+        Conversion: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Conversion', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.Conversion(value) }),
+        NotFound: Object.freeze<
+          lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'NotFound'>>>>
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.NotFound }),
+        CursorMismatch: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CursorMismatch'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.CursorMismatch }),
+        CursorDone: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CursorDone'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.CursorDone }),
+        FetchSizeTooBig: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'FetchSizeTooBig'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.FetchSizeTooBig }),
+        InvalidSingularParameters: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'InvalidSingularParameters'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.InvalidSingularParameters }),
+        CapacityLimit: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CapacityLimit'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Query.CapacityLimit }),
       },
-      Conversion: (value: lib.String): TransactionRejectionReason => ({
+      Conversion: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Conversion', T>>> => ({
         kind: 'Validation',
         value: ValidationFail.InstructionFailed.Conversion(value),
       }),
       Find: {
-        Asset: (value: lib.AssetId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Asset(value),
-        }),
-        AssetDefinition: (value: lib.AssetDefinitionId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.AssetDefinition(value),
-        }),
-        Account: (value: lib.AccountId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Account(value),
-        }),
-        Domain: (value: lib.DomainId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Domain(value),
-        }),
-        MetadataKey: (value: lib.Name): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.MetadataKey(value),
-        }),
-        Block: (value: lib.HashWrap): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Block(value),
-        }),
-        Transaction: (value: lib.HashWrap): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Transaction(value),
-        }),
-        Peer: (value: PeerId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Peer(value),
-        }),
-        Trigger: (value: TriggerId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Trigger(value),
-        }),
-        Role: (value: RoleId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Role(value),
-        }),
-        Permission: (value: Permission): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.Permission(value),
-        }),
-        PublicKey: (value: lib.PublicKeyWrap): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Find.PublicKey(value),
-        }),
+        Asset: <const T extends lib.AssetId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Asset', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Asset(value) }),
+        AssetDefinition: <const T extends lib.AssetDefinitionId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.AssetDefinition(value) }),
+        Account: <const T extends lib.AccountId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Account', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Account(value) }),
+        Domain: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Domain', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Domain(value) }),
+        MetadataKey: <const T extends lib.Name>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.MetadataKey(value) }),
+        Block: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Block', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Block(value) }),
+        Transaction: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Transaction', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Transaction(value) }),
+        Peer: <const T extends PeerId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Peer', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Peer(value) }),
+        Trigger: <const T extends TriggerId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Trigger', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Trigger(value) }),
+        Role: <const T extends RoleId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Role', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Role(value) }),
+        Permission: <const T extends Permission>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Permission', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.Permission(value) }),
+        PublicKey: <const T extends lib.PublicKeyWrap>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Find.PublicKey(value) }),
       },
-      Repetition: (value: RepetitionError): TransactionRejectionReason => ({
+      Repetition: <const T extends RepetitionError>(
+        value: T,
+      ): lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Repetition', T>>> => ({
         kind: 'Validation',
         value: ValidationFail.InstructionFailed.Repetition(value),
       }),
       Mintability: {
-        MintUnmintable: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Mintability.MintUnmintable,
-        }),
-        ForbidMintOnMintable: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Mintability.ForbidMintOnMintable,
-        }),
+        MintUnmintable: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Mintability', lib.VariantUnit<'MintUnmintable'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Mintability.MintUnmintable }),
+        ForbidMintOnMintable: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Mintability', lib.VariantUnit<'ForbidMintOnMintable'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Mintability.ForbidMintOnMintable }),
       },
       Math: {
-        Overflow: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.Overflow,
-        }),
-        NotEnoughQuantity: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.NotEnoughQuantity,
-        }),
-        DivideByZero: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.DivideByZero,
-        }),
-        NegativeValue: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.NegativeValue,
-        }),
-        DomainViolation: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.DomainViolation,
-        }),
-        Unknown: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.Unknown,
-        }),
-        FixedPointConversion: (value: lib.String): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Math.FixedPointConversion(value),
-        }),
+        Overflow: Object.freeze<
+          lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'Overflow'>>>>
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.Overflow }),
+        NotEnoughQuantity: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'NotEnoughQuantity'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.NotEnoughQuantity }),
+        DivideByZero: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'DivideByZero'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.DivideByZero }),
+        NegativeValue: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'NegativeValue'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.NegativeValue }),
+        DomainViolation: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'DomainViolation'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.DomainViolation }),
+        Unknown: Object.freeze<
+          lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'Unknown'>>>>
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.Unknown }),
+        FixedPointConversion: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.Variant<'FixedPointConversion', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.Math.FixedPointConversion(value) }),
       },
       InvalidParameter: {
-        Wasm: (value: lib.String): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.InvalidParameter.Wasm(value),
-        }),
-        TimeTriggerInThePast: Object.freeze<TransactionRejectionReason>({
-          kind: 'Validation',
-          value: ValidationFail.InstructionFailed.InvalidParameter.TimeTriggerInThePast,
-        }),
+        Wasm: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'InstructionFailed', lib.Variant<'InvalidParameter', lib.Variant<'Wasm', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.InstructionFailed.InvalidParameter.Wasm(value) }),
+        TimeTriggerInThePast: Object.freeze<
+          lib.Variant<
+            'Validation',
+            lib.Variant<'InstructionFailed', lib.Variant<'InvalidParameter', lib.VariantUnit<'TimeTriggerInThePast'>>>
+          >
+        >({ kind: 'Validation', value: ValidationFail.InstructionFailed.InvalidParameter.TimeTriggerInThePast }),
       },
-      InvariantViolation: (value: lib.String): TransactionRejectionReason => ({
+      InvariantViolation: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'InvariantViolation', T>>> => ({
         kind: 'Validation',
         value: ValidationFail.InstructionFailed.InvariantViolation(value),
       }),
     },
     QueryFailed: {
       Find: {
-        Asset: (value: lib.AssetId): TransactionRejectionReason => ({
+        Asset: <const T extends lib.AssetId>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Asset', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Asset(value),
         }),
-        AssetDefinition: (value: lib.AssetDefinitionId): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.QueryFailed.Find.AssetDefinition(value),
-        }),
-        Account: (value: lib.AccountId): TransactionRejectionReason => ({
+        AssetDefinition: <const T extends lib.AssetDefinitionId>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.QueryFailed.Find.AssetDefinition(value) }),
+        Account: <const T extends lib.AccountId>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Account', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Account(value),
         }),
-        Domain: (value: lib.DomainId): TransactionRejectionReason => ({
+        Domain: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Domain', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Domain(value),
         }),
-        MetadataKey: (value: lib.Name): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.QueryFailed.Find.MetadataKey(value),
-        }),
-        Block: (value: lib.HashWrap): TransactionRejectionReason => ({
+        MetadataKey: <const T extends lib.Name>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.QueryFailed.Find.MetadataKey(value) }),
+        Block: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Block', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Block(value),
         }),
-        Transaction: (value: lib.HashWrap): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.QueryFailed.Find.Transaction(value),
-        }),
-        Peer: (value: PeerId): TransactionRejectionReason => ({
+        Transaction: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Transaction', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.QueryFailed.Find.Transaction(value) }),
+        Peer: <const T extends PeerId>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Peer', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Peer(value),
         }),
-        Trigger: (value: TriggerId): TransactionRejectionReason => ({
+        Trigger: <const T extends TriggerId>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Trigger', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Trigger(value),
         }),
-        Role: (value: RoleId): TransactionRejectionReason => ({
+        Role: <const T extends RoleId>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Role', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.Role(value),
         }),
-        Permission: (value: Permission): TransactionRejectionReason => ({
-          kind: 'Validation',
-          value: ValidationFail.QueryFailed.Find.Permission(value),
-        }),
-        PublicKey: (value: lib.PublicKeyWrap): TransactionRejectionReason => ({
+        Permission: <const T extends Permission>(
+          value: T,
+        ): lib.Variant<
+          'Validation',
+          lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Permission', T>>>
+        > => ({ kind: 'Validation', value: ValidationFail.QueryFailed.Find.Permission(value) }),
+        PublicKey: <const T extends lib.PublicKeyWrap>(
+          value: T,
+        ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>> => ({
           kind: 'Validation',
           value: ValidationFail.QueryFailed.Find.PublicKey(value),
         }),
       },
-      Conversion: (value: lib.String): TransactionRejectionReason => ({
+      Conversion: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Conversion', T>>> => ({
         kind: 'Validation',
         value: ValidationFail.QueryFailed.Conversion(value),
       }),
-      NotFound: Object.freeze<TransactionRejectionReason>({
+      NotFound: Object.freeze<lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'NotFound'>>>>({
         kind: 'Validation',
         value: ValidationFail.QueryFailed.NotFound,
       }),
-      CursorMismatch: Object.freeze<TransactionRejectionReason>({
-        kind: 'Validation',
-        value: ValidationFail.QueryFailed.CursorMismatch,
-      }),
-      CursorDone: Object.freeze<TransactionRejectionReason>({
+      CursorMismatch: Object.freeze<
+        lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'CursorMismatch'>>>
+      >({ kind: 'Validation', value: ValidationFail.QueryFailed.CursorMismatch }),
+      CursorDone: Object.freeze<lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'CursorDone'>>>>({
         kind: 'Validation',
         value: ValidationFail.QueryFailed.CursorDone,
       }),
-      FetchSizeTooBig: Object.freeze<TransactionRejectionReason>({
-        kind: 'Validation',
-        value: ValidationFail.QueryFailed.FetchSizeTooBig,
-      }),
-      InvalidSingularParameters: Object.freeze<TransactionRejectionReason>({
-        kind: 'Validation',
-        value: ValidationFail.QueryFailed.InvalidSingularParameters,
-      }),
-      CapacityLimit: Object.freeze<TransactionRejectionReason>({
-        kind: 'Validation',
-        value: ValidationFail.QueryFailed.CapacityLimit,
-      }),
+      FetchSizeTooBig: Object.freeze<
+        lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'FetchSizeTooBig'>>>
+      >({ kind: 'Validation', value: ValidationFail.QueryFailed.FetchSizeTooBig }),
+      InvalidSingularParameters: Object.freeze<
+        lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'InvalidSingularParameters'>>>
+      >({ kind: 'Validation', value: ValidationFail.QueryFailed.InvalidSingularParameters }),
+      CapacityLimit: Object.freeze<
+        lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'CapacityLimit'>>>
+      >({ kind: 'Validation', value: ValidationFail.QueryFailed.CapacityLimit }),
     },
-    TooComplex: Object.freeze<TransactionRejectionReason>({ kind: 'Validation', value: ValidationFail.TooComplex }),
-    InternalError: Object.freeze<TransactionRejectionReason>({
+    TooComplex: Object.freeze<lib.Variant<'Validation', lib.VariantUnit<'TooComplex'>>>({
+      kind: 'Validation',
+      value: ValidationFail.TooComplex,
+    }),
+    InternalError: Object.freeze<lib.Variant<'Validation', lib.VariantUnit<'InternalError'>>>({
       kind: 'Validation',
       value: ValidationFail.InternalError,
     }),
   },
-  InstructionExecution: (value: InstructionExecutionFail): TransactionRejectionReason => ({
-    kind: 'InstructionExecution',
+  InstructionExecution: <const T extends InstructionExecutionFail>(
+    value: T,
+  ): lib.Variant<'InstructionExecution', T> => ({ kind: 'InstructionExecution', value }),
+  WasmExecution: <const T extends WasmExecutionFail>(value: T): lib.Variant<'WasmExecution', T> => ({
+    kind: 'WasmExecution',
     value,
   }),
-  WasmExecution: (value: WasmExecutionFail): TransactionRejectionReason => ({ kind: 'WasmExecution', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       AccountDoesNotExist: [FindError]
@@ -2175,152 +2821,381 @@ export const TransactionRejectionReason = {
 }
 
 export type TransactionStatus =
-  | lib.SumTypeKind<'Queued'>
-  | lib.SumTypeKind<'Expired'>
-  | lib.SumTypeKind<'Approved'>
-  | lib.SumTypeKindValue<'Rejected', TransactionRejectionReason>
+  | lib.VariantUnit<'Queued'>
+  | lib.VariantUnit<'Expired'>
+  | lib.VariantUnit<'Approved'>
+  | lib.Variant<'Rejected', TransactionRejectionReason>
 export const TransactionStatus = {
-  Queued: Object.freeze<TransactionStatus>({ kind: 'Queued' }),
-  Expired: Object.freeze<TransactionStatus>({ kind: 'Expired' }),
-  Approved: Object.freeze<TransactionStatus>({ kind: 'Approved' }),
+  Queued: Object.freeze<lib.VariantUnit<'Queued'>>({ kind: 'Queued' }),
+  Expired: Object.freeze<lib.VariantUnit<'Expired'>>({ kind: 'Expired' }),
+  Approved: Object.freeze<lib.VariantUnit<'Approved'>>({ kind: 'Approved' }),
   Rejected: {
     AccountDoesNotExist: {
-      Asset: (value: lib.AssetId): TransactionStatus => ({
+      Asset: <const T extends lib.AssetId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Asset', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Asset(value),
       }),
-      AssetDefinition: (value: lib.AssetDefinitionId): TransactionStatus => ({
+      AssetDefinition: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'AssetDefinition', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.AssetDefinition(value),
       }),
-      Account: (value: lib.AccountId): TransactionStatus => ({
+      Account: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Account', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Account(value),
       }),
-      Domain: (value: lib.DomainId): TransactionStatus => ({
+      Domain: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Domain', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Domain(value),
       }),
-      MetadataKey: (value: lib.Name): TransactionStatus => ({
+      MetadataKey: <const T extends lib.Name>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'MetadataKey', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.MetadataKey(value),
       }),
-      Block: (value: lib.HashWrap): TransactionStatus => ({
+      Block: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Block', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Block(value),
       }),
-      Transaction: (value: lib.HashWrap): TransactionStatus => ({
+      Transaction: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Transaction', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Transaction(value),
       }),
-      Peer: (value: PeerId): TransactionStatus => ({
+      Peer: <const T extends PeerId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Peer', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Peer(value),
       }),
-      Trigger: (value: TriggerId): TransactionStatus => ({
+      Trigger: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Trigger', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Trigger(value),
       }),
-      Role: (value: RoleId): TransactionStatus => ({
+      Role: <const T extends RoleId>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Role', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Role(value),
       }),
-      Permission: (value: Permission): TransactionStatus => ({
+      Permission: <const T extends Permission>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'Permission', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.Permission(value),
       }),
-      PublicKey: (value: lib.PublicKeyWrap): TransactionStatus => ({
+      PublicKey: <const T extends lib.PublicKeyWrap>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'AccountDoesNotExist', lib.Variant<'PublicKey', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.AccountDoesNotExist.PublicKey(value),
       }),
     },
-    LimitCheck: (value: TransactionLimitError): TransactionStatus => ({
+    LimitCheck: <const T extends TransactionLimitError>(
+      value: T,
+    ): lib.Variant<'Rejected', lib.Variant<'LimitCheck', T>> => ({
       kind: 'Rejected',
       value: TransactionRejectionReason.LimitCheck(value),
     }),
     Validation: {
-      NotPermitted: (value: lib.String): TransactionStatus => ({
+      NotPermitted: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Rejected', lib.Variant<'Validation', lib.Variant<'NotPermitted', T>>> => ({
         kind: 'Rejected',
         value: TransactionRejectionReason.Validation.NotPermitted(value),
       }),
       InstructionFailed: {
         Evaluate: {
           Unsupported: {
-            Register: Object.freeze<TransactionStatus>({
+            Register: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Register'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Register,
             }),
-            Unregister: Object.freeze<TransactionStatus>({
+            Unregister: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Unregister'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Unregister,
             }),
-            Mint: Object.freeze<TransactionStatus>({
+            Mint: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Mint'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Mint,
             }),
-            Burn: Object.freeze<TransactionStatus>({
+            Burn: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Burn'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Burn,
             }),
-            Transfer: Object.freeze<TransactionStatus>({
+            Transfer: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Transfer'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Transfer,
             }),
-            SetKeyValue: Object.freeze<TransactionStatus>({
+            SetKeyValue: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetKeyValue'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.SetKeyValue,
             }),
-            RemoveKeyValue: Object.freeze<TransactionStatus>({
+            RemoveKeyValue: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'RemoveKeyValue'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.RemoveKeyValue,
             }),
-            Grant: Object.freeze<TransactionStatus>({
+            Grant: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Grant'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Grant,
             }),
-            Revoke: Object.freeze<TransactionStatus>({
+            Revoke: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Revoke'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Revoke,
             }),
-            ExecuteTrigger: Object.freeze<TransactionStatus>({
+            ExecuteTrigger: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'ExecuteTrigger'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.ExecuteTrigger,
             }),
-            SetParameter: Object.freeze<TransactionStatus>({
+            SetParameter: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'SetParameter'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.SetParameter,
             }),
-            Upgrade: Object.freeze<TransactionStatus>({
+            Upgrade: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Upgrade'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Upgrade,
             }),
-            Log: Object.freeze<TransactionStatus>({
+            Log: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Log'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Log,
             }),
-            Custom: Object.freeze<TransactionStatus>({
+            Custom: Object.freeze<
+              lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<'Evaluate', lib.Variant<'Unsupported', lib.VariantUnit<'Custom'>>>
+                  >
+                >
+              >
+            >({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Custom,
             }),
           },
-          PermissionParameter: (value: lib.String): TransactionStatus => ({
+          PermissionParameter: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Evaluate', lib.Variant<'PermissionParameter', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.PermissionParameter(value),
           }),
           Type: {
-            AssetType: (value: Mismatch<AssetType>): TransactionStatus => ({
+            AssetType: <const T extends Mismatch<AssetType>>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<'Evaluate', lib.Variant<'Type', lib.Variant<'AssetType', T>>>
+                >
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Type.AssetType(value),
             }),
             NumericAssetTypeExpected: {
-              Numeric: (value: NumericSpec): TransactionStatus => ({
+              Numeric: <const T extends NumericSpec>(
+                value: T,
+              ): lib.Variant<
+                'Rejected',
+                lib.Variant<
+                  'Validation',
+                  lib.Variant<
+                    'InstructionFailed',
+                    lib.Variant<
+                      'Evaluate',
+                      lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.Variant<'Numeric', T>>>
+                    >
+                  >
+                >
+              > => ({
                 kind: 'Rejected',
                 value:
                   TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Type.NumericAssetTypeExpected.Numeric(
                     value,
                   ),
               }),
-              Store: Object.freeze<TransactionStatus>({
+              Store: Object.freeze<
+                lib.Variant<
+                  'Rejected',
+                  lib.Variant<
+                    'Validation',
+                    lib.Variant<
+                      'InstructionFailed',
+                      lib.Variant<
+                        'Evaluate',
+                        lib.Variant<'Type', lib.Variant<'NumericAssetTypeExpected', lib.VariantUnit<'Store'>>>
+                      >
+                    >
+                  >
+                >
+              >({
                 kind: 'Rejected',
                 value:
                   TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Type.NumericAssetTypeExpected.Store,
@@ -2330,291 +3205,629 @@ export const TransactionStatus = {
         },
         Query: {
           Find: {
-            Asset: (value: lib.AssetId): TransactionStatus => ({
+            Asset: <const T extends lib.AssetId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Asset', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Asset(value),
             }),
-            AssetDefinition: (value: lib.AssetDefinitionId): TransactionStatus => ({
+            AssetDefinition: <const T extends lib.AssetDefinitionId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+                >
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.AssetDefinition(value),
             }),
-            Account: (value: lib.AccountId): TransactionStatus => ({
+            Account: <const T extends lib.AccountId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Account', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Account(value),
             }),
-            Domain: (value: lib.DomainId): TransactionStatus => ({
+            Domain: <const T extends lib.DomainId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Domain', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Domain(value),
             }),
-            MetadataKey: (value: lib.Name): TransactionStatus => ({
+            MetadataKey: <const T extends lib.Name>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>
+                >
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.MetadataKey(value),
             }),
-            Block: (value: lib.HashWrap): TransactionStatus => ({
+            Block: <const T extends lib.HashWrap>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Block', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Block(value),
             }),
-            Transaction: (value: lib.HashWrap): TransactionStatus => ({
+            Transaction: <const T extends lib.HashWrap>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Transaction', T>>>
+                >
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Transaction(value),
             }),
-            Peer: (value: PeerId): TransactionStatus => ({
+            Peer: <const T extends PeerId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Peer', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Peer(value),
             }),
-            Trigger: (value: TriggerId): TransactionStatus => ({
+            Trigger: <const T extends TriggerId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Trigger', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Trigger(value),
             }),
-            Role: (value: RoleId): TransactionStatus => ({
+            Role: <const T extends RoleId>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Role', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Role(value),
             }),
-            Permission: (value: Permission): TransactionStatus => ({
+            Permission: <const T extends Permission>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'Permission', T>>>
+                >
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.Permission(value),
             }),
-            PublicKey: (value: lib.PublicKeyWrap): TransactionStatus => ({
+            PublicKey: <const T extends lib.PublicKeyWrap>(
+              value: T,
+            ): lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>>
+              >
+            > => ({
               kind: 'Rejected',
               value: TransactionRejectionReason.Validation.InstructionFailed.Query.Find.PublicKey(value),
             }),
           },
-          Conversion: (value: lib.String): TransactionStatus => ({
+          Conversion: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.Variant<'Conversion', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Query.Conversion(value),
           }),
-          NotFound: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query.NotFound,
-          }),
-          CursorMismatch: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query.CursorMismatch,
-          }),
-          CursorDone: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query.CursorDone,
-          }),
-          FetchSizeTooBig: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query.FetchSizeTooBig,
-          }),
-          InvalidSingularParameters: Object.freeze<TransactionStatus>({
+          NotFound: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'NotFound'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Query.NotFound }),
+          CursorMismatch: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CursorMismatch'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Query.CursorMismatch }),
+          CursorDone: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CursorDone'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Query.CursorDone }),
+          FetchSizeTooBig: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'FetchSizeTooBig'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Query.FetchSizeTooBig }),
+          InvalidSingularParameters: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'InvalidSingularParameters'>>>
+              >
+            >
+          >({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Query.InvalidSingularParameters,
           }),
-          CapacityLimit: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query.CapacityLimit,
-          }),
+          CapacityLimit: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Query', lib.VariantUnit<'CapacityLimit'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Query.CapacityLimit }),
         },
-        Conversion: (value: lib.String): TransactionStatus => ({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.InstructionFailed.Conversion(value),
-        }),
+        Conversion: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Rejected',
+          lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Conversion', T>>>
+        > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Conversion(value) }),
         Find: {
-          Asset: (value: lib.AssetId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Find.Asset(value),
-          }),
-          AssetDefinition: (value: lib.AssetDefinitionId): TransactionStatus => ({
+          Asset: <const T extends lib.AssetId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Asset', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Find.Asset(value) }),
+          AssetDefinition: <const T extends lib.AssetDefinitionId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.AssetDefinition(value),
           }),
-          Account: (value: lib.AccountId): TransactionStatus => ({
+          Account: <const T extends lib.AccountId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Account', T>>>>
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.Account(value),
           }),
-          Domain: (value: lib.DomainId): TransactionStatus => ({
+          Domain: <const T extends lib.DomainId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Domain', T>>>>
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.Domain(value),
           }),
-          MetadataKey: (value: lib.Name): TransactionStatus => ({
+          MetadataKey: <const T extends lib.Name>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.MetadataKey(value),
           }),
-          Block: (value: lib.HashWrap): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Find.Block(value),
-          }),
-          Transaction: (value: lib.HashWrap): TransactionStatus => ({
+          Block: <const T extends lib.HashWrap>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Block', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Find.Block(value) }),
+          Transaction: <const T extends lib.HashWrap>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Transaction', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.Transaction(value),
           }),
-          Peer: (value: PeerId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Find.Peer(value),
-          }),
-          Trigger: (value: TriggerId): TransactionStatus => ({
+          Peer: <const T extends PeerId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Peer', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Find.Peer(value) }),
+          Trigger: <const T extends TriggerId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Trigger', T>>>>
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.Trigger(value),
           }),
-          Role: (value: RoleId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Find.Role(value),
-          }),
-          Permission: (value: Permission): TransactionStatus => ({
+          Role: <const T extends RoleId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Role', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Find.Role(value) }),
+          Permission: <const T extends Permission>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'Permission', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.Permission(value),
           }),
-          PublicKey: (value: lib.PublicKeyWrap): TransactionStatus => ({
+          PublicKey: <const T extends lib.PublicKeyWrap>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Find.PublicKey(value),
           }),
         },
-        Repetition: (value: RepetitionError): TransactionStatus => ({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.InstructionFailed.Repetition(value),
-        }),
+        Repetition: <const T extends RepetitionError>(
+          value: T,
+        ): lib.Variant<
+          'Rejected',
+          lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'Repetition', T>>>
+        > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Repetition(value) }),
         Mintability: {
-          MintUnmintable: Object.freeze<TransactionStatus>({
+          MintUnmintable: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Mintability', lib.VariantUnit<'MintUnmintable'>>>
+              >
+            >
+          >({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Mintability.MintUnmintable,
           }),
-          ForbidMintOnMintable: Object.freeze<TransactionStatus>({
+          ForbidMintOnMintable: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Mintability', lib.VariantUnit<'ForbidMintOnMintable'>>>
+              >
+            >
+          >({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Mintability.ForbidMintOnMintable,
           }),
         },
         Math: {
-          Overflow: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math.Overflow,
-          }),
-          NotEnoughQuantity: Object.freeze<TransactionStatus>({
+          Overflow: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'Overflow'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Math.Overflow }),
+          NotEnoughQuantity: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'NotEnoughQuantity'>>>
+              >
+            >
+          >({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Math.NotEnoughQuantity,
           }),
-          DivideByZero: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math.DivideByZero,
-          }),
-          NegativeValue: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math.NegativeValue,
-          }),
-          DomainViolation: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math.DomainViolation,
-          }),
-          Unknown: Object.freeze<TransactionStatus>({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math.Unknown,
-          }),
-          FixedPointConversion: (value: lib.String): TransactionStatus => ({
+          DivideByZero: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'DivideByZero'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Math.DivideByZero }),
+          NegativeValue: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'NegativeValue'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Math.NegativeValue }),
+          DomainViolation: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'DomainViolation'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Math.DomainViolation }),
+          Unknown: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.VariantUnit<'Unknown'>>>
+              >
+            >
+          >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InstructionFailed.Math.Unknown }),
+          FixedPointConversion: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'Math', lib.Variant<'FixedPointConversion', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.Math.FixedPointConversion(value),
           }),
         },
         InvalidParameter: {
-          Wasm: (value: lib.String): TransactionStatus => ({
+          Wasm: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'InstructionFailed', lib.Variant<'InvalidParameter', lib.Variant<'Wasm', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.InvalidParameter.Wasm(value),
           }),
-          TimeTriggerInThePast: Object.freeze<TransactionStatus>({
+          TimeTriggerInThePast: Object.freeze<
+            lib.Variant<
+              'Rejected',
+              lib.Variant<
+                'Validation',
+                lib.Variant<
+                  'InstructionFailed',
+                  lib.Variant<'InvalidParameter', lib.VariantUnit<'TimeTriggerInThePast'>>
+                >
+              >
+            >
+          >({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.InstructionFailed.InvalidParameter.TimeTriggerInThePast,
           }),
         },
-        InvariantViolation: (value: lib.String): TransactionStatus => ({
+        InvariantViolation: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Rejected',
+          lib.Variant<'Validation', lib.Variant<'InstructionFailed', lib.Variant<'InvariantViolation', T>>>
+        > => ({
           kind: 'Rejected',
           value: TransactionRejectionReason.Validation.InstructionFailed.InvariantViolation(value),
         }),
       },
       QueryFailed: {
         Find: {
-          Asset: (value: lib.AssetId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Asset(value),
-          }),
-          AssetDefinition: (value: lib.AssetDefinitionId): TransactionStatus => ({
+          Asset: <const T extends lib.AssetId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Asset', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Asset(value) }),
+          AssetDefinition: <const T extends lib.AssetDefinitionId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<
+              'Validation',
+              lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'AssetDefinition', T>>>
+            >
+          > => ({
             kind: 'Rejected',
             value: TransactionRejectionReason.Validation.QueryFailed.Find.AssetDefinition(value),
           }),
-          Account: (value: lib.AccountId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Account(value),
-          }),
-          Domain: (value: lib.DomainId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Domain(value),
-          }),
-          MetadataKey: (value: lib.Name): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.MetadataKey(value),
-          }),
-          Block: (value: lib.HashWrap): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Block(value),
-          }),
-          Transaction: (value: lib.HashWrap): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Transaction(value),
-          }),
-          Peer: (value: PeerId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Peer(value),
-          }),
-          Trigger: (value: TriggerId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Trigger(value),
-          }),
-          Role: (value: RoleId): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Role(value),
-          }),
-          Permission: (value: Permission): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.Permission(value),
-          }),
-          PublicKey: (value: lib.PublicKeyWrap): TransactionStatus => ({
-            kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.QueryFailed.Find.PublicKey(value),
-          }),
+          Account: <const T extends lib.AccountId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Account', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Account(value) }),
+          Domain: <const T extends lib.DomainId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Domain', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Domain(value) }),
+          MetadataKey: <const T extends lib.Name>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'MetadataKey', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.MetadataKey(value) }),
+          Block: <const T extends lib.HashWrap>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Block', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Block(value) }),
+          Transaction: <const T extends lib.HashWrap>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Transaction', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Transaction(value) }),
+          Peer: <const T extends PeerId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Peer', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Peer(value) }),
+          Trigger: <const T extends TriggerId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Trigger', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Trigger(value) }),
+          Role: <const T extends RoleId>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Role', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Role(value) }),
+          Permission: <const T extends Permission>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'Permission', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.Permission(value) }),
+          PublicKey: <const T extends lib.PublicKeyWrap>(
+            value: T,
+          ): lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Find', lib.Variant<'PublicKey', T>>>>
+          > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Find.PublicKey(value) }),
         },
-        Conversion: (value: lib.String): TransactionStatus => ({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.Conversion(value),
-        }),
-        NotFound: Object.freeze<TransactionStatus>({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.NotFound,
-        }),
-        CursorMismatch: Object.freeze<TransactionStatus>({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.CursorMismatch,
-        }),
-        CursorDone: Object.freeze<TransactionStatus>({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.CursorDone,
-        }),
-        FetchSizeTooBig: Object.freeze<TransactionStatus>({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.FetchSizeTooBig,
-        }),
-        InvalidSingularParameters: Object.freeze<TransactionStatus>({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.InvalidSingularParameters,
-        }),
-        CapacityLimit: Object.freeze<TransactionStatus>({
-          kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.CapacityLimit,
-        }),
+        Conversion: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<
+          'Rejected',
+          lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.Variant<'Conversion', T>>>
+        > => ({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.Conversion(value) }),
+        NotFound: Object.freeze<
+          lib.Variant<'Rejected', lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'NotFound'>>>>
+        >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.NotFound }),
+        CursorMismatch: Object.freeze<
+          lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'CursorMismatch'>>>
+          >
+        >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.CursorMismatch }),
+        CursorDone: Object.freeze<
+          lib.Variant<'Rejected', lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'CursorDone'>>>>
+        >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.CursorDone }),
+        FetchSizeTooBig: Object.freeze<
+          lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'FetchSizeTooBig'>>>
+          >
+        >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.FetchSizeTooBig }),
+        InvalidSingularParameters: Object.freeze<
+          lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'InvalidSingularParameters'>>>
+          >
+        >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.InvalidSingularParameters }),
+        CapacityLimit: Object.freeze<
+          lib.Variant<
+            'Rejected',
+            lib.Variant<'Validation', lib.Variant<'QueryFailed', lib.VariantUnit<'CapacityLimit'>>>
+          >
+        >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.QueryFailed.CapacityLimit }),
       },
-      TooComplex: Object.freeze<TransactionStatus>({
+      TooComplex: Object.freeze<lib.Variant<'Rejected', lib.Variant<'Validation', lib.VariantUnit<'TooComplex'>>>>({
         kind: 'Rejected',
         value: TransactionRejectionReason.Validation.TooComplex,
       }),
-      InternalError: Object.freeze<TransactionStatus>({
-        kind: 'Rejected',
-        value: TransactionRejectionReason.Validation.InternalError,
-      }),
+      InternalError: Object.freeze<
+        lib.Variant<'Rejected', lib.Variant<'Validation', lib.VariantUnit<'InternalError'>>>
+      >({ kind: 'Rejected', value: TransactionRejectionReason.Validation.InternalError }),
     },
-    InstructionExecution: (value: InstructionExecutionFail): TransactionStatus => ({
+    InstructionExecution: <const T extends InstructionExecutionFail>(
+      value: T,
+    ): lib.Variant<'Rejected', lib.Variant<'InstructionExecution', T>> => ({
       kind: 'Rejected',
       value: TransactionRejectionReason.InstructionExecution(value),
     }),
-    WasmExecution: (value: WasmExecutionFail): TransactionStatus => ({
+    WasmExecution: <const T extends WasmExecutionFail>(
+      value: T,
+    ): lib.Variant<'Rejected', lib.Variant<'WasmExecution', T>> => ({
       kind: 'Rejected',
       value: TransactionRejectionReason.WasmExecution(value),
     }),
@@ -2642,29 +3855,31 @@ export const TransactionEventFilter: lib.CodecProvider<TransactionEventFilter> =
   }),
 }
 
-export type BlockRejectionReason = lib.SumTypeKind<'ConsensusBlockRejection'>
+export type BlockRejectionReason = lib.VariantUnit<'ConsensusBlockRejection'>
 export const BlockRejectionReason = {
-  ConsensusBlockRejection: Object.freeze<BlockRejectionReason>({ kind: 'ConsensusBlockRejection' }),
+  ConsensusBlockRejection: Object.freeze<lib.VariantUnit<'ConsensusBlockRejection'>>({
+    kind: 'ConsensusBlockRejection',
+  }),
   [lib.CodecSymbol]: lib.enumCodec<{ ConsensusBlockRejection: [] }>([[0, 'ConsensusBlockRejection']]).discriminated(),
 }
 
 export type BlockStatus =
-  | lib.SumTypeKind<'Created'>
-  | lib.SumTypeKind<'Approved'>
-  | lib.SumTypeKindValue<'Rejected', BlockRejectionReason>
-  | lib.SumTypeKind<'Committed'>
-  | lib.SumTypeKind<'Applied'>
+  | lib.VariantUnit<'Created'>
+  | lib.VariantUnit<'Approved'>
+  | lib.Variant<'Rejected', BlockRejectionReason>
+  | lib.VariantUnit<'Committed'>
+  | lib.VariantUnit<'Applied'>
 export const BlockStatus = {
-  Created: Object.freeze<BlockStatus>({ kind: 'Created' }),
-  Approved: Object.freeze<BlockStatus>({ kind: 'Approved' }),
+  Created: Object.freeze<lib.VariantUnit<'Created'>>({ kind: 'Created' }),
+  Approved: Object.freeze<lib.VariantUnit<'Approved'>>({ kind: 'Approved' }),
   Rejected: {
-    ConsensusBlockRejection: Object.freeze<BlockStatus>({
+    ConsensusBlockRejection: Object.freeze<lib.Variant<'Rejected', lib.VariantUnit<'ConsensusBlockRejection'>>>({
       kind: 'Rejected',
       value: BlockRejectionReason.ConsensusBlockRejection,
     }),
   },
-  Committed: Object.freeze<BlockStatus>({ kind: 'Committed' }),
-  Applied: Object.freeze<BlockStatus>({ kind: 'Applied' }),
+  Committed: Object.freeze<lib.VariantUnit<'Committed'>>({ kind: 'Committed' }),
+  Applied: Object.freeze<lib.VariantUnit<'Applied'>>({ kind: 'Applied' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Created: []; Approved: []; Rejected: [BlockRejectionReason]; Committed: []; Applied: [] }>([
       [0, 'Created'],
@@ -2688,11 +3903,14 @@ export const BlockEventFilter: lib.CodecProvider<BlockEventFilter> = {
 }
 
 export type PipelineEventFilterBox =
-  | lib.SumTypeKindValue<'Transaction', TransactionEventFilter>
-  | lib.SumTypeKindValue<'Block', BlockEventFilter>
+  | lib.Variant<'Transaction', TransactionEventFilter>
+  | lib.Variant<'Block', BlockEventFilter>
 export const PipelineEventFilterBox = {
-  Transaction: (value: TransactionEventFilter): PipelineEventFilterBox => ({ kind: 'Transaction', value }),
-  Block: (value: BlockEventFilter): PipelineEventFilterBox => ({ kind: 'Block', value }),
+  Transaction: <const T extends TransactionEventFilter>(value: T): lib.Variant<'Transaction', T> => ({
+    kind: 'Transaction',
+    value,
+  }),
+  Block: <const T extends BlockEventFilter>(value: T): lib.Variant<'Block', T> => ({ kind: 'Block', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Transaction: [TransactionEventFilter]; Block: [BlockEventFilter] }>([
       [0, 'Transaction', lib.codecOf(TransactionEventFilter)],
@@ -2878,27 +4096,36 @@ export const ExecutorEventFilter: lib.CodecProvider<ExecutorEventFilter> = {
 }
 
 export type DataEventFilter =
-  | lib.SumTypeKind<'Any'>
-  | lib.SumTypeKindValue<'Peer', PeerEventFilter>
-  | lib.SumTypeKindValue<'Domain', DomainEventFilter>
-  | lib.SumTypeKindValue<'Account', AccountEventFilter>
-  | lib.SumTypeKindValue<'Asset', AssetEventFilter>
-  | lib.SumTypeKindValue<'AssetDefinition', AssetDefinitionEventFilter>
-  | lib.SumTypeKindValue<'Trigger', TriggerEventFilter>
-  | lib.SumTypeKindValue<'Role', RoleEventFilter>
-  | lib.SumTypeKindValue<'Configuration', ConfigurationEventFilter>
-  | lib.SumTypeKindValue<'Executor', ExecutorEventFilter>
+  | lib.VariantUnit<'Any'>
+  | lib.Variant<'Peer', PeerEventFilter>
+  | lib.Variant<'Domain', DomainEventFilter>
+  | lib.Variant<'Account', AccountEventFilter>
+  | lib.Variant<'Asset', AssetEventFilter>
+  | lib.Variant<'AssetDefinition', AssetDefinitionEventFilter>
+  | lib.Variant<'Trigger', TriggerEventFilter>
+  | lib.Variant<'Role', RoleEventFilter>
+  | lib.Variant<'Configuration', ConfigurationEventFilter>
+  | lib.Variant<'Executor', ExecutorEventFilter>
 export const DataEventFilter = {
-  Any: Object.freeze<DataEventFilter>({ kind: 'Any' }),
-  Peer: (value: PeerEventFilter): DataEventFilter => ({ kind: 'Peer', value }),
-  Domain: (value: DomainEventFilter): DataEventFilter => ({ kind: 'Domain', value }),
-  Account: (value: AccountEventFilter): DataEventFilter => ({ kind: 'Account', value }),
-  Asset: (value: AssetEventFilter): DataEventFilter => ({ kind: 'Asset', value }),
-  AssetDefinition: (value: AssetDefinitionEventFilter): DataEventFilter => ({ kind: 'AssetDefinition', value }),
-  Trigger: (value: TriggerEventFilter): DataEventFilter => ({ kind: 'Trigger', value }),
-  Role: (value: RoleEventFilter): DataEventFilter => ({ kind: 'Role', value }),
-  Configuration: (value: ConfigurationEventFilter): DataEventFilter => ({ kind: 'Configuration', value }),
-  Executor: (value: ExecutorEventFilter): DataEventFilter => ({ kind: 'Executor', value }),
+  Any: Object.freeze<lib.VariantUnit<'Any'>>({ kind: 'Any' }),
+  Peer: <const T extends PeerEventFilter>(value: T): lib.Variant<'Peer', T> => ({ kind: 'Peer', value }),
+  Domain: <const T extends DomainEventFilter>(value: T): lib.Variant<'Domain', T> => ({ kind: 'Domain', value }),
+  Account: <const T extends AccountEventFilter>(value: T): lib.Variant<'Account', T> => ({ kind: 'Account', value }),
+  Asset: <const T extends AssetEventFilter>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  AssetDefinition: <const T extends AssetDefinitionEventFilter>(value: T): lib.Variant<'AssetDefinition', T> => ({
+    kind: 'AssetDefinition',
+    value,
+  }),
+  Trigger: <const T extends TriggerEventFilter>(value: T): lib.Variant<'Trigger', T> => ({ kind: 'Trigger', value }),
+  Role: <const T extends RoleEventFilter>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  Configuration: <const T extends ConfigurationEventFilter>(value: T): lib.Variant<'Configuration', T> => ({
+    kind: 'Configuration',
+    value,
+  }),
+  Executor: <const T extends ExecutorEventFilter>(value: T): lib.Variant<'Executor', T> => ({
+    kind: 'Executor',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Any: []
@@ -2937,10 +4164,10 @@ export const Schedule: lib.CodecProvider<Schedule> = {
   }),
 }
 
-export type ExecutionTime = lib.SumTypeKind<'PreCommit'> | lib.SumTypeKindValue<'Schedule', Schedule>
+export type ExecutionTime = lib.VariantUnit<'PreCommit'> | lib.Variant<'Schedule', Schedule>
 export const ExecutionTime = {
-  PreCommit: Object.freeze<ExecutionTime>({ kind: 'PreCommit' }),
-  Schedule: (value: Schedule): ExecutionTime => ({ kind: 'Schedule', value }),
+  PreCommit: Object.freeze<lib.VariantUnit<'PreCommit'>>({ kind: 'PreCommit' }),
+  Schedule: <const T extends Schedule>(value: T): lib.Variant<'Schedule', T> => ({ kind: 'Schedule', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ PreCommit: []; Schedule: [Schedule] }>([
       [0, 'PreCommit'],
@@ -2960,10 +4187,10 @@ export const ExecuteTriggerEventFilter: lib.CodecProvider<ExecuteTriggerEventFil
   }),
 }
 
-export type TriggerCompletedOutcomeType = lib.SumTypeKind<'Success'> | lib.SumTypeKind<'Failure'>
+export type TriggerCompletedOutcomeType = lib.VariantUnit<'Success'> | lib.VariantUnit<'Failure'>
 export const TriggerCompletedOutcomeType = {
-  Success: Object.freeze<TriggerCompletedOutcomeType>({ kind: 'Success' }),
-  Failure: Object.freeze<TriggerCompletedOutcomeType>({ kind: 'Failure' }),
+  Success: Object.freeze<lib.VariantUnit<'Success'>>({ kind: 'Success' }),
+  Failure: Object.freeze<lib.VariantUnit<'Failure'>>({ kind: 'Failure' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Success: []; Failure: [] }>([
       [0, 'Success'],
@@ -2984,49 +4211,85 @@ export const TriggerCompletedEventFilter: lib.CodecProvider<TriggerCompletedEven
 }
 
 export type EventFilterBox =
-  | lib.SumTypeKindValue<'Pipeline', PipelineEventFilterBox>
-  | lib.SumTypeKindValue<'Data', DataEventFilter>
-  | lib.SumTypeKindValue<'Time', ExecutionTime>
-  | lib.SumTypeKindValue<'ExecuteTrigger', ExecuteTriggerEventFilter>
-  | lib.SumTypeKindValue<'TriggerCompleted', TriggerCompletedEventFilter>
+  | lib.Variant<'Pipeline', PipelineEventFilterBox>
+  | lib.Variant<'Data', DataEventFilter>
+  | lib.Variant<'Time', ExecutionTime>
+  | lib.Variant<'ExecuteTrigger', ExecuteTriggerEventFilter>
+  | lib.Variant<'TriggerCompleted', TriggerCompletedEventFilter>
 export const EventFilterBox = {
   Pipeline: {
-    Transaction: (value: TransactionEventFilter): EventFilterBox => ({
+    Transaction: <const T extends TransactionEventFilter>(
+      value: T,
+    ): lib.Variant<'Pipeline', lib.Variant<'Transaction', T>> => ({
       kind: 'Pipeline',
       value: PipelineEventFilterBox.Transaction(value),
     }),
-    Block: (value: BlockEventFilter): EventFilterBox => ({
+    Block: <const T extends BlockEventFilter>(value: T): lib.Variant<'Pipeline', lib.Variant<'Block', T>> => ({
       kind: 'Pipeline',
       value: PipelineEventFilterBox.Block(value),
     }),
   },
   Data: {
-    Any: Object.freeze<EventFilterBox>({ kind: 'Data', value: DataEventFilter.Any }),
-    Peer: (value: PeerEventFilter): EventFilterBox => ({ kind: 'Data', value: DataEventFilter.Peer(value) }),
-    Domain: (value: DomainEventFilter): EventFilterBox => ({ kind: 'Data', value: DataEventFilter.Domain(value) }),
-    Account: (value: AccountEventFilter): EventFilterBox => ({ kind: 'Data', value: DataEventFilter.Account(value) }),
-    Asset: (value: AssetEventFilter): EventFilterBox => ({ kind: 'Data', value: DataEventFilter.Asset(value) }),
-    AssetDefinition: (value: AssetDefinitionEventFilter): EventFilterBox => ({
+    Any: Object.freeze<lib.Variant<'Data', lib.VariantUnit<'Any'>>>({ kind: 'Data', value: DataEventFilter.Any }),
+    Peer: <const T extends PeerEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Peer', T>> => ({
+      kind: 'Data',
+      value: DataEventFilter.Peer(value),
+    }),
+    Domain: <const T extends DomainEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Domain', T>> => ({
+      kind: 'Data',
+      value: DataEventFilter.Domain(value),
+    }),
+    Account: <const T extends AccountEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Account', T>> => ({
+      kind: 'Data',
+      value: DataEventFilter.Account(value),
+    }),
+    Asset: <const T extends AssetEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Asset', T>> => ({
+      kind: 'Data',
+      value: DataEventFilter.Asset(value),
+    }),
+    AssetDefinition: <const T extends AssetDefinitionEventFilter>(
+      value: T,
+    ): lib.Variant<'Data', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'Data',
       value: DataEventFilter.AssetDefinition(value),
     }),
-    Trigger: (value: TriggerEventFilter): EventFilterBox => ({ kind: 'Data', value: DataEventFilter.Trigger(value) }),
-    Role: (value: RoleEventFilter): EventFilterBox => ({ kind: 'Data', value: DataEventFilter.Role(value) }),
-    Configuration: (value: ConfigurationEventFilter): EventFilterBox => ({
+    Trigger: <const T extends TriggerEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Trigger', T>> => ({
+      kind: 'Data',
+      value: DataEventFilter.Trigger(value),
+    }),
+    Role: <const T extends RoleEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Role', T>> => ({
+      kind: 'Data',
+      value: DataEventFilter.Role(value),
+    }),
+    Configuration: <const T extends ConfigurationEventFilter>(
+      value: T,
+    ): lib.Variant<'Data', lib.Variant<'Configuration', T>> => ({
       kind: 'Data',
       value: DataEventFilter.Configuration(value),
     }),
-    Executor: (value: ExecutorEventFilter): EventFilterBox => ({
+    Executor: <const T extends ExecutorEventFilter>(value: T): lib.Variant<'Data', lib.Variant<'Executor', T>> => ({
       kind: 'Data',
       value: DataEventFilter.Executor(value),
     }),
   },
   Time: {
-    PreCommit: Object.freeze<EventFilterBox>({ kind: 'Time', value: ExecutionTime.PreCommit }),
-    Schedule: (value: Schedule): EventFilterBox => ({ kind: 'Time', value: ExecutionTime.Schedule(value) }),
+    PreCommit: Object.freeze<lib.Variant<'Time', lib.VariantUnit<'PreCommit'>>>({
+      kind: 'Time',
+      value: ExecutionTime.PreCommit,
+    }),
+    Schedule: <const T extends Schedule>(value: T): lib.Variant<'Time', lib.Variant<'Schedule', T>> => ({
+      kind: 'Time',
+      value: ExecutionTime.Schedule(value),
+    }),
   },
-  ExecuteTrigger: (value: ExecuteTriggerEventFilter): EventFilterBox => ({ kind: 'ExecuteTrigger', value }),
-  TriggerCompleted: (value: TriggerCompletedEventFilter): EventFilterBox => ({ kind: 'TriggerCompleted', value }),
+  ExecuteTrigger: <const T extends ExecuteTriggerEventFilter>(value: T): lib.Variant<'ExecuteTrigger', T> => ({
+    kind: 'ExecuteTrigger',
+    value,
+  }),
+  TriggerCompleted: <const T extends TriggerCompletedEventFilter>(value: T): lib.Variant<'TriggerCompleted', T> => ({
+    kind: 'TriggerCompleted',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Pipeline: [PipelineEventFilterBox]
@@ -3065,13 +4328,15 @@ export type ActionPredicateAtom = never
 export const ActionPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type ActionProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', ActionPredicateAtom>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionPredicate>
+  | lib.Variant<'Atom', ActionPredicateAtom>
+  | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const ActionProjectionPredicate = {
   Atom: {},
   Metadata: {
     Atom: {},
-    Key: (value: MetadataKeyProjectionPredicate): ActionProjectionPredicate => ({
+    Key: <const T extends MetadataKeyProjectionPredicate>(
+      value: T,
+    ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionPredicate.Key(value),
     }),
@@ -3084,14 +4349,15 @@ export const ActionProjectionPredicate = {
     .discriminated(),
 }
 
-export type ActionProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionSelector>
+export type ActionProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'Metadata', MetadataProjectionSelector>
 export const ActionProjectionSelector = {
-  Atom: Object.freeze<ActionProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Metadata: {
-    Atom: Object.freeze<ActionProjectionSelector>({ kind: 'Metadata', value: MetadataProjectionSelector.Atom }),
-    Key: (value: MetadataKeyProjectionSelector): ActionProjectionSelector => ({
+    Atom: Object.freeze<lib.Variant<'Metadata', lib.VariantUnit<'Atom'>>>({
+      kind: 'Metadata',
+      value: MetadataProjectionSelector.Atom,
+    }),
+    Key: <const T extends MetadataKeyProjectionSelector>(value: T): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionSelector.Key(value),
     }),
@@ -3104,11 +4370,11 @@ export const ActionProjectionSelector = {
     .discriminated(),
 }
 
-export type Mintable = lib.SumTypeKind<'Infinitely'> | lib.SumTypeKind<'Once'> | lib.SumTypeKind<'Not'>
+export type Mintable = lib.VariantUnit<'Infinitely'> | lib.VariantUnit<'Once'> | lib.VariantUnit<'Not'>
 export const Mintable = {
-  Infinitely: Object.freeze<Mintable>({ kind: 'Infinitely' }),
-  Once: Object.freeze<Mintable>({ kind: 'Once' }),
-  Not: Object.freeze<Mintable>({ kind: 'Not' }),
+  Infinitely: Object.freeze<lib.VariantUnit<'Infinitely'>>({ kind: 'Infinitely' }),
+  Once: Object.freeze<lib.VariantUnit<'Once'>>({ kind: 'Once' }),
+  Not: Object.freeze<lib.VariantUnit<'Not'>>({ kind: 'Not' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Infinitely: []; Once: []; Not: [] }>([
       [0, 'Infinitely'],
@@ -3165,30 +4431,33 @@ export const AssetDefinitionOwnerChanged: lib.CodecProvider<AssetDefinitionOwner
 }
 
 export type AssetDefinitionEvent =
-  | lib.SumTypeKindValue<'Created', AssetDefinition>
-  | lib.SumTypeKindValue<'Deleted', lib.AssetDefinitionId>
-  | lib.SumTypeKindValue<'MetadataInserted', MetadataChanged<lib.AssetDefinitionId>>
-  | lib.SumTypeKindValue<'MetadataRemoved', MetadataChanged<lib.AssetDefinitionId>>
-  | lib.SumTypeKindValue<'MintabilityChanged', lib.AssetDefinitionId>
-  | lib.SumTypeKindValue<'TotalQuantityChanged', AssetDefinitionTotalQuantityChanged>
-  | lib.SumTypeKindValue<'OwnerChanged', AssetDefinitionOwnerChanged>
+  | lib.Variant<'Created', AssetDefinition>
+  | lib.Variant<'Deleted', lib.AssetDefinitionId>
+  | lib.Variant<'MetadataInserted', MetadataChanged<lib.AssetDefinitionId>>
+  | lib.Variant<'MetadataRemoved', MetadataChanged<lib.AssetDefinitionId>>
+  | lib.Variant<'MintabilityChanged', lib.AssetDefinitionId>
+  | lib.Variant<'TotalQuantityChanged', AssetDefinitionTotalQuantityChanged>
+  | lib.Variant<'OwnerChanged', AssetDefinitionOwnerChanged>
 export const AssetDefinitionEvent = {
-  Created: (value: AssetDefinition): AssetDefinitionEvent => ({ kind: 'Created', value }),
-  Deleted: (value: lib.AssetDefinitionId): AssetDefinitionEvent => ({ kind: 'Deleted', value }),
-  MetadataInserted: (value: MetadataChanged<lib.AssetDefinitionId>): AssetDefinitionEvent => ({
-    kind: 'MetadataInserted',
+  Created: <const T extends AssetDefinition>(value: T): lib.Variant<'Created', T> => ({ kind: 'Created', value }),
+  Deleted: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'Deleted', T> => ({ kind: 'Deleted', value }),
+  MetadataInserted: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+    value: T,
+  ): lib.Variant<'MetadataInserted', T> => ({ kind: 'MetadataInserted', value }),
+  MetadataRemoved: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+    value: T,
+  ): lib.Variant<'MetadataRemoved', T> => ({ kind: 'MetadataRemoved', value }),
+  MintabilityChanged: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'MintabilityChanged', T> => ({
+    kind: 'MintabilityChanged',
     value,
   }),
-  MetadataRemoved: (value: MetadataChanged<lib.AssetDefinitionId>): AssetDefinitionEvent => ({
-    kind: 'MetadataRemoved',
+  TotalQuantityChanged: <const T extends AssetDefinitionTotalQuantityChanged>(
+    value: T,
+  ): lib.Variant<'TotalQuantityChanged', T> => ({ kind: 'TotalQuantityChanged', value }),
+  OwnerChanged: <const T extends AssetDefinitionOwnerChanged>(value: T): lib.Variant<'OwnerChanged', T> => ({
+    kind: 'OwnerChanged',
     value,
   }),
-  MintabilityChanged: (value: lib.AssetDefinitionId): AssetDefinitionEvent => ({ kind: 'MintabilityChanged', value }),
-  TotalQuantityChanged: (value: AssetDefinitionTotalQuantityChanged): AssetDefinitionEvent => ({
-    kind: 'TotalQuantityChanged',
-    value,
-  }),
-  OwnerChanged: (value: AssetDefinitionOwnerChanged): AssetDefinitionEvent => ({ kind: 'OwnerChanged', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Created: [AssetDefinition]
@@ -3210,47 +4479,57 @@ export const AssetDefinitionEvent = {
     .discriminated(),
 }
 
-export type AssetDefinitionIdPredicateAtom = lib.SumTypeKindValue<'Equals', lib.AssetDefinitionId>
+export type AssetDefinitionIdPredicateAtom = lib.Variant<'Equals', lib.AssetDefinitionId>
 export const AssetDefinitionIdPredicateAtom = {
-  Equals: (value: lib.AssetDefinitionId): AssetDefinitionIdPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.AssetDefinitionId] }>([[0, 'Equals', lib.codecOf(lib.AssetDefinitionId)]])
     .discriminated(),
 }
 
 export type AssetDefinitionIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AssetDefinitionIdPredicateAtom>
-  | lib.SumTypeKindValue<'Domain', DomainIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Name', NameProjectionPredicate>
+  | lib.Variant<'Atom', AssetDefinitionIdPredicateAtom>
+  | lib.Variant<'Domain', DomainIdProjectionPredicate>
+  | lib.Variant<'Name', NameProjectionPredicate>
 export const AssetDefinitionIdProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.AssetDefinitionId): AssetDefinitionIdProjectionPredicate => ({
+    Equals: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: AssetDefinitionIdPredicateAtom.Equals(value),
     }),
   },
   Domain: {
     Atom: {
-      Equals: (value: lib.DomainId): AssetDefinitionIdProjectionPredicate => ({
+      Equals: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Domain',
         value: DomainIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Domain',
           value: DomainIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -3259,19 +4538,27 @@ export const AssetDefinitionIdProjectionPredicate = {
   },
   Name: {
     Atom: {
-      Equals: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+      Equals: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Equals(value),
       }),
-      Contains: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+      Contains: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Contains(value),
       }),
-      StartsWith: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+      StartsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.StartsWith(value),
       }),
-      EndsWith: (value: lib.String): AssetDefinitionIdProjectionPredicate => ({
+      EndsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.EndsWith(value),
       }),
@@ -3291,25 +4578,28 @@ export const AssetDefinitionIdProjectionPredicate = {
 }
 
 export type AssetDefinitionIdProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Domain', DomainIdProjectionSelector>
-  | lib.SumTypeKindValue<'Name', NameProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Domain', DomainIdProjectionSelector>
+  | lib.Variant<'Name', NameProjectionSelector>
 export const AssetDefinitionIdProjectionSelector = {
-  Atom: Object.freeze<AssetDefinitionIdProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Domain: {
-    Atom: Object.freeze<AssetDefinitionIdProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>({
       kind: 'Domain',
       value: DomainIdProjectionSelector.Atom,
     }),
     Name: {
-      Atom: Object.freeze<AssetDefinitionIdProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
         kind: 'Domain',
         value: DomainIdProjectionSelector.Name.Atom,
       }),
     },
   },
   Name: {
-    Atom: Object.freeze<AssetDefinitionIdProjectionSelector>({ kind: 'Name', value: NameProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Name', lib.VariantUnit<'Atom'>>>({
+      kind: 'Name',
+      value: NameProjectionSelector.Atom,
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Domain: [DomainIdProjectionSelector]; Name: [NameProjectionSelector] }>([
@@ -3324,61 +4614,81 @@ export type AssetDefinitionPredicateAtom = never
 export const AssetDefinitionPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type AssetDefinitionProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AssetDefinitionPredicateAtom>
-  | lib.SumTypeKindValue<'Id', AssetDefinitionIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionPredicate>
+  | lib.Variant<'Atom', AssetDefinitionPredicateAtom>
+  | lib.Variant<'Id', AssetDefinitionIdProjectionPredicate>
+  | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const AssetDefinitionProjectionPredicate = {
   Atom: {},
   Id: {
     Atom: {
-      Equals: (value: lib.AssetDefinitionId): AssetDefinitionProjectionPredicate => ({
+      Equals: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'Id', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Id',
         value: AssetDefinitionIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Domain: {
       Atom: {
-        Equals: (value: lib.DomainId): AssetDefinitionProjectionPredicate => ({
+        Equals: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: AssetDefinitionIdProjectionPredicate.Domain.Atom.Equals(value),
         }),
       },
       Name: {
         Atom: {
-          Equals: (value: lib.String): AssetDefinitionProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Equals(value),
-          }),
-          Contains: (value: lib.String): AssetDefinitionProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Contains(value),
-          }),
-          StartsWith: (value: lib.String): AssetDefinitionProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.StartsWith(value),
-          }),
-          EndsWith: (value: lib.String): AssetDefinitionProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.EndsWith(value),
-          }),
+          Equals: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Id', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Equals(value) }),
+          Contains: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+          > => ({ kind: 'Id', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Contains(value) }),
+          StartsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+          > => ({ kind: 'Id', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.StartsWith(value) }),
+          EndsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+          > => ({ kind: 'Id', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.EndsWith(value) }),
         },
       },
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): AssetDefinitionProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): AssetDefinitionProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Id',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): AssetDefinitionProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Id',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): AssetDefinitionProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Id',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -3387,7 +4697,9 @@ export const AssetDefinitionProjectionPredicate = {
   },
   Metadata: {
     Atom: {},
-    Key: (value: MetadataKeyProjectionPredicate): AssetDefinitionProjectionPredicate => ({
+    Key: <const T extends MetadataKeyProjectionPredicate>(
+      value: T,
+    ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionPredicate.Key(value),
     }),
@@ -3406,41 +4718,41 @@ export const AssetDefinitionProjectionPredicate = {
 }
 
 export type AssetDefinitionProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Id', AssetDefinitionIdProjectionSelector>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Id', AssetDefinitionIdProjectionSelector>
+  | lib.Variant<'Metadata', MetadataProjectionSelector>
 export const AssetDefinitionProjectionSelector = {
-  Atom: Object.freeze<AssetDefinitionProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Id: {
-    Atom: Object.freeze<AssetDefinitionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Id', lib.VariantUnit<'Atom'>>>({
       kind: 'Id',
       value: AssetDefinitionIdProjectionSelector.Atom,
     }),
     Domain: {
-      Atom: Object.freeze<AssetDefinitionProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>({
         kind: 'Id',
         value: AssetDefinitionIdProjectionSelector.Domain.Atom,
       }),
       Name: {
-        Atom: Object.freeze<AssetDefinitionProjectionSelector>({
+        Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>>({
           kind: 'Id',
           value: AssetDefinitionIdProjectionSelector.Domain.Name.Atom,
         }),
       },
     },
     Name: {
-      Atom: Object.freeze<AssetDefinitionProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
         kind: 'Id',
         value: AssetDefinitionIdProjectionSelector.Name.Atom,
       }),
     },
   },
   Metadata: {
-    Atom: Object.freeze<AssetDefinitionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Metadata', lib.VariantUnit<'Atom'>>>({
       kind: 'Metadata',
       value: MetadataProjectionSelector.Atom,
     }),
-    Key: (value: MetadataKeyProjectionSelector): AssetDefinitionProjectionSelector => ({
+    Key: <const T extends MetadataKeyProjectionSelector>(value: T): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionSelector.Key(value),
     }),
@@ -3454,63 +4766,77 @@ export const AssetDefinitionProjectionSelector = {
     .discriminated(),
 }
 
-export type AssetIdPredicateAtom = lib.SumTypeKindValue<'Equals', lib.AssetId>
+export type AssetIdPredicateAtom = lib.Variant<'Equals', lib.AssetId>
 export const AssetIdPredicateAtom = {
-  Equals: (value: lib.AssetId): AssetIdPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.AssetId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.AssetId] }>([[0, 'Equals', lib.codecOf(lib.AssetId)]])
     .discriminated(),
 }
 
 export type AssetIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AssetIdPredicateAtom>
-  | lib.SumTypeKindValue<'Account', AccountIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Definition', AssetDefinitionIdProjectionPredicate>
+  | lib.Variant<'Atom', AssetIdPredicateAtom>
+  | lib.Variant<'Account', AccountIdProjectionPredicate>
+  | lib.Variant<'Definition', AssetDefinitionIdProjectionPredicate>
 export const AssetIdProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.AssetId): AssetIdProjectionPredicate => ({
+    Equals: <const T extends lib.AssetId>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: AssetIdPredicateAtom.Equals(value),
     }),
   },
   Account: {
     Atom: {
-      Equals: (value: lib.AccountId): AssetIdProjectionPredicate => ({
+      Equals: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Account',
         value: AccountIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Domain: {
       Atom: {
-        Equals: (value: lib.DomainId): AssetIdProjectionPredicate => ({
+        Equals: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'Account', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Account',
           value: AccountIdProjectionPredicate.Domain.Atom.Equals(value),
         }),
       },
       Name: {
         Atom: {
-          Equals: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Account',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.Equals(value),
-          }),
-          Contains: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Account',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.Contains(value),
-          }),
-          StartsWith: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Account',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.StartsWith(value),
-          }),
-          EndsWith: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Account',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.EndsWith(value),
-          }),
+          Equals: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Account',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Account', value: AccountIdProjectionPredicate.Domain.Name.Atom.Equals(value) }),
+          Contains: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Account',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+          > => ({ kind: 'Account', value: AccountIdProjectionPredicate.Domain.Name.Atom.Contains(value) }),
+          StartsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Account',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+          > => ({ kind: 'Account', value: AccountIdProjectionPredicate.Domain.Name.Atom.StartsWith(value) }),
+          EndsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Account',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+          > => ({ kind: 'Account', value: AccountIdProjectionPredicate.Domain.Name.Atom.EndsWith(value) }),
         },
       },
     },
     Signatory: {
       Atom: {
-        Equals: (value: lib.PublicKeyWrap): AssetIdProjectionPredicate => ({
+        Equals: <const T extends lib.PublicKeyWrap>(
+          value: T,
+        ): lib.Variant<'Account', lib.Variant<'Signatory', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Account',
           value: AccountIdProjectionPredicate.Signatory.Atom.Equals(value),
         }),
@@ -3519,54 +4845,74 @@ export const AssetIdProjectionPredicate = {
   },
   Definition: {
     Atom: {
-      Equals: (value: lib.AssetDefinitionId): AssetIdProjectionPredicate => ({
+      Equals: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'Definition', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Definition',
         value: AssetDefinitionIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Domain: {
       Atom: {
-        Equals: (value: lib.DomainId): AssetIdProjectionPredicate => ({
+        Equals: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'Definition', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Definition',
           value: AssetDefinitionIdProjectionPredicate.Domain.Atom.Equals(value),
         }),
       },
       Name: {
         Atom: {
-          Equals: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Definition',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Equals(value),
-          }),
-          Contains: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Definition',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Contains(value),
-          }),
-          StartsWith: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Definition',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.StartsWith(value),
-          }),
-          EndsWith: (value: lib.String): AssetIdProjectionPredicate => ({
-            kind: 'Definition',
-            value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.EndsWith(value),
-          }),
+          Equals: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Definition',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Definition', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Equals(value) }),
+          Contains: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Definition',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+          > => ({ kind: 'Definition', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.Contains(value) }),
+          StartsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Definition',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+          > => ({ kind: 'Definition', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.StartsWith(value) }),
+          EndsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Definition',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+          > => ({ kind: 'Definition', value: AssetDefinitionIdProjectionPredicate.Domain.Name.Atom.EndsWith(value) }),
         },
       },
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): AssetIdProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Definition',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): AssetIdProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Definition',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): AssetIdProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Definition',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): AssetIdProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Definition',
           value: AssetDefinitionIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -3587,51 +4933,52 @@ export const AssetIdProjectionPredicate = {
 }
 
 export type AssetIdProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Account', AccountIdProjectionSelector>
-  | lib.SumTypeKindValue<'Definition', AssetDefinitionIdProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Account', AccountIdProjectionSelector>
+  | lib.Variant<'Definition', AssetDefinitionIdProjectionSelector>
 export const AssetIdProjectionSelector = {
-  Atom: Object.freeze<AssetIdProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Account: {
-    Atom: Object.freeze<AssetIdProjectionSelector>({ kind: 'Account', value: AccountIdProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Account', lib.VariantUnit<'Atom'>>>({
+      kind: 'Account',
+      value: AccountIdProjectionSelector.Atom,
+    }),
     Domain: {
-      Atom: Object.freeze<AssetIdProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Account', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>({
         kind: 'Account',
         value: AccountIdProjectionSelector.Domain.Atom,
       }),
       Name: {
-        Atom: Object.freeze<AssetIdProjectionSelector>({
-          kind: 'Account',
-          value: AccountIdProjectionSelector.Domain.Name.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Account', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Account', value: AccountIdProjectionSelector.Domain.Name.Atom }),
       },
     },
     Signatory: {
-      Atom: Object.freeze<AssetIdProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Account', lib.Variant<'Signatory', lib.VariantUnit<'Atom'>>>>({
         kind: 'Account',
         value: AccountIdProjectionSelector.Signatory.Atom,
       }),
     },
   },
   Definition: {
-    Atom: Object.freeze<AssetIdProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Definition', lib.VariantUnit<'Atom'>>>({
       kind: 'Definition',
       value: AssetDefinitionIdProjectionSelector.Atom,
     }),
     Domain: {
-      Atom: Object.freeze<AssetIdProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Definition', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>({
         kind: 'Definition',
         value: AssetDefinitionIdProjectionSelector.Domain.Atom,
       }),
       Name: {
-        Atom: Object.freeze<AssetIdProjectionSelector>({
-          kind: 'Definition',
-          value: AssetDefinitionIdProjectionSelector.Domain.Name.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Definition', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Definition', value: AssetDefinitionIdProjectionSelector.Domain.Name.Atom }),
       },
     },
     Name: {
-      Atom: Object.freeze<AssetIdProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Definition', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
         kind: 'Definition',
         value: AssetDefinitionIdProjectionSelector.Name.Atom,
       }),
@@ -3651,10 +4998,10 @@ export const AssetIdProjectionSelector = {
 export type AssetPredicateAtom = never
 export const AssetPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
-export type AssetValuePredicateAtom = lib.SumTypeKind<'IsNumeric'> | lib.SumTypeKind<'IsStore'>
+export type AssetValuePredicateAtom = lib.VariantUnit<'IsNumeric'> | lib.VariantUnit<'IsStore'>
 export const AssetValuePredicateAtom = {
-  IsNumeric: Object.freeze<AssetValuePredicateAtom>({ kind: 'IsNumeric' }),
-  IsStore: Object.freeze<AssetValuePredicateAtom>({ kind: 'IsStore' }),
+  IsNumeric: Object.freeze<lib.VariantUnit<'IsNumeric'>>({ kind: 'IsNumeric' }),
+  IsStore: Object.freeze<lib.VariantUnit<'IsStore'>>({ kind: 'IsStore' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ IsNumeric: []; IsStore: [] }>([
       [0, 'IsNumeric'],
@@ -3666,7 +5013,7 @@ export const AssetValuePredicateAtom = {
 export type NumericPredicateAtom = never
 export const NumericPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
-export type NumericProjectionPredicate = lib.SumTypeKindValue<'Atom', NumericPredicateAtom>
+export type NumericProjectionPredicate = lib.Variant<'Atom', NumericPredicateAtom>
 export const NumericProjectionPredicate = {
   Atom: {},
   [lib.CodecSymbol]: lib
@@ -3675,18 +5022,24 @@ export const NumericProjectionPredicate = {
 }
 
 export type AssetValueProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AssetValuePredicateAtom>
-  | lib.SumTypeKindValue<'Numeric', NumericProjectionPredicate>
-  | lib.SumTypeKindValue<'Store', MetadataProjectionPredicate>
+  | lib.Variant<'Atom', AssetValuePredicateAtom>
+  | lib.Variant<'Numeric', NumericProjectionPredicate>
+  | lib.Variant<'Store', MetadataProjectionPredicate>
 export const AssetValueProjectionPredicate = {
   Atom: {
-    IsNumeric: Object.freeze<AssetValueProjectionPredicate>({ kind: 'Atom', value: AssetValuePredicateAtom.IsNumeric }),
-    IsStore: Object.freeze<AssetValueProjectionPredicate>({ kind: 'Atom', value: AssetValuePredicateAtom.IsStore }),
+    IsNumeric: Object.freeze<lib.Variant<'Atom', lib.VariantUnit<'IsNumeric'>>>({
+      kind: 'Atom',
+      value: AssetValuePredicateAtom.IsNumeric,
+    }),
+    IsStore: Object.freeze<lib.Variant<'Atom', lib.VariantUnit<'IsStore'>>>({
+      kind: 'Atom',
+      value: AssetValuePredicateAtom.IsStore,
+    }),
   },
   Numeric: { Atom: {} },
   Store: {
     Atom: {},
-    Key: (value: MetadataKeyProjectionPredicate): AssetValueProjectionPredicate => ({
+    Key: <const T extends MetadataKeyProjectionPredicate>(value: T): lib.Variant<'Store', lib.Variant<'Key', T>> => ({
       kind: 'Store',
       value: MetadataProjectionPredicate.Key(value),
     }),
@@ -3705,126 +5058,186 @@ export const AssetValueProjectionPredicate = {
 }
 
 export type AssetProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', AssetPredicateAtom>
-  | lib.SumTypeKindValue<'Id', AssetIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Value', AssetValueProjectionPredicate>
+  | lib.Variant<'Atom', AssetPredicateAtom>
+  | lib.Variant<'Id', AssetIdProjectionPredicate>
+  | lib.Variant<'Value', AssetValueProjectionPredicate>
 export const AssetProjectionPredicate = {
   Atom: {},
   Id: {
     Atom: {
-      Equals: (value: lib.AssetId): AssetProjectionPredicate => ({
+      Equals: <const T extends lib.AssetId>(
+        value: T,
+      ): lib.Variant<'Id', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Id',
         value: AssetIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Account: {
       Atom: {
-        Equals: (value: lib.AccountId): AssetProjectionPredicate => ({
+        Equals: <const T extends lib.AccountId>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Account', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: AssetIdProjectionPredicate.Account.Atom.Equals(value),
         }),
       },
       Domain: {
         Atom: {
-          Equals: (value: lib.DomainId): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Account.Domain.Atom.Equals(value),
-          }),
+          Equals: <const T extends lib.DomainId>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Account', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Account.Domain.Atom.Equals(value) }),
         },
         Name: {
           Atom: {
-            Equals: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.Equals(value),
-            }),
-            Contains: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.Contains(value),
-            }),
-            StartsWith: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.StartsWith(value),
-            }),
-            EndsWith: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.EndsWith(value),
-            }),
+            Equals: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Account',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.Equals(value) }),
+            Contains: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Account',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.Contains(value) }),
+            StartsWith: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Account',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.StartsWith(value) }),
+            EndsWith: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Account',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Account.Domain.Name.Atom.EndsWith(value) }),
           },
         },
       },
       Signatory: {
         Atom: {
-          Equals: (value: lib.PublicKeyWrap): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Account.Signatory.Atom.Equals(value),
-          }),
+          Equals: <const T extends lib.PublicKeyWrap>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Account', lib.Variant<'Signatory', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Account.Signatory.Atom.Equals(value) }),
         },
       },
     },
     Definition: {
       Atom: {
-        Equals: (value: lib.AssetDefinitionId): AssetProjectionPredicate => ({
+        Equals: <const T extends lib.AssetDefinitionId>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Definition', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: AssetIdProjectionPredicate.Definition.Atom.Equals(value),
         }),
       },
       Domain: {
         Atom: {
-          Equals: (value: lib.DomainId): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Definition.Domain.Atom.Equals(value),
-          }),
+          Equals: <const T extends lib.DomainId>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Definition', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Domain.Atom.Equals(value) }),
         },
         Name: {
           Atom: {
-            Equals: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.Equals(value),
-            }),
-            Contains: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.Contains(value),
-            }),
-            StartsWith: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.StartsWith(value),
-            }),
-            EndsWith: (value: lib.String): AssetProjectionPredicate => ({
-              kind: 'Id',
-              value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.EndsWith(value),
-            }),
+            Equals: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Definition',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.Equals(value) }),
+            Contains: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Definition',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.Contains(value) }),
+            StartsWith: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Definition',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.StartsWith(value) }),
+            EndsWith: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Id',
+              lib.Variant<
+                'Definition',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+              >
+            > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Domain.Name.Atom.EndsWith(value) }),
           },
         },
       },
       Name: {
         Atom: {
-          Equals: (value: lib.String): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Definition.Name.Atom.Equals(value),
-          }),
-          Contains: (value: lib.String): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Definition.Name.Atom.Contains(value),
-          }),
-          StartsWith: (value: lib.String): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Definition.Name.Atom.StartsWith(value),
-          }),
-          EndsWith: (value: lib.String): AssetProjectionPredicate => ({
-            kind: 'Id',
-            value: AssetIdProjectionPredicate.Definition.Name.Atom.EndsWith(value),
-          }),
+          Equals: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Name.Atom.Equals(value) }),
+          Contains: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Name.Atom.Contains(value) }),
+          StartsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Name.Atom.StartsWith(value) }),
+          EndsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Id',
+            lib.Variant<'Definition', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+          > => ({ kind: 'Id', value: AssetIdProjectionPredicate.Definition.Name.Atom.EndsWith(value) }),
         },
       },
     },
   },
   Value: {
     Atom: {
-      IsNumeric: Object.freeze<AssetProjectionPredicate>({
+      IsNumeric: Object.freeze<lib.Variant<'Value', lib.Variant<'Atom', lib.VariantUnit<'IsNumeric'>>>>({
         kind: 'Value',
         value: AssetValueProjectionPredicate.Atom.IsNumeric,
       }),
-      IsStore: Object.freeze<AssetProjectionPredicate>({
+      IsStore: Object.freeze<lib.Variant<'Value', lib.Variant<'Atom', lib.VariantUnit<'IsStore'>>>>({
         kind: 'Value',
         value: AssetValueProjectionPredicate.Atom.IsStore,
       }),
@@ -3832,7 +5245,9 @@ export const AssetProjectionPredicate = {
     Numeric: { Atom: {} },
     Store: {
       Atom: {},
-      Key: (value: MetadataKeyProjectionPredicate): AssetProjectionPredicate => ({
+      Key: <const T extends MetadataKeyProjectionPredicate>(
+        value: T,
+      ): lib.Variant<'Value', lib.Variant<'Store', lib.Variant<'Key', T>>> => ({
         kind: 'Value',
         value: AssetValueProjectionPredicate.Store.Key(value),
       }),
@@ -3851,24 +5266,30 @@ export const AssetProjectionPredicate = {
     .discriminated(),
 }
 
-export type NumericProjectionSelector = lib.SumTypeKind<'Atom'>
+export type NumericProjectionSelector = lib.VariantUnit<'Atom'>
 export const NumericProjectionSelector = {
-  Atom: Object.freeze<NumericProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
 export type AssetValueProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Numeric', NumericProjectionSelector>
-  | lib.SumTypeKindValue<'Store', MetadataProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Numeric', NumericProjectionSelector>
+  | lib.Variant<'Store', MetadataProjectionSelector>
 export const AssetValueProjectionSelector = {
-  Atom: Object.freeze<AssetValueProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Numeric: {
-    Atom: Object.freeze<AssetValueProjectionSelector>({ kind: 'Numeric', value: NumericProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Numeric', lib.VariantUnit<'Atom'>>>({
+      kind: 'Numeric',
+      value: NumericProjectionSelector.Atom,
+    }),
   },
   Store: {
-    Atom: Object.freeze<AssetValueProjectionSelector>({ kind: 'Store', value: MetadataProjectionSelector.Atom }),
-    Key: (value: MetadataKeyProjectionSelector): AssetValueProjectionSelector => ({
+    Atom: Object.freeze<lib.Variant<'Store', lib.VariantUnit<'Atom'>>>({
+      kind: 'Store',
+      value: MetadataProjectionSelector.Atom,
+    }),
+    Key: <const T extends MetadataKeyProjectionSelector>(value: T): lib.Variant<'Store', lib.Variant<'Key', T>> => ({
       kind: 'Store',
       value: MetadataProjectionSelector.Key(value),
     }),
@@ -3883,64 +5304,85 @@ export const AssetValueProjectionSelector = {
 }
 
 export type AssetProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Id', AssetIdProjectionSelector>
-  | lib.SumTypeKindValue<'Value', AssetValueProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Id', AssetIdProjectionSelector>
+  | lib.Variant<'Value', AssetValueProjectionSelector>
 export const AssetProjectionSelector = {
-  Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Id: {
-    Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Id', value: AssetIdProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Id', lib.VariantUnit<'Atom'>>>({
+      kind: 'Id',
+      value: AssetIdProjectionSelector.Atom,
+    }),
     Account: {
-      Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Id', value: AssetIdProjectionSelector.Account.Atom }),
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Account', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: AssetIdProjectionSelector.Account.Atom,
+      }),
       Domain: {
-        Atom: Object.freeze<AssetProjectionSelector>({
+        Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Account', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>>({
           kind: 'Id',
           value: AssetIdProjectionSelector.Account.Domain.Atom,
         }),
         Name: {
-          Atom: Object.freeze<AssetProjectionSelector>({
-            kind: 'Id',
-            value: AssetIdProjectionSelector.Account.Domain.Name.Atom,
-          }),
+          Atom: Object.freeze<
+            lib.Variant<
+              'Id',
+              lib.Variant<'Account', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>
+            >
+          >({ kind: 'Id', value: AssetIdProjectionSelector.Account.Domain.Name.Atom }),
         },
       },
       Signatory: {
-        Atom: Object.freeze<AssetProjectionSelector>({
-          kind: 'Id',
-          value: AssetIdProjectionSelector.Account.Signatory.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Id', lib.Variant<'Account', lib.Variant<'Signatory', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Id', value: AssetIdProjectionSelector.Account.Signatory.Atom }),
       },
     },
     Definition: {
-      Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Id', value: AssetIdProjectionSelector.Definition.Atom }),
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Definition', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: AssetIdProjectionSelector.Definition.Atom,
+      }),
       Domain: {
-        Atom: Object.freeze<AssetProjectionSelector>({
-          kind: 'Id',
-          value: AssetIdProjectionSelector.Definition.Domain.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Id', lib.Variant<'Definition', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Id', value: AssetIdProjectionSelector.Definition.Domain.Atom }),
         Name: {
-          Atom: Object.freeze<AssetProjectionSelector>({
-            kind: 'Id',
-            value: AssetIdProjectionSelector.Definition.Domain.Name.Atom,
-          }),
+          Atom: Object.freeze<
+            lib.Variant<
+              'Id',
+              lib.Variant<'Definition', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>
+            >
+          >({ kind: 'Id', value: AssetIdProjectionSelector.Definition.Domain.Name.Atom }),
         },
       },
       Name: {
-        Atom: Object.freeze<AssetProjectionSelector>({
-          kind: 'Id',
-          value: AssetIdProjectionSelector.Definition.Name.Atom,
-        }),
+        Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Definition', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>>(
+          { kind: 'Id', value: AssetIdProjectionSelector.Definition.Name.Atom },
+        ),
       },
     },
   },
   Value: {
-    Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Value', value: AssetValueProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Value', lib.VariantUnit<'Atom'>>>({
+      kind: 'Value',
+      value: AssetValueProjectionSelector.Atom,
+    }),
     Numeric: {
-      Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Value', value: AssetValueProjectionSelector.Numeric.Atom }),
+      Atom: Object.freeze<lib.Variant<'Value', lib.Variant<'Numeric', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Value',
+        value: AssetValueProjectionSelector.Numeric.Atom,
+      }),
     },
     Store: {
-      Atom: Object.freeze<AssetProjectionSelector>({ kind: 'Value', value: AssetValueProjectionSelector.Store.Atom }),
-      Key: (value: MetadataKeyProjectionSelector): AssetProjectionSelector => ({
+      Atom: Object.freeze<lib.Variant<'Value', lib.Variant<'Store', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Value',
+        value: AssetValueProjectionSelector.Store.Atom,
+      }),
+      Key: <const T extends MetadataKeyProjectionSelector>(
+        value: T,
+      ): lib.Variant<'Value', lib.Variant<'Store', lib.Variant<'Key', T>>> => ({
         kind: 'Value',
         value: AssetValueProjectionSelector.Store.Key(value),
       }),
@@ -3975,14 +5417,16 @@ export const Transfer = {
 }
 
 export type AssetTransferBox =
-  | lib.SumTypeKindValue<'Numeric', Transfer<lib.AssetId, Numeric, lib.AccountId>>
-  | lib.SumTypeKindValue<'Store', Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>
+  | lib.Variant<'Numeric', Transfer<lib.AssetId, Numeric, lib.AccountId>>
+  | lib.Variant<'Store', Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>
 export const AssetTransferBox = {
-  Numeric: (value: Transfer<lib.AssetId, Numeric, lib.AccountId>): AssetTransferBox => ({ kind: 'Numeric', value }),
-  Store: (value: Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>): AssetTransferBox => ({
-    kind: 'Store',
+  Numeric: <const T extends Transfer<lib.AssetId, Numeric, lib.AccountId>>(value: T): lib.Variant<'Numeric', T> => ({
+    kind: 'Numeric',
     value,
   }),
+  Store: <const T extends Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>(
+    value: T,
+  ): lib.Variant<'Store', T> => ({ kind: 'Store', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Numeric: [Transfer<lib.AssetId, Numeric, lib.AccountId>]
@@ -4039,18 +5483,18 @@ export const BlockEvent: lib.CodecProvider<BlockEvent> = {
   }),
 }
 
-export type BlockHeaderHashPredicateAtom = lib.SumTypeKindValue<'Equals', lib.HashWrap>
+export type BlockHeaderHashPredicateAtom = lib.Variant<'Equals', lib.HashWrap>
 export const BlockHeaderHashPredicateAtom = {
-  Equals: (value: lib.HashWrap): BlockHeaderHashPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.HashWrap>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.HashWrap] }>([[0, 'Equals', lib.codecOf(lib.HashWrap)]])
     .discriminated(),
 }
 
-export type BlockHeaderHashProjectionPredicate = lib.SumTypeKindValue<'Atom', BlockHeaderHashPredicateAtom>
+export type BlockHeaderHashProjectionPredicate = lib.Variant<'Atom', BlockHeaderHashPredicateAtom>
 export const BlockHeaderHashProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.HashWrap): BlockHeaderHashProjectionPredicate => ({
+    Equals: <const T extends lib.HashWrap>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: BlockHeaderHashPredicateAtom.Equals(value),
     }),
@@ -4060,9 +5504,9 @@ export const BlockHeaderHashProjectionPredicate = {
     .discriminated(),
 }
 
-export type BlockHeaderHashProjectionSelector = lib.SumTypeKind<'Atom'>
+export type BlockHeaderHashProjectionSelector = lib.VariantUnit<'Atom'>
 export const BlockHeaderHashProjectionSelector = {
-  Atom: Object.freeze<BlockHeaderHashProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
@@ -4070,13 +5514,15 @@ export type BlockHeaderPredicateAtom = never
 export const BlockHeaderPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type BlockHeaderProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', BlockHeaderPredicateAtom>
-  | lib.SumTypeKindValue<'Hash', BlockHeaderHashProjectionPredicate>
+  | lib.Variant<'Atom', BlockHeaderPredicateAtom>
+  | lib.Variant<'Hash', BlockHeaderHashProjectionPredicate>
 export const BlockHeaderProjectionPredicate = {
   Atom: {},
   Hash: {
     Atom: {
-      Equals: (value: lib.HashWrap): BlockHeaderProjectionPredicate => ({
+      Equals: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'Hash', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Hash',
         value: BlockHeaderHashProjectionPredicate.Atom.Equals(value),
       }),
@@ -4091,12 +5537,15 @@ export const BlockHeaderProjectionPredicate = {
 }
 
 export type BlockHeaderProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Hash', BlockHeaderHashProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Hash', BlockHeaderHashProjectionSelector>
 export const BlockHeaderProjectionSelector = {
-  Atom: Object.freeze<BlockHeaderProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Hash: {
-    Atom: Object.freeze<BlockHeaderProjectionSelector>({ kind: 'Hash', value: BlockHeaderHashProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Hash', lib.VariantUnit<'Atom'>>>({
+      kind: 'Hash',
+      value: BlockHeaderHashProjectionSelector.Atom,
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Hash: [BlockHeaderHashProjectionSelector] }>([
@@ -4152,9 +5601,9 @@ export const SignedTransactionV1: lib.CodecProvider<SignedTransactionV1> = {
   }),
 }
 
-export type SignedTransaction = lib.SumTypeKindValue<'V1', SignedTransactionV1>
+export type SignedTransaction = lib.Variant<'V1', SignedTransactionV1>
 export const SignedTransaction = {
-  V1: (value: SignedTransactionV1): SignedTransaction => ({ kind: 'V1', value }),
+  V1: <const T extends SignedTransactionV1>(value: T): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ V1: [SignedTransactionV1] }>([[1, 'V1', lib.codecOf(SignedTransactionV1)]])
     .discriminated(),
@@ -4184,15 +5633,18 @@ export const SignedBlockV1: lib.CodecProvider<SignedBlockV1> = {
   }),
 }
 
-export type SignedBlock = lib.SumTypeKindValue<'V1', SignedBlockV1>
+export type SignedBlock = lib.Variant<'V1', SignedBlockV1>
 export const SignedBlock = {
-  V1: (value: SignedBlockV1): SignedBlock => ({ kind: 'V1', value }),
+  V1: <const T extends SignedBlockV1>(value: T): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
   [lib.CodecSymbol]: lib.enumCodec<{ V1: [SignedBlockV1] }>([[1, 'V1', lib.codecOf(SignedBlockV1)]]).discriminated(),
 }
 
-export type BlockParameter = lib.SumTypeKindValue<'MaxTransactions', lib.U64>
+export type BlockParameter = lib.Variant<'MaxTransactions', lib.U64>
 export const BlockParameter = {
-  MaxTransactions: (value: lib.U64): BlockParameter => ({ kind: 'MaxTransactions', value }),
+  MaxTransactions: <const T extends lib.U64>(value: T): lib.Variant<'MaxTransactions', T> => ({
+    kind: 'MaxTransactions',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ MaxTransactions: [lib.U64] }>([[0, 'MaxTransactions', lib.codecOf(lib.U64)]])
     .discriminated(),
@@ -4216,11 +5668,14 @@ export const Burn = {
 }
 
 export type BurnBox =
-  | lib.SumTypeKindValue<'Asset', Burn<Numeric, lib.AssetId>>
-  | lib.SumTypeKindValue<'TriggerRepetitions', Burn<lib.U32, TriggerId>>
+  | lib.Variant<'Asset', Burn<Numeric, lib.AssetId>>
+  | lib.Variant<'TriggerRepetitions', Burn<lib.U32, TriggerId>>
 export const BurnBox = {
-  Asset: (value: Burn<Numeric, lib.AssetId>): BurnBox => ({ kind: 'Asset', value }),
-  TriggerRepetitions: (value: Burn<lib.U32, TriggerId>): BurnBox => ({ kind: 'TriggerRepetitions', value }),
+  Asset: <const T extends Burn<Numeric, lib.AssetId>>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  TriggerRepetitions: <const T extends Burn<lib.U32, TriggerId>>(value: T): lib.Variant<'TriggerRepetitions', T> => ({
+    kind: 'TriggerRepetitions',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Asset: [Burn<Numeric, lib.AssetId>]; TriggerRepetitions: [Burn<lib.U32, TriggerId>] }>([
       [0, 'Asset', lib.codecOf(Burn.with(lib.codecOf(Numeric), lib.codecOf(lib.AssetId)))],
@@ -4430,18 +5885,18 @@ export const CommittedTransactionPredicateAtom = { [lib.CodecSymbol]: lib.neverC
 export type SignedTransactionPredicateAtom = never
 export const SignedTransactionPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
-export type TransactionHashPredicateAtom = lib.SumTypeKindValue<'Equals', lib.HashWrap>
+export type TransactionHashPredicateAtom = lib.Variant<'Equals', lib.HashWrap>
 export const TransactionHashPredicateAtom = {
-  Equals: (value: lib.HashWrap): TransactionHashPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends lib.HashWrap>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.HashWrap] }>([[0, 'Equals', lib.codecOf(lib.HashWrap)]])
     .discriminated(),
 }
 
-export type TransactionHashProjectionPredicate = lib.SumTypeKindValue<'Atom', TransactionHashPredicateAtom>
+export type TransactionHashProjectionPredicate = lib.Variant<'Atom', TransactionHashPredicateAtom>
 export const TransactionHashProjectionPredicate = {
   Atom: {
-    Equals: (value: lib.HashWrap): TransactionHashProjectionPredicate => ({
+    Equals: <const T extends lib.HashWrap>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: TransactionHashPredicateAtom.Equals(value),
     }),
@@ -4452,14 +5907,16 @@ export const TransactionHashProjectionPredicate = {
 }
 
 export type SignedTransactionProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', SignedTransactionPredicateAtom>
-  | lib.SumTypeKindValue<'Hash', TransactionHashProjectionPredicate>
-  | lib.SumTypeKindValue<'Authority', AccountIdProjectionPredicate>
+  | lib.Variant<'Atom', SignedTransactionPredicateAtom>
+  | lib.Variant<'Hash', TransactionHashProjectionPredicate>
+  | lib.Variant<'Authority', AccountIdProjectionPredicate>
 export const SignedTransactionProjectionPredicate = {
   Atom: {},
   Hash: {
     Atom: {
-      Equals: (value: lib.HashWrap): SignedTransactionProjectionPredicate => ({
+      Equals: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'Hash', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Hash',
         value: TransactionHashProjectionPredicate.Atom.Equals(value),
       }),
@@ -4467,42 +5924,56 @@ export const SignedTransactionProjectionPredicate = {
   },
   Authority: {
     Atom: {
-      Equals: (value: lib.AccountId): SignedTransactionProjectionPredicate => ({
+      Equals: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'Authority', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Authority',
         value: AccountIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Domain: {
       Atom: {
-        Equals: (value: lib.DomainId): SignedTransactionProjectionPredicate => ({
+        Equals: <const T extends lib.DomainId>(
+          value: T,
+        ): lib.Variant<'Authority', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Authority',
           value: AccountIdProjectionPredicate.Domain.Atom.Equals(value),
         }),
       },
       Name: {
         Atom: {
-          Equals: (value: lib.String): SignedTransactionProjectionPredicate => ({
-            kind: 'Authority',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.Equals(value),
-          }),
-          Contains: (value: lib.String): SignedTransactionProjectionPredicate => ({
-            kind: 'Authority',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.Contains(value),
-          }),
-          StartsWith: (value: lib.String): SignedTransactionProjectionPredicate => ({
-            kind: 'Authority',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.StartsWith(value),
-          }),
-          EndsWith: (value: lib.String): SignedTransactionProjectionPredicate => ({
-            kind: 'Authority',
-            value: AccountIdProjectionPredicate.Domain.Name.Atom.EndsWith(value),
-          }),
+          Equals: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Authority',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Authority', value: AccountIdProjectionPredicate.Domain.Name.Atom.Equals(value) }),
+          Contains: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Authority',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+          > => ({ kind: 'Authority', value: AccountIdProjectionPredicate.Domain.Name.Atom.Contains(value) }),
+          StartsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Authority',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+          > => ({ kind: 'Authority', value: AccountIdProjectionPredicate.Domain.Name.Atom.StartsWith(value) }),
+          EndsWith: <const T extends lib.String>(
+            value: T,
+          ): lib.Variant<
+            'Authority',
+            lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+          > => ({ kind: 'Authority', value: AccountIdProjectionPredicate.Domain.Name.Atom.EndsWith(value) }),
         },
       },
     },
     Signatory: {
       Atom: {
-        Equals: (value: lib.PublicKeyWrap): SignedTransactionProjectionPredicate => ({
+        Equals: <const T extends lib.PublicKeyWrap>(
+          value: T,
+        ): lib.Variant<'Authority', lib.Variant<'Signatory', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Authority',
           value: AccountIdProjectionPredicate.Signatory.Atom.Equals(value),
         }),
@@ -4522,16 +5993,16 @@ export const SignedTransactionProjectionPredicate = {
     .discriminated(),
 }
 
-export type TransactionErrorPredicateAtom = lib.SumTypeKind<'IsSome'>
+export type TransactionErrorPredicateAtom = lib.VariantUnit<'IsSome'>
 export const TransactionErrorPredicateAtom = {
-  IsSome: Object.freeze<TransactionErrorPredicateAtom>({ kind: 'IsSome' }),
+  IsSome: Object.freeze<lib.VariantUnit<'IsSome'>>({ kind: 'IsSome' }),
   [lib.CodecSymbol]: lib.enumCodec<{ IsSome: [] }>([[0, 'IsSome']]).discriminated(),
 }
 
-export type TransactionErrorProjectionPredicate = lib.SumTypeKindValue<'Atom', TransactionErrorPredicateAtom>
+export type TransactionErrorProjectionPredicate = lib.Variant<'Atom', TransactionErrorPredicateAtom>
 export const TransactionErrorProjectionPredicate = {
   Atom: {
-    IsSome: Object.freeze<TransactionErrorProjectionPredicate>({
+    IsSome: Object.freeze<lib.Variant<'Atom', lib.VariantUnit<'IsSome'>>>({
       kind: 'Atom',
       value: TransactionErrorPredicateAtom.IsSome,
     }),
@@ -4542,15 +6013,17 @@ export const TransactionErrorProjectionPredicate = {
 }
 
 export type CommittedTransactionProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', CommittedTransactionPredicateAtom>
-  | lib.SumTypeKindValue<'BlockHash', BlockHeaderHashProjectionPredicate>
-  | lib.SumTypeKindValue<'Value', SignedTransactionProjectionPredicate>
-  | lib.SumTypeKindValue<'Error', TransactionErrorProjectionPredicate>
+  | lib.Variant<'Atom', CommittedTransactionPredicateAtom>
+  | lib.Variant<'BlockHash', BlockHeaderHashProjectionPredicate>
+  | lib.Variant<'Value', SignedTransactionProjectionPredicate>
+  | lib.Variant<'Error', TransactionErrorProjectionPredicate>
 export const CommittedTransactionProjectionPredicate = {
   Atom: {},
   BlockHash: {
     Atom: {
-      Equals: (value: lib.HashWrap): CommittedTransactionProjectionPredicate => ({
+      Equals: <const T extends lib.HashWrap>(
+        value: T,
+      ): lib.Variant<'BlockHash', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'BlockHash',
         value: BlockHeaderHashProjectionPredicate.Atom.Equals(value),
       }),
@@ -4560,7 +6033,9 @@ export const CommittedTransactionProjectionPredicate = {
     Atom: {},
     Hash: {
       Atom: {
-        Equals: (value: lib.HashWrap): CommittedTransactionProjectionPredicate => ({
+        Equals: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<'Value', lib.Variant<'Hash', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Value',
           value: SignedTransactionProjectionPredicate.Hash.Atom.Equals(value),
         }),
@@ -4568,33 +6043,69 @@ export const CommittedTransactionProjectionPredicate = {
     },
     Authority: {
       Atom: {
-        Equals: (value: lib.AccountId): CommittedTransactionProjectionPredicate => ({
+        Equals: <const T extends lib.AccountId>(
+          value: T,
+        ): lib.Variant<'Value', lib.Variant<'Authority', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Value',
           value: SignedTransactionProjectionPredicate.Authority.Atom.Equals(value),
         }),
       },
       Domain: {
         Atom: {
-          Equals: (value: lib.DomainId): CommittedTransactionProjectionPredicate => ({
-            kind: 'Value',
-            value: SignedTransactionProjectionPredicate.Authority.Domain.Atom.Equals(value),
-          }),
+          Equals: <const T extends lib.DomainId>(
+            value: T,
+          ): lib.Variant<
+            'Value',
+            lib.Variant<'Authority', lib.Variant<'Domain', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Value', value: SignedTransactionProjectionPredicate.Authority.Domain.Atom.Equals(value) }),
         },
         Name: {
           Atom: {
-            Equals: (value: lib.String): CommittedTransactionProjectionPredicate => ({
+            Equals: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Value',
+              lib.Variant<
+                'Authority',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+              >
+            > => ({
               kind: 'Value',
               value: SignedTransactionProjectionPredicate.Authority.Domain.Name.Atom.Equals(value),
             }),
-            Contains: (value: lib.String): CommittedTransactionProjectionPredicate => ({
+            Contains: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Value',
+              lib.Variant<
+                'Authority',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>>
+              >
+            > => ({
               kind: 'Value',
               value: SignedTransactionProjectionPredicate.Authority.Domain.Name.Atom.Contains(value),
             }),
-            StartsWith: (value: lib.String): CommittedTransactionProjectionPredicate => ({
+            StartsWith: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Value',
+              lib.Variant<
+                'Authority',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>>
+              >
+            > => ({
               kind: 'Value',
               value: SignedTransactionProjectionPredicate.Authority.Domain.Name.Atom.StartsWith(value),
             }),
-            EndsWith: (value: lib.String): CommittedTransactionProjectionPredicate => ({
+            EndsWith: <const T extends lib.String>(
+              value: T,
+            ): lib.Variant<
+              'Value',
+              lib.Variant<
+                'Authority',
+                lib.Variant<'Domain', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>>
+              >
+            > => ({
               kind: 'Value',
               value: SignedTransactionProjectionPredicate.Authority.Domain.Name.Atom.EndsWith(value),
             }),
@@ -4603,17 +6114,19 @@ export const CommittedTransactionProjectionPredicate = {
       },
       Signatory: {
         Atom: {
-          Equals: (value: lib.PublicKeyWrap): CommittedTransactionProjectionPredicate => ({
-            kind: 'Value',
-            value: SignedTransactionProjectionPredicate.Authority.Signatory.Atom.Equals(value),
-          }),
+          Equals: <const T extends lib.PublicKeyWrap>(
+            value: T,
+          ): lib.Variant<
+            'Value',
+            lib.Variant<'Authority', lib.Variant<'Signatory', lib.Variant<'Atom', lib.Variant<'Equals', T>>>>
+          > => ({ kind: 'Value', value: SignedTransactionProjectionPredicate.Authority.Signatory.Atom.Equals(value) }),
         },
       },
     },
   },
   Error: {
     Atom: {
-      IsSome: Object.freeze<CommittedTransactionProjectionPredicate>({
+      IsSome: Object.freeze<lib.Variant<'Error', lib.Variant<'Atom', lib.VariantUnit<'IsSome'>>>>({
         kind: 'Error',
         value: TransactionErrorProjectionPredicate.Atom.IsSome,
       }),
@@ -4634,43 +6147,42 @@ export const CommittedTransactionProjectionPredicate = {
     .discriminated(),
 }
 
-export type TransactionHashProjectionSelector = lib.SumTypeKind<'Atom'>
+export type TransactionHashProjectionSelector = lib.VariantUnit<'Atom'>
 export const TransactionHashProjectionSelector = {
-  Atom: Object.freeze<TransactionHashProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
 export type SignedTransactionProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Hash', TransactionHashProjectionSelector>
-  | lib.SumTypeKindValue<'Authority', AccountIdProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Hash', TransactionHashProjectionSelector>
+  | lib.Variant<'Authority', AccountIdProjectionSelector>
 export const SignedTransactionProjectionSelector = {
-  Atom: Object.freeze<SignedTransactionProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Hash: {
-    Atom: Object.freeze<SignedTransactionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Hash', lib.VariantUnit<'Atom'>>>({
       kind: 'Hash',
       value: TransactionHashProjectionSelector.Atom,
     }),
   },
   Authority: {
-    Atom: Object.freeze<SignedTransactionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Authority', lib.VariantUnit<'Atom'>>>({
       kind: 'Authority',
       value: AccountIdProjectionSelector.Atom,
     }),
     Domain: {
-      Atom: Object.freeze<SignedTransactionProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Authority', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>({
         kind: 'Authority',
         value: AccountIdProjectionSelector.Domain.Atom,
       }),
       Name: {
-        Atom: Object.freeze<SignedTransactionProjectionSelector>({
-          kind: 'Authority',
-          value: AccountIdProjectionSelector.Domain.Name.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Authority', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Authority', value: AccountIdProjectionSelector.Domain.Name.Atom }),
       },
     },
     Signatory: {
-      Atom: Object.freeze<SignedTransactionProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Authority', lib.Variant<'Signatory', lib.VariantUnit<'Atom'>>>>({
         kind: 'Authority',
         value: AccountIdProjectionSelector.Signatory.Atom,
       }),
@@ -4685,63 +6197,63 @@ export const SignedTransactionProjectionSelector = {
     .discriminated(),
 }
 
-export type TransactionErrorProjectionSelector = lib.SumTypeKind<'Atom'>
+export type TransactionErrorProjectionSelector = lib.VariantUnit<'Atom'>
 export const TransactionErrorProjectionSelector = {
-  Atom: Object.freeze<TransactionErrorProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
 export type CommittedTransactionProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'BlockHash', BlockHeaderHashProjectionSelector>
-  | lib.SumTypeKindValue<'Value', SignedTransactionProjectionSelector>
-  | lib.SumTypeKindValue<'Error', TransactionErrorProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'BlockHash', BlockHeaderHashProjectionSelector>
+  | lib.Variant<'Value', SignedTransactionProjectionSelector>
+  | lib.Variant<'Error', TransactionErrorProjectionSelector>
 export const CommittedTransactionProjectionSelector = {
-  Atom: Object.freeze<CommittedTransactionProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   BlockHash: {
-    Atom: Object.freeze<CommittedTransactionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'BlockHash', lib.VariantUnit<'Atom'>>>({
       kind: 'BlockHash',
       value: BlockHeaderHashProjectionSelector.Atom,
     }),
   },
   Value: {
-    Atom: Object.freeze<CommittedTransactionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Value', lib.VariantUnit<'Atom'>>>({
       kind: 'Value',
       value: SignedTransactionProjectionSelector.Atom,
     }),
     Hash: {
-      Atom: Object.freeze<CommittedTransactionProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Value', lib.Variant<'Hash', lib.VariantUnit<'Atom'>>>>({
         kind: 'Value',
         value: SignedTransactionProjectionSelector.Hash.Atom,
       }),
     },
     Authority: {
-      Atom: Object.freeze<CommittedTransactionProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Value', lib.Variant<'Authority', lib.VariantUnit<'Atom'>>>>({
         kind: 'Value',
         value: SignedTransactionProjectionSelector.Authority.Atom,
       }),
       Domain: {
-        Atom: Object.freeze<CommittedTransactionProjectionSelector>({
-          kind: 'Value',
-          value: SignedTransactionProjectionSelector.Authority.Domain.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Value', lib.Variant<'Authority', lib.Variant<'Domain', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Value', value: SignedTransactionProjectionSelector.Authority.Domain.Atom }),
         Name: {
-          Atom: Object.freeze<CommittedTransactionProjectionSelector>({
-            kind: 'Value',
-            value: SignedTransactionProjectionSelector.Authority.Domain.Name.Atom,
-          }),
+          Atom: Object.freeze<
+            lib.Variant<
+              'Value',
+              lib.Variant<'Authority', lib.Variant<'Domain', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>
+            >
+          >({ kind: 'Value', value: SignedTransactionProjectionSelector.Authority.Domain.Name.Atom }),
         },
       },
       Signatory: {
-        Atom: Object.freeze<CommittedTransactionProjectionSelector>({
-          kind: 'Value',
-          value: SignedTransactionProjectionSelector.Authority.Signatory.Atom,
-        }),
+        Atom: Object.freeze<
+          lib.Variant<'Value', lib.Variant<'Authority', lib.Variant<'Signatory', lib.VariantUnit<'Atom'>>>>
+        >({ kind: 'Value', value: SignedTransactionProjectionSelector.Authority.Signatory.Atom }),
       },
     },
   },
   Error: {
-    Atom: Object.freeze<CommittedTransactionProjectionSelector>({
+    Atom: Object.freeze<lib.Variant<'Error', lib.VariantUnit<'Atom'>>>({
       kind: 'Error',
       value: TransactionErrorProjectionSelector.Atom,
     }),
@@ -4762,13 +6274,19 @@ export const CommittedTransactionProjectionSelector = {
 }
 
 export type SumeragiParameter =
-  | lib.SumTypeKindValue<'BlockTimeMs', lib.U64>
-  | lib.SumTypeKindValue<'CommitTimeMs', lib.U64>
-  | lib.SumTypeKindValue<'MaxClockDriftMs', lib.U64>
+  | lib.Variant<'BlockTimeMs', lib.U64>
+  | lib.Variant<'CommitTimeMs', lib.U64>
+  | lib.Variant<'MaxClockDriftMs', lib.U64>
 export const SumeragiParameter = {
-  BlockTimeMs: (value: lib.U64): SumeragiParameter => ({ kind: 'BlockTimeMs', value }),
-  CommitTimeMs: (value: lib.U64): SumeragiParameter => ({ kind: 'CommitTimeMs', value }),
-  MaxClockDriftMs: (value: lib.U64): SumeragiParameter => ({ kind: 'MaxClockDriftMs', value }),
+  BlockTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'BlockTimeMs', T> => ({ kind: 'BlockTimeMs', value }),
+  CommitTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'CommitTimeMs', T> => ({
+    kind: 'CommitTimeMs',
+    value,
+  }),
+  MaxClockDriftMs: <const T extends lib.U64>(value: T): lib.Variant<'MaxClockDriftMs', T> => ({
+    kind: 'MaxClockDriftMs',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ BlockTimeMs: [lib.U64]; CommitTimeMs: [lib.U64]; MaxClockDriftMs: [lib.U64] }>([
       [0, 'BlockTimeMs', lib.codecOf(lib.U64)],
@@ -4778,12 +6296,16 @@ export const SumeragiParameter = {
     .discriminated(),
 }
 
-export type TransactionParameter =
-  | lib.SumTypeKindValue<'MaxInstructions', lib.U64>
-  | lib.SumTypeKindValue<'SmartContractSize', lib.U64>
+export type TransactionParameter = lib.Variant<'MaxInstructions', lib.U64> | lib.Variant<'SmartContractSize', lib.U64>
 export const TransactionParameter = {
-  MaxInstructions: (value: lib.U64): TransactionParameter => ({ kind: 'MaxInstructions', value }),
-  SmartContractSize: (value: lib.U64): TransactionParameter => ({ kind: 'SmartContractSize', value }),
+  MaxInstructions: <const T extends lib.U64>(value: T): lib.Variant<'MaxInstructions', T> => ({
+    kind: 'MaxInstructions',
+    value,
+  }),
+  SmartContractSize: <const T extends lib.U64>(value: T): lib.Variant<'SmartContractSize', T> => ({
+    kind: 'SmartContractSize',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ MaxInstructions: [lib.U64]; SmartContractSize: [lib.U64] }>([
       [0, 'MaxInstructions', lib.codecOf(lib.U64)],
@@ -4792,10 +6314,10 @@ export const TransactionParameter = {
     .discriminated(),
 }
 
-export type SmartContractParameter = lib.SumTypeKindValue<'Fuel', lib.U64> | lib.SumTypeKindValue<'Memory', lib.U64>
+export type SmartContractParameter = lib.Variant<'Fuel', lib.U64> | lib.Variant<'Memory', lib.U64>
 export const SmartContractParameter = {
-  Fuel: (value: lib.U64): SmartContractParameter => ({ kind: 'Fuel', value }),
-  Memory: (value: lib.U64): SmartContractParameter => ({ kind: 'Memory', value }),
+  Fuel: <const T extends lib.U64>(value: T): lib.Variant<'Fuel', T> => ({ kind: 'Fuel', value }),
+  Memory: <const T extends lib.U64>(value: T): lib.Variant<'Memory', T> => ({ kind: 'Memory', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Fuel: [lib.U64]; Memory: [lib.U64] }>([
       [0, 'Fuel', lib.codecOf(lib.U64)],
@@ -4816,43 +6338,70 @@ export const CustomParameter: lib.CodecProvider<CustomParameter> = {
 }
 
 export type Parameter =
-  | lib.SumTypeKindValue<'Sumeragi', SumeragiParameter>
-  | lib.SumTypeKindValue<'Block', BlockParameter>
-  | lib.SumTypeKindValue<'Transaction', TransactionParameter>
-  | lib.SumTypeKindValue<'SmartContract', SmartContractParameter>
-  | lib.SumTypeKindValue<'Executor', SmartContractParameter>
-  | lib.SumTypeKindValue<'Custom', CustomParameter>
+  | lib.Variant<'Sumeragi', SumeragiParameter>
+  | lib.Variant<'Block', BlockParameter>
+  | lib.Variant<'Transaction', TransactionParameter>
+  | lib.Variant<'SmartContract', SmartContractParameter>
+  | lib.Variant<'Executor', SmartContractParameter>
+  | lib.Variant<'Custom', CustomParameter>
 export const Parameter = {
   Sumeragi: {
-    BlockTimeMs: (value: lib.U64): Parameter => ({ kind: 'Sumeragi', value: SumeragiParameter.BlockTimeMs(value) }),
-    CommitTimeMs: (value: lib.U64): Parameter => ({ kind: 'Sumeragi', value: SumeragiParameter.CommitTimeMs(value) }),
-    MaxClockDriftMs: (value: lib.U64): Parameter => ({
+    BlockTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'Sumeragi', lib.Variant<'BlockTimeMs', T>> => ({
+      kind: 'Sumeragi',
+      value: SumeragiParameter.BlockTimeMs(value),
+    }),
+    CommitTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'Sumeragi', lib.Variant<'CommitTimeMs', T>> => ({
+      kind: 'Sumeragi',
+      value: SumeragiParameter.CommitTimeMs(value),
+    }),
+    MaxClockDriftMs: <const T extends lib.U64>(
+      value: T,
+    ): lib.Variant<'Sumeragi', lib.Variant<'MaxClockDriftMs', T>> => ({
       kind: 'Sumeragi',
       value: SumeragiParameter.MaxClockDriftMs(value),
     }),
   },
   Block: {
-    MaxTransactions: (value: lib.U64): Parameter => ({ kind: 'Block', value: BlockParameter.MaxTransactions(value) }),
+    MaxTransactions: <const T extends lib.U64>(value: T): lib.Variant<'Block', lib.Variant<'MaxTransactions', T>> => ({
+      kind: 'Block',
+      value: BlockParameter.MaxTransactions(value),
+    }),
   },
   Transaction: {
-    MaxInstructions: (value: lib.U64): Parameter => ({
+    MaxInstructions: <const T extends lib.U64>(
+      value: T,
+    ): lib.Variant<'Transaction', lib.Variant<'MaxInstructions', T>> => ({
       kind: 'Transaction',
       value: TransactionParameter.MaxInstructions(value),
     }),
-    SmartContractSize: (value: lib.U64): Parameter => ({
+    SmartContractSize: <const T extends lib.U64>(
+      value: T,
+    ): lib.Variant<'Transaction', lib.Variant<'SmartContractSize', T>> => ({
       kind: 'Transaction',
       value: TransactionParameter.SmartContractSize(value),
     }),
   },
   SmartContract: {
-    Fuel: (value: lib.U64): Parameter => ({ kind: 'SmartContract', value: SmartContractParameter.Fuel(value) }),
-    Memory: (value: lib.U64): Parameter => ({ kind: 'SmartContract', value: SmartContractParameter.Memory(value) }),
+    Fuel: <const T extends lib.U64>(value: T): lib.Variant<'SmartContract', lib.Variant<'Fuel', T>> => ({
+      kind: 'SmartContract',
+      value: SmartContractParameter.Fuel(value),
+    }),
+    Memory: <const T extends lib.U64>(value: T): lib.Variant<'SmartContract', lib.Variant<'Memory', T>> => ({
+      kind: 'SmartContract',
+      value: SmartContractParameter.Memory(value),
+    }),
   },
   Executor: {
-    Fuel: (value: lib.U64): Parameter => ({ kind: 'Executor', value: SmartContractParameter.Fuel(value) }),
-    Memory: (value: lib.U64): Parameter => ({ kind: 'Executor', value: SmartContractParameter.Memory(value) }),
+    Fuel: <const T extends lib.U64>(value: T): lib.Variant<'Executor', lib.Variant<'Fuel', T>> => ({
+      kind: 'Executor',
+      value: SmartContractParameter.Fuel(value),
+    }),
+    Memory: <const T extends lib.U64>(value: T): lib.Variant<'Executor', lib.Variant<'Memory', T>> => ({
+      kind: 'Executor',
+      value: SmartContractParameter.Memory(value),
+    }),
   },
-  Custom: (value: CustomParameter): Parameter => ({ kind: 'Custom', value }),
+  Custom: <const T extends CustomParameter>(value: T): lib.Variant<'Custom', T> => ({ kind: 'Custom', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Sumeragi: [SumeragiParameter]
@@ -4883,9 +6432,9 @@ export const ParameterChanged: lib.CodecProvider<ParameterChanged> = {
   }),
 }
 
-export type ConfigurationEvent = lib.SumTypeKindValue<'Changed', ParameterChanged>
+export type ConfigurationEvent = lib.Variant<'Changed', ParameterChanged>
 export const ConfigurationEvent = {
-  Changed: (value: ParameterChanged): ConfigurationEvent => ({ kind: 'Changed', value }),
+  Changed: <const T extends ParameterChanged>(value: T): lib.Variant<'Changed', T> => ({ kind: 'Changed', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Changed: [ParameterChanged] }>([[0, 'Changed', lib.codecOf(ParameterChanged)]])
     .discriminated(),
@@ -4898,10 +6447,10 @@ export const CustomInstruction: lib.CodecProvider<CustomInstruction> = {
   [lib.CodecSymbol]: lib.structCodec<CustomInstruction>(['payload'], { payload: lib.codecOf(lib.Json) }),
 }
 
-export type PeerEvent = lib.SumTypeKindValue<'Added', PeerId> | lib.SumTypeKindValue<'Removed', PeerId>
+export type PeerEvent = lib.Variant<'Added', PeerId> | lib.Variant<'Removed', PeerId>
 export const PeerEvent = {
-  Added: (value: PeerId): PeerEvent => ({ kind: 'Added', value }),
-  Removed: (value: PeerId): PeerEvent => ({ kind: 'Removed', value }),
+  Added: <const T extends PeerId>(value: T): lib.Variant<'Added', T> => ({ kind: 'Added', value }),
+  Removed: <const T extends PeerId>(value: T): lib.Variant<'Removed', T> => ({ kind: 'Removed', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Added: [PeerId]; Removed: [PeerId] }>([
       [0, 'Added', lib.codecOf(PeerId)],
@@ -4937,91 +6486,156 @@ export const DomainOwnerChanged: lib.CodecProvider<DomainOwnerChanged> = {
 }
 
 export type DomainEvent =
-  | lib.SumTypeKindValue<'Created', Domain>
-  | lib.SumTypeKindValue<'Deleted', lib.DomainId>
-  | lib.SumTypeKindValue<'AssetDefinition', AssetDefinitionEvent>
-  | lib.SumTypeKindValue<'Account', AccountEvent>
-  | lib.SumTypeKindValue<'MetadataInserted', MetadataChanged<lib.DomainId>>
-  | lib.SumTypeKindValue<'MetadataRemoved', MetadataChanged<lib.DomainId>>
-  | lib.SumTypeKindValue<'OwnerChanged', DomainOwnerChanged>
+  | lib.Variant<'Created', Domain>
+  | lib.Variant<'Deleted', lib.DomainId>
+  | lib.Variant<'AssetDefinition', AssetDefinitionEvent>
+  | lib.Variant<'Account', AccountEvent>
+  | lib.Variant<'MetadataInserted', MetadataChanged<lib.DomainId>>
+  | lib.Variant<'MetadataRemoved', MetadataChanged<lib.DomainId>>
+  | lib.Variant<'OwnerChanged', DomainOwnerChanged>
 export const DomainEvent = {
-  Created: (value: Domain): DomainEvent => ({ kind: 'Created', value }),
-  Deleted: (value: lib.DomainId): DomainEvent => ({ kind: 'Deleted', value }),
+  Created: <const T extends Domain>(value: T): lib.Variant<'Created', T> => ({ kind: 'Created', value }),
+  Deleted: <const T extends lib.DomainId>(value: T): lib.Variant<'Deleted', T> => ({ kind: 'Deleted', value }),
   AssetDefinition: {
-    Created: (value: AssetDefinition): DomainEvent => ({
+    Created: <const T extends AssetDefinition>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'Created', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.Created(value),
     }),
-    Deleted: (value: lib.AssetDefinitionId): DomainEvent => ({
+    Deleted: <const T extends lib.AssetDefinitionId>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'Deleted', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.Deleted(value),
     }),
-    MetadataInserted: (value: MetadataChanged<lib.AssetDefinitionId>): DomainEvent => ({
+    MetadataInserted: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'MetadataInserted', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.MetadataInserted(value),
     }),
-    MetadataRemoved: (value: MetadataChanged<lib.AssetDefinitionId>): DomainEvent => ({
+    MetadataRemoved: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'MetadataRemoved', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.MetadataRemoved(value),
     }),
-    MintabilityChanged: (value: lib.AssetDefinitionId): DomainEvent => ({
+    MintabilityChanged: <const T extends lib.AssetDefinitionId>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'MintabilityChanged', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.MintabilityChanged(value),
     }),
-    TotalQuantityChanged: (value: AssetDefinitionTotalQuantityChanged): DomainEvent => ({
+    TotalQuantityChanged: <const T extends AssetDefinitionTotalQuantityChanged>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'TotalQuantityChanged', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.TotalQuantityChanged(value),
     }),
-    OwnerChanged: (value: AssetDefinitionOwnerChanged): DomainEvent => ({
+    OwnerChanged: <const T extends AssetDefinitionOwnerChanged>(
+      value: T,
+    ): lib.Variant<'AssetDefinition', lib.Variant<'OwnerChanged', T>> => ({
       kind: 'AssetDefinition',
       value: AssetDefinitionEvent.OwnerChanged(value),
     }),
   },
   Account: {
-    Created: (value: Account): DomainEvent => ({ kind: 'Account', value: AccountEvent.Created(value) }),
-    Deleted: (value: lib.AccountId): DomainEvent => ({ kind: 'Account', value: AccountEvent.Deleted(value) }),
+    Created: <const T extends Account>(value: T): lib.Variant<'Account', lib.Variant<'Created', T>> => ({
+      kind: 'Account',
+      value: AccountEvent.Created(value),
+    }),
+    Deleted: <const T extends lib.AccountId>(value: T): lib.Variant<'Account', lib.Variant<'Deleted', T>> => ({
+      kind: 'Account',
+      value: AccountEvent.Deleted(value),
+    }),
     Asset: {
-      Created: (value: Asset): DomainEvent => ({ kind: 'Account', value: AccountEvent.Asset.Created(value) }),
-      Deleted: (value: lib.AssetId): DomainEvent => ({ kind: 'Account', value: AccountEvent.Asset.Deleted(value) }),
-      Added: (value: AssetChanged): DomainEvent => ({ kind: 'Account', value: AccountEvent.Asset.Added(value) }),
-      Removed: (value: AssetChanged): DomainEvent => ({ kind: 'Account', value: AccountEvent.Asset.Removed(value) }),
-      MetadataInserted: (value: MetadataChanged<lib.AssetId>): DomainEvent => ({
+      Created: <const T extends Asset>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Created', T>>> => ({
+        kind: 'Account',
+        value: AccountEvent.Asset.Created(value),
+      }),
+      Deleted: <const T extends lib.AssetId>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Deleted', T>>> => ({
+        kind: 'Account',
+        value: AccountEvent.Asset.Deleted(value),
+      }),
+      Added: <const T extends AssetChanged>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Added', T>>> => ({
+        kind: 'Account',
+        value: AccountEvent.Asset.Added(value),
+      }),
+      Removed: <const T extends AssetChanged>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Removed', T>>> => ({
+        kind: 'Account',
+        value: AccountEvent.Asset.Removed(value),
+      }),
+      MetadataInserted: <const T extends MetadataChanged<lib.AssetId>>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'MetadataInserted', T>>> => ({
         kind: 'Account',
         value: AccountEvent.Asset.MetadataInserted(value),
       }),
-      MetadataRemoved: (value: MetadataChanged<lib.AssetId>): DomainEvent => ({
+      MetadataRemoved: <const T extends MetadataChanged<lib.AssetId>>(
+        value: T,
+      ): lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'MetadataRemoved', T>>> => ({
         kind: 'Account',
         value: AccountEvent.Asset.MetadataRemoved(value),
       }),
     },
-    PermissionAdded: (value: AccountPermissionChanged): DomainEvent => ({
+    PermissionAdded: <const T extends AccountPermissionChanged>(
+      value: T,
+    ): lib.Variant<'Account', lib.Variant<'PermissionAdded', T>> => ({
       kind: 'Account',
       value: AccountEvent.PermissionAdded(value),
     }),
-    PermissionRemoved: (value: AccountPermissionChanged): DomainEvent => ({
+    PermissionRemoved: <const T extends AccountPermissionChanged>(
+      value: T,
+    ): lib.Variant<'Account', lib.Variant<'PermissionRemoved', T>> => ({
       kind: 'Account',
       value: AccountEvent.PermissionRemoved(value),
     }),
-    RoleGranted: (value: AccountRoleChanged): DomainEvent => ({
+    RoleGranted: <const T extends AccountRoleChanged>(
+      value: T,
+    ): lib.Variant<'Account', lib.Variant<'RoleGranted', T>> => ({
       kind: 'Account',
       value: AccountEvent.RoleGranted(value),
     }),
-    RoleRevoked: (value: AccountRoleChanged): DomainEvent => ({
+    RoleRevoked: <const T extends AccountRoleChanged>(
+      value: T,
+    ): lib.Variant<'Account', lib.Variant<'RoleRevoked', T>> => ({
       kind: 'Account',
       value: AccountEvent.RoleRevoked(value),
     }),
-    MetadataInserted: (value: MetadataChanged<lib.AccountId>): DomainEvent => ({
+    MetadataInserted: <const T extends MetadataChanged<lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Account', lib.Variant<'MetadataInserted', T>> => ({
       kind: 'Account',
       value: AccountEvent.MetadataInserted(value),
     }),
-    MetadataRemoved: (value: MetadataChanged<lib.AccountId>): DomainEvent => ({
+    MetadataRemoved: <const T extends MetadataChanged<lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Account', lib.Variant<'MetadataRemoved', T>> => ({
       kind: 'Account',
       value: AccountEvent.MetadataRemoved(value),
     }),
   },
-  MetadataInserted: (value: MetadataChanged<lib.DomainId>): DomainEvent => ({ kind: 'MetadataInserted', value }),
-  MetadataRemoved: (value: MetadataChanged<lib.DomainId>): DomainEvent => ({ kind: 'MetadataRemoved', value }),
-  OwnerChanged: (value: DomainOwnerChanged): DomainEvent => ({ kind: 'OwnerChanged', value }),
+  MetadataInserted: <const T extends MetadataChanged<lib.DomainId>>(value: T): lib.Variant<'MetadataInserted', T> => ({
+    kind: 'MetadataInserted',
+    value,
+  }),
+  MetadataRemoved: <const T extends MetadataChanged<lib.DomainId>>(value: T): lib.Variant<'MetadataRemoved', T> => ({
+    kind: 'MetadataRemoved',
+    value,
+  }),
+  OwnerChanged: <const T extends DomainOwnerChanged>(value: T): lib.Variant<'OwnerChanged', T> => ({
+    kind: 'OwnerChanged',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Created: [Domain]
@@ -5055,19 +6669,31 @@ export const TriggerNumberOfExecutionsChanged: lib.CodecProvider<TriggerNumberOf
 }
 
 export type TriggerEvent =
-  | lib.SumTypeKindValue<'Created', TriggerId>
-  | lib.SumTypeKindValue<'Deleted', TriggerId>
-  | lib.SumTypeKindValue<'Extended', TriggerNumberOfExecutionsChanged>
-  | lib.SumTypeKindValue<'Shortened', TriggerNumberOfExecutionsChanged>
-  | lib.SumTypeKindValue<'MetadataInserted', MetadataChanged<TriggerId>>
-  | lib.SumTypeKindValue<'MetadataRemoved', MetadataChanged<TriggerId>>
+  | lib.Variant<'Created', TriggerId>
+  | lib.Variant<'Deleted', TriggerId>
+  | lib.Variant<'Extended', TriggerNumberOfExecutionsChanged>
+  | lib.Variant<'Shortened', TriggerNumberOfExecutionsChanged>
+  | lib.Variant<'MetadataInserted', MetadataChanged<TriggerId>>
+  | lib.Variant<'MetadataRemoved', MetadataChanged<TriggerId>>
 export const TriggerEvent = {
-  Created: (value: TriggerId): TriggerEvent => ({ kind: 'Created', value }),
-  Deleted: (value: TriggerId): TriggerEvent => ({ kind: 'Deleted', value }),
-  Extended: (value: TriggerNumberOfExecutionsChanged): TriggerEvent => ({ kind: 'Extended', value }),
-  Shortened: (value: TriggerNumberOfExecutionsChanged): TriggerEvent => ({ kind: 'Shortened', value }),
-  MetadataInserted: (value: MetadataChanged<TriggerId>): TriggerEvent => ({ kind: 'MetadataInserted', value }),
-  MetadataRemoved: (value: MetadataChanged<TriggerId>): TriggerEvent => ({ kind: 'MetadataRemoved', value }),
+  Created: <const T extends TriggerId>(value: T): lib.Variant<'Created', T> => ({ kind: 'Created', value }),
+  Deleted: <const T extends TriggerId>(value: T): lib.Variant<'Deleted', T> => ({ kind: 'Deleted', value }),
+  Extended: <const T extends TriggerNumberOfExecutionsChanged>(value: T): lib.Variant<'Extended', T> => ({
+    kind: 'Extended',
+    value,
+  }),
+  Shortened: <const T extends TriggerNumberOfExecutionsChanged>(value: T): lib.Variant<'Shortened', T> => ({
+    kind: 'Shortened',
+    value,
+  }),
+  MetadataInserted: <const T extends MetadataChanged<TriggerId>>(value: T): lib.Variant<'MetadataInserted', T> => ({
+    kind: 'MetadataInserted',
+    value,
+  }),
+  MetadataRemoved: <const T extends MetadataChanged<TriggerId>>(value: T): lib.Variant<'MetadataRemoved', T> => ({
+    kind: 'MetadataRemoved',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Created: [TriggerId]
@@ -5110,15 +6736,21 @@ export const RolePermissionChanged: lib.CodecProvider<RolePermissionChanged> = {
 }
 
 export type RoleEvent =
-  | lib.SumTypeKindValue<'Created', Role>
-  | lib.SumTypeKindValue<'Deleted', RoleId>
-  | lib.SumTypeKindValue<'PermissionAdded', RolePermissionChanged>
-  | lib.SumTypeKindValue<'PermissionRemoved', RolePermissionChanged>
+  | lib.Variant<'Created', Role>
+  | lib.Variant<'Deleted', RoleId>
+  | lib.Variant<'PermissionAdded', RolePermissionChanged>
+  | lib.Variant<'PermissionRemoved', RolePermissionChanged>
 export const RoleEvent = {
-  Created: (value: Role): RoleEvent => ({ kind: 'Created', value }),
-  Deleted: (value: RoleId): RoleEvent => ({ kind: 'Deleted', value }),
-  PermissionAdded: (value: RolePermissionChanged): RoleEvent => ({ kind: 'PermissionAdded', value }),
-  PermissionRemoved: (value: RolePermissionChanged): RoleEvent => ({ kind: 'PermissionRemoved', value }),
+  Created: <const T extends Role>(value: T): lib.Variant<'Created', T> => ({ kind: 'Created', value }),
+  Deleted: <const T extends RoleId>(value: T): lib.Variant<'Deleted', T> => ({ kind: 'Deleted', value }),
+  PermissionAdded: <const T extends RolePermissionChanged>(value: T): lib.Variant<'PermissionAdded', T> => ({
+    kind: 'PermissionAdded',
+    value,
+  }),
+  PermissionRemoved: <const T extends RolePermissionChanged>(value: T): lib.Variant<'PermissionRemoved', T> => ({
+    kind: 'PermissionRemoved',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Created: [Role]
@@ -5158,160 +6790,256 @@ export const ExecutorUpgrade: lib.CodecProvider<ExecutorUpgrade> = {
   }),
 }
 
-export type ExecutorEvent = lib.SumTypeKindValue<'Upgraded', ExecutorUpgrade>
+export type ExecutorEvent = lib.Variant<'Upgraded', ExecutorUpgrade>
 export const ExecutorEvent = {
-  Upgraded: (value: ExecutorUpgrade): ExecutorEvent => ({ kind: 'Upgraded', value }),
+  Upgraded: <const T extends ExecutorUpgrade>(value: T): lib.Variant<'Upgraded', T> => ({ kind: 'Upgraded', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Upgraded: [ExecutorUpgrade] }>([[0, 'Upgraded', lib.codecOf(ExecutorUpgrade)]])
     .discriminated(),
 }
 
 export type DataEvent =
-  | lib.SumTypeKindValue<'Peer', PeerEvent>
-  | lib.SumTypeKindValue<'Domain', DomainEvent>
-  | lib.SumTypeKindValue<'Trigger', TriggerEvent>
-  | lib.SumTypeKindValue<'Role', RoleEvent>
-  | lib.SumTypeKindValue<'Configuration', ConfigurationEvent>
-  | lib.SumTypeKindValue<'Executor', ExecutorEvent>
+  | lib.Variant<'Peer', PeerEvent>
+  | lib.Variant<'Domain', DomainEvent>
+  | lib.Variant<'Trigger', TriggerEvent>
+  | lib.Variant<'Role', RoleEvent>
+  | lib.Variant<'Configuration', ConfigurationEvent>
+  | lib.Variant<'Executor', ExecutorEvent>
 export const DataEvent = {
   Peer: {
-    Added: (value: PeerId): DataEvent => ({ kind: 'Peer', value: PeerEvent.Added(value) }),
-    Removed: (value: PeerId): DataEvent => ({ kind: 'Peer', value: PeerEvent.Removed(value) }),
+    Added: <const T extends PeerId>(value: T): lib.Variant<'Peer', lib.Variant<'Added', T>> => ({
+      kind: 'Peer',
+      value: PeerEvent.Added(value),
+    }),
+    Removed: <const T extends PeerId>(value: T): lib.Variant<'Peer', lib.Variant<'Removed', T>> => ({
+      kind: 'Peer',
+      value: PeerEvent.Removed(value),
+    }),
   },
   Domain: {
-    Created: (value: Domain): DataEvent => ({ kind: 'Domain', value: DomainEvent.Created(value) }),
-    Deleted: (value: lib.DomainId): DataEvent => ({ kind: 'Domain', value: DomainEvent.Deleted(value) }),
+    Created: <const T extends Domain>(value: T): lib.Variant<'Domain', lib.Variant<'Created', T>> => ({
+      kind: 'Domain',
+      value: DomainEvent.Created(value),
+    }),
+    Deleted: <const T extends lib.DomainId>(value: T): lib.Variant<'Domain', lib.Variant<'Deleted', T>> => ({
+      kind: 'Domain',
+      value: DomainEvent.Deleted(value),
+    }),
     AssetDefinition: {
-      Created: (value: AssetDefinition): DataEvent => ({
+      Created: <const T extends AssetDefinition>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'Created', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.Created(value),
       }),
-      Deleted: (value: lib.AssetDefinitionId): DataEvent => ({
+      Deleted: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'Deleted', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.Deleted(value),
       }),
-      MetadataInserted: (value: MetadataChanged<lib.AssetDefinitionId>): DataEvent => ({
+      MetadataInserted: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'MetadataInserted', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.MetadataInserted(value),
       }),
-      MetadataRemoved: (value: MetadataChanged<lib.AssetDefinitionId>): DataEvent => ({
+      MetadataRemoved: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'MetadataRemoved', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.MetadataRemoved(value),
       }),
-      MintabilityChanged: (value: lib.AssetDefinitionId): DataEvent => ({
+      MintabilityChanged: <const T extends lib.AssetDefinitionId>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'MintabilityChanged', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.MintabilityChanged(value),
       }),
-      TotalQuantityChanged: (value: AssetDefinitionTotalQuantityChanged): DataEvent => ({
+      TotalQuantityChanged: <const T extends AssetDefinitionTotalQuantityChanged>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'TotalQuantityChanged', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.TotalQuantityChanged(value),
       }),
-      OwnerChanged: (value: AssetDefinitionOwnerChanged): DataEvent => ({
+      OwnerChanged: <const T extends AssetDefinitionOwnerChanged>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'OwnerChanged', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.AssetDefinition.OwnerChanged(value),
       }),
     },
     Account: {
-      Created: (value: Account): DataEvent => ({ kind: 'Domain', value: DomainEvent.Account.Created(value) }),
-      Deleted: (value: lib.AccountId): DataEvent => ({ kind: 'Domain', value: DomainEvent.Account.Deleted(value) }),
+      Created: <const T extends Account>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Created', T>>> => ({
+        kind: 'Domain',
+        value: DomainEvent.Account.Created(value),
+      }),
+      Deleted: <const T extends lib.AccountId>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Deleted', T>>> => ({
+        kind: 'Domain',
+        value: DomainEvent.Account.Deleted(value),
+      }),
       Asset: {
-        Created: (value: Asset): DataEvent => ({ kind: 'Domain', value: DomainEvent.Account.Asset.Created(value) }),
-        Deleted: (value: lib.AssetId): DataEvent => ({
+        Created: <const T extends Asset>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Created', T>>>> => ({
+          kind: 'Domain',
+          value: DomainEvent.Account.Asset.Created(value),
+        }),
+        Deleted: <const T extends lib.AssetId>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Deleted', T>>>> => ({
           kind: 'Domain',
           value: DomainEvent.Account.Asset.Deleted(value),
         }),
-        Added: (value: AssetChanged): DataEvent => ({ kind: 'Domain', value: DomainEvent.Account.Asset.Added(value) }),
-        Removed: (value: AssetChanged): DataEvent => ({
+        Added: <const T extends AssetChanged>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Added', T>>>> => ({
+          kind: 'Domain',
+          value: DomainEvent.Account.Asset.Added(value),
+        }),
+        Removed: <const T extends AssetChanged>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Removed', T>>>> => ({
           kind: 'Domain',
           value: DomainEvent.Account.Asset.Removed(value),
         }),
-        MetadataInserted: (value: MetadataChanged<lib.AssetId>): DataEvent => ({
+        MetadataInserted: <const T extends MetadataChanged<lib.AssetId>>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'MetadataInserted', T>>>> => ({
           kind: 'Domain',
           value: DomainEvent.Account.Asset.MetadataInserted(value),
         }),
-        MetadataRemoved: (value: MetadataChanged<lib.AssetId>): DataEvent => ({
+        MetadataRemoved: <const T extends MetadataChanged<lib.AssetId>>(
+          value: T,
+        ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'MetadataRemoved', T>>>> => ({
           kind: 'Domain',
           value: DomainEvent.Account.Asset.MetadataRemoved(value),
         }),
       },
-      PermissionAdded: (value: AccountPermissionChanged): DataEvent => ({
+      PermissionAdded: <const T extends AccountPermissionChanged>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'PermissionAdded', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.Account.PermissionAdded(value),
       }),
-      PermissionRemoved: (value: AccountPermissionChanged): DataEvent => ({
+      PermissionRemoved: <const T extends AccountPermissionChanged>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'PermissionRemoved', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.Account.PermissionRemoved(value),
       }),
-      RoleGranted: (value: AccountRoleChanged): DataEvent => ({
+      RoleGranted: <const T extends AccountRoleChanged>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'RoleGranted', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.Account.RoleGranted(value),
       }),
-      RoleRevoked: (value: AccountRoleChanged): DataEvent => ({
+      RoleRevoked: <const T extends AccountRoleChanged>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'RoleRevoked', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.Account.RoleRevoked(value),
       }),
-      MetadataInserted: (value: MetadataChanged<lib.AccountId>): DataEvent => ({
+      MetadataInserted: <const T extends MetadataChanged<lib.AccountId>>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'MetadataInserted', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.Account.MetadataInserted(value),
       }),
-      MetadataRemoved: (value: MetadataChanged<lib.AccountId>): DataEvent => ({
+      MetadataRemoved: <const T extends MetadataChanged<lib.AccountId>>(
+        value: T,
+      ): lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'MetadataRemoved', T>>> => ({
         kind: 'Domain',
         value: DomainEvent.Account.MetadataRemoved(value),
       }),
     },
-    MetadataInserted: (value: MetadataChanged<lib.DomainId>): DataEvent => ({
+    MetadataInserted: <const T extends MetadataChanged<lib.DomainId>>(
+      value: T,
+    ): lib.Variant<'Domain', lib.Variant<'MetadataInserted', T>> => ({
       kind: 'Domain',
       value: DomainEvent.MetadataInserted(value),
     }),
-    MetadataRemoved: (value: MetadataChanged<lib.DomainId>): DataEvent => ({
+    MetadataRemoved: <const T extends MetadataChanged<lib.DomainId>>(
+      value: T,
+    ): lib.Variant<'Domain', lib.Variant<'MetadataRemoved', T>> => ({
       kind: 'Domain',
       value: DomainEvent.MetadataRemoved(value),
     }),
-    OwnerChanged: (value: DomainOwnerChanged): DataEvent => ({
+    OwnerChanged: <const T extends DomainOwnerChanged>(
+      value: T,
+    ): lib.Variant<'Domain', lib.Variant<'OwnerChanged', T>> => ({
       kind: 'Domain',
       value: DomainEvent.OwnerChanged(value),
     }),
   },
   Trigger: {
-    Created: (value: TriggerId): DataEvent => ({ kind: 'Trigger', value: TriggerEvent.Created(value) }),
-    Deleted: (value: TriggerId): DataEvent => ({ kind: 'Trigger', value: TriggerEvent.Deleted(value) }),
-    Extended: (value: TriggerNumberOfExecutionsChanged): DataEvent => ({
+    Created: <const T extends TriggerId>(value: T): lib.Variant<'Trigger', lib.Variant<'Created', T>> => ({
       kind: 'Trigger',
-      value: TriggerEvent.Extended(value),
+      value: TriggerEvent.Created(value),
     }),
-    Shortened: (value: TriggerNumberOfExecutionsChanged): DataEvent => ({
+    Deleted: <const T extends TriggerId>(value: T): lib.Variant<'Trigger', lib.Variant<'Deleted', T>> => ({
+      kind: 'Trigger',
+      value: TriggerEvent.Deleted(value),
+    }),
+    Extended: <const T extends TriggerNumberOfExecutionsChanged>(
+      value: T,
+    ): lib.Variant<'Trigger', lib.Variant<'Extended', T>> => ({ kind: 'Trigger', value: TriggerEvent.Extended(value) }),
+    Shortened: <const T extends TriggerNumberOfExecutionsChanged>(
+      value: T,
+    ): lib.Variant<'Trigger', lib.Variant<'Shortened', T>> => ({
       kind: 'Trigger',
       value: TriggerEvent.Shortened(value),
     }),
-    MetadataInserted: (value: MetadataChanged<TriggerId>): DataEvent => ({
+    MetadataInserted: <const T extends MetadataChanged<TriggerId>>(
+      value: T,
+    ): lib.Variant<'Trigger', lib.Variant<'MetadataInserted', T>> => ({
       kind: 'Trigger',
       value: TriggerEvent.MetadataInserted(value),
     }),
-    MetadataRemoved: (value: MetadataChanged<TriggerId>): DataEvent => ({
+    MetadataRemoved: <const T extends MetadataChanged<TriggerId>>(
+      value: T,
+    ): lib.Variant<'Trigger', lib.Variant<'MetadataRemoved', T>> => ({
       kind: 'Trigger',
       value: TriggerEvent.MetadataRemoved(value),
     }),
   },
   Role: {
-    Created: (value: Role): DataEvent => ({ kind: 'Role', value: RoleEvent.Created(value) }),
-    Deleted: (value: RoleId): DataEvent => ({ kind: 'Role', value: RoleEvent.Deleted(value) }),
-    PermissionAdded: (value: RolePermissionChanged): DataEvent => ({
+    Created: <const T extends Role>(value: T): lib.Variant<'Role', lib.Variant<'Created', T>> => ({
+      kind: 'Role',
+      value: RoleEvent.Created(value),
+    }),
+    Deleted: <const T extends RoleId>(value: T): lib.Variant<'Role', lib.Variant<'Deleted', T>> => ({
+      kind: 'Role',
+      value: RoleEvent.Deleted(value),
+    }),
+    PermissionAdded: <const T extends RolePermissionChanged>(
+      value: T,
+    ): lib.Variant<'Role', lib.Variant<'PermissionAdded', T>> => ({
       kind: 'Role',
       value: RoleEvent.PermissionAdded(value),
     }),
-    PermissionRemoved: (value: RolePermissionChanged): DataEvent => ({
+    PermissionRemoved: <const T extends RolePermissionChanged>(
+      value: T,
+    ): lib.Variant<'Role', lib.Variant<'PermissionRemoved', T>> => ({
       kind: 'Role',
       value: RoleEvent.PermissionRemoved(value),
     }),
   },
   Configuration: {
-    Changed: (value: ParameterChanged): DataEvent => ({
+    Changed: <const T extends ParameterChanged>(value: T): lib.Variant<'Configuration', lib.Variant<'Changed', T>> => ({
       kind: 'Configuration',
       value: ConfigurationEvent.Changed(value),
     }),
   },
   Executor: {
-    Upgraded: (value: ExecutorUpgrade): DataEvent => ({ kind: 'Executor', value: ExecutorEvent.Upgraded(value) }),
+    Upgraded: <const T extends ExecutorUpgrade>(value: T): lib.Variant<'Executor', lib.Variant<'Upgraded', T>> => ({
+      kind: 'Executor',
+      value: ExecutorEvent.Upgraded(value),
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{
@@ -5336,33 +7064,43 @@ export type DomainPredicateAtom = never
 export const DomainPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type DomainProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', DomainPredicateAtom>
-  | lib.SumTypeKindValue<'Id', DomainIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionPredicate>
+  | lib.Variant<'Atom', DomainPredicateAtom>
+  | lib.Variant<'Id', DomainIdProjectionPredicate>
+  | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const DomainProjectionPredicate = {
   Atom: {},
   Id: {
     Atom: {
-      Equals: (value: lib.DomainId): DomainProjectionPredicate => ({
+      Equals: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'Id', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Id',
         value: DomainIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): DomainProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: DomainIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): DomainProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Id',
           value: DomainIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): DomainProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Id',
           value: DomainIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): DomainProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Id',
           value: DomainIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -5371,7 +7109,9 @@ export const DomainProjectionPredicate = {
   },
   Metadata: {
     Atom: {},
-    Key: (value: MetadataKeyProjectionPredicate): DomainProjectionPredicate => ({
+    Key: <const T extends MetadataKeyProjectionPredicate>(
+      value: T,
+    ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionPredicate.Key(value),
     }),
@@ -5390,20 +7130,29 @@ export const DomainProjectionPredicate = {
 }
 
 export type DomainProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Id', DomainIdProjectionSelector>
-  | lib.SumTypeKindValue<'Metadata', MetadataProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Id', DomainIdProjectionSelector>
+  | lib.Variant<'Metadata', MetadataProjectionSelector>
 export const DomainProjectionSelector = {
-  Atom: Object.freeze<DomainProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Id: {
-    Atom: Object.freeze<DomainProjectionSelector>({ kind: 'Id', value: DomainIdProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Id', lib.VariantUnit<'Atom'>>>({
+      kind: 'Id',
+      value: DomainIdProjectionSelector.Atom,
+    }),
     Name: {
-      Atom: Object.freeze<DomainProjectionSelector>({ kind: 'Id', value: DomainIdProjectionSelector.Name.Atom }),
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: DomainIdProjectionSelector.Name.Atom,
+      }),
     },
   },
   Metadata: {
-    Atom: Object.freeze<DomainProjectionSelector>({ kind: 'Metadata', value: MetadataProjectionSelector.Atom }),
-    Key: (value: MetadataKeyProjectionSelector): DomainProjectionSelector => ({
+    Atom: Object.freeze<lib.Variant<'Metadata', lib.VariantUnit<'Atom'>>>({
+      kind: 'Metadata',
+      value: MetadataProjectionSelector.Atom,
+    }),
+    Key: <const T extends MetadataKeyProjectionSelector>(value: T): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
       kind: 'Metadata',
       value: MetadataProjectionSelector.Key(value),
     }),
@@ -5430,12 +7179,13 @@ export const TransactionEvent: lib.CodecProvider<TransactionEvent> = {
   }),
 }
 
-export type PipelineEventBox =
-  | lib.SumTypeKindValue<'Transaction', TransactionEvent>
-  | lib.SumTypeKindValue<'Block', BlockEvent>
+export type PipelineEventBox = lib.Variant<'Transaction', TransactionEvent> | lib.Variant<'Block', BlockEvent>
 export const PipelineEventBox = {
-  Transaction: (value: TransactionEvent): PipelineEventBox => ({ kind: 'Transaction', value }),
-  Block: (value: BlockEvent): PipelineEventBox => ({ kind: 'Block', value }),
+  Transaction: <const T extends TransactionEvent>(value: T): lib.Variant<'Transaction', T> => ({
+    kind: 'Transaction',
+    value,
+  }),
+  Block: <const T extends BlockEvent>(value: T): lib.Variant<'Block', T> => ({ kind: 'Block', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Transaction: [TransactionEvent]; Block: [BlockEvent] }>([
       [0, 'Transaction', lib.codecOf(TransactionEvent)],
@@ -5475,10 +7225,10 @@ export const ExecuteTriggerEvent: lib.CodecProvider<ExecuteTriggerEvent> = {
   }),
 }
 
-export type TriggerCompletedOutcome = lib.SumTypeKind<'Success'> | lib.SumTypeKindValue<'Failure', lib.String>
+export type TriggerCompletedOutcome = lib.VariantUnit<'Success'> | lib.Variant<'Failure', lib.String>
 export const TriggerCompletedOutcome = {
-  Success: Object.freeze<TriggerCompletedOutcome>({ kind: 'Success' }),
-  Failure: (value: lib.String): TriggerCompletedOutcome => ({ kind: 'Failure', value }),
+  Success: Object.freeze<lib.VariantUnit<'Success'>>({ kind: 'Success' }),
+  Failure: <const T extends lib.String>(value: T): lib.Variant<'Failure', T> => ({ kind: 'Failure', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Success: []; Failure: [lib.String] }>([
       [0, 'Success'],
@@ -5499,163 +7249,291 @@ export const TriggerCompletedEvent: lib.CodecProvider<TriggerCompletedEvent> = {
 }
 
 export type EventBox =
-  | lib.SumTypeKindValue<'Pipeline', PipelineEventBox>
-  | lib.SumTypeKindValue<'Data', DataEvent>
-  | lib.SumTypeKindValue<'Time', TimeEvent>
-  | lib.SumTypeKindValue<'ExecuteTrigger', ExecuteTriggerEvent>
-  | lib.SumTypeKindValue<'TriggerCompleted', TriggerCompletedEvent>
+  | lib.Variant<'Pipeline', PipelineEventBox>
+  | lib.Variant<'Data', DataEvent>
+  | lib.Variant<'Time', TimeEvent>
+  | lib.Variant<'ExecuteTrigger', ExecuteTriggerEvent>
+  | lib.Variant<'TriggerCompleted', TriggerCompletedEvent>
 export const EventBox = {
   Pipeline: {
-    Transaction: (value: TransactionEvent): EventBox => ({
+    Transaction: <const T extends TransactionEvent>(
+      value: T,
+    ): lib.Variant<'Pipeline', lib.Variant<'Transaction', T>> => ({
       kind: 'Pipeline',
       value: PipelineEventBox.Transaction(value),
     }),
-    Block: (value: BlockEvent): EventBox => ({ kind: 'Pipeline', value: PipelineEventBox.Block(value) }),
+    Block: <const T extends BlockEvent>(value: T): lib.Variant<'Pipeline', lib.Variant<'Block', T>> => ({
+      kind: 'Pipeline',
+      value: PipelineEventBox.Block(value),
+    }),
   },
   Data: {
     Peer: {
-      Added: (value: PeerId): EventBox => ({ kind: 'Data', value: DataEvent.Peer.Added(value) }),
-      Removed: (value: PeerId): EventBox => ({ kind: 'Data', value: DataEvent.Peer.Removed(value) }),
+      Added: <const T extends PeerId>(value: T): lib.Variant<'Data', lib.Variant<'Peer', lib.Variant<'Added', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Peer.Added(value),
+      }),
+      Removed: <const T extends PeerId>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Peer', lib.Variant<'Removed', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Peer.Removed(value),
+      }),
     },
     Domain: {
-      Created: (value: Domain): EventBox => ({ kind: 'Data', value: DataEvent.Domain.Created(value) }),
-      Deleted: (value: lib.DomainId): EventBox => ({ kind: 'Data', value: DataEvent.Domain.Deleted(value) }),
+      Created: <const T extends Domain>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Created', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Domain.Created(value),
+      }),
+      Deleted: <const T extends lib.DomainId>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Deleted', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Domain.Deleted(value),
+      }),
       AssetDefinition: {
-        Created: (value: AssetDefinition): EventBox => ({
+        Created: <const T extends AssetDefinition>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'Created', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.AssetDefinition.Created(value),
         }),
-        Deleted: (value: lib.AssetDefinitionId): EventBox => ({
+        Deleted: <const T extends lib.AssetDefinitionId>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'Deleted', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.AssetDefinition.Deleted(value),
         }),
-        MetadataInserted: (value: MetadataChanged<lib.AssetDefinitionId>): EventBox => ({
-          kind: 'Data',
-          value: DataEvent.Domain.AssetDefinition.MetadataInserted(value),
-        }),
-        MetadataRemoved: (value: MetadataChanged<lib.AssetDefinitionId>): EventBox => ({
-          kind: 'Data',
-          value: DataEvent.Domain.AssetDefinition.MetadataRemoved(value),
-        }),
-        MintabilityChanged: (value: lib.AssetDefinitionId): EventBox => ({
-          kind: 'Data',
-          value: DataEvent.Domain.AssetDefinition.MintabilityChanged(value),
-        }),
-        TotalQuantityChanged: (value: AssetDefinitionTotalQuantityChanged): EventBox => ({
-          kind: 'Data',
-          value: DataEvent.Domain.AssetDefinition.TotalQuantityChanged(value),
-        }),
-        OwnerChanged: (value: AssetDefinitionOwnerChanged): EventBox => ({
-          kind: 'Data',
-          value: DataEvent.Domain.AssetDefinition.OwnerChanged(value),
-        }),
+        MetadataInserted: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+          value: T,
+        ): lib.Variant<
+          'Data',
+          lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'MetadataInserted', T>>>
+        > => ({ kind: 'Data', value: DataEvent.Domain.AssetDefinition.MetadataInserted(value) }),
+        MetadataRemoved: <const T extends MetadataChanged<lib.AssetDefinitionId>>(
+          value: T,
+        ): lib.Variant<
+          'Data',
+          lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'MetadataRemoved', T>>>
+        > => ({ kind: 'Data', value: DataEvent.Domain.AssetDefinition.MetadataRemoved(value) }),
+        MintabilityChanged: <const T extends lib.AssetDefinitionId>(
+          value: T,
+        ): lib.Variant<
+          'Data',
+          lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'MintabilityChanged', T>>>
+        > => ({ kind: 'Data', value: DataEvent.Domain.AssetDefinition.MintabilityChanged(value) }),
+        TotalQuantityChanged: <const T extends AssetDefinitionTotalQuantityChanged>(
+          value: T,
+        ): lib.Variant<
+          'Data',
+          lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'TotalQuantityChanged', T>>>
+        > => ({ kind: 'Data', value: DataEvent.Domain.AssetDefinition.TotalQuantityChanged(value) }),
+        OwnerChanged: <const T extends AssetDefinitionOwnerChanged>(
+          value: T,
+        ): lib.Variant<
+          'Data',
+          lib.Variant<'Domain', lib.Variant<'AssetDefinition', lib.Variant<'OwnerChanged', T>>>
+        > => ({ kind: 'Data', value: DataEvent.Domain.AssetDefinition.OwnerChanged(value) }),
       },
       Account: {
-        Created: (value: Account): EventBox => ({ kind: 'Data', value: DataEvent.Domain.Account.Created(value) }),
-        Deleted: (value: lib.AccountId): EventBox => ({ kind: 'Data', value: DataEvent.Domain.Account.Deleted(value) }),
+        Created: <const T extends Account>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Created', T>>>> => ({
+          kind: 'Data',
+          value: DataEvent.Domain.Account.Created(value),
+        }),
+        Deleted: <const T extends lib.AccountId>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Deleted', T>>>> => ({
+          kind: 'Data',
+          value: DataEvent.Domain.Account.Deleted(value),
+        }),
         Asset: {
-          Created: (value: Asset): EventBox => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.Created(value) }),
-          Deleted: (value: lib.AssetId): EventBox => ({
-            kind: 'Data',
-            value: DataEvent.Domain.Account.Asset.Deleted(value),
-          }),
-          Added: (value: AssetChanged): EventBox => ({
-            kind: 'Data',
-            value: DataEvent.Domain.Account.Asset.Added(value),
-          }),
-          Removed: (value: AssetChanged): EventBox => ({
-            kind: 'Data',
-            value: DataEvent.Domain.Account.Asset.Removed(value),
-          }),
-          MetadataInserted: (value: MetadataChanged<lib.AssetId>): EventBox => ({
-            kind: 'Data',
-            value: DataEvent.Domain.Account.Asset.MetadataInserted(value),
-          }),
-          MetadataRemoved: (value: MetadataChanged<lib.AssetId>): EventBox => ({
-            kind: 'Data',
-            value: DataEvent.Domain.Account.Asset.MetadataRemoved(value),
-          }),
+          Created: <const T extends Asset>(
+            value: T,
+          ): lib.Variant<
+            'Data',
+            lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Created', T>>>>
+          > => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.Created(value) }),
+          Deleted: <const T extends lib.AssetId>(
+            value: T,
+          ): lib.Variant<
+            'Data',
+            lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Deleted', T>>>>
+          > => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.Deleted(value) }),
+          Added: <const T extends AssetChanged>(
+            value: T,
+          ): lib.Variant<
+            'Data',
+            lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Added', T>>>>
+          > => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.Added(value) }),
+          Removed: <const T extends AssetChanged>(
+            value: T,
+          ): lib.Variant<
+            'Data',
+            lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'Removed', T>>>>
+          > => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.Removed(value) }),
+          MetadataInserted: <const T extends MetadataChanged<lib.AssetId>>(
+            value: T,
+          ): lib.Variant<
+            'Data',
+            lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'MetadataInserted', T>>>>
+          > => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.MetadataInserted(value) }),
+          MetadataRemoved: <const T extends MetadataChanged<lib.AssetId>>(
+            value: T,
+          ): lib.Variant<
+            'Data',
+            lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'Asset', lib.Variant<'MetadataRemoved', T>>>>
+          > => ({ kind: 'Data', value: DataEvent.Domain.Account.Asset.MetadataRemoved(value) }),
         },
-        PermissionAdded: (value: AccountPermissionChanged): EventBox => ({
+        PermissionAdded: <const T extends AccountPermissionChanged>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'PermissionAdded', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.Account.PermissionAdded(value),
         }),
-        PermissionRemoved: (value: AccountPermissionChanged): EventBox => ({
+        PermissionRemoved: <const T extends AccountPermissionChanged>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'PermissionRemoved', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.Account.PermissionRemoved(value),
         }),
-        RoleGranted: (value: AccountRoleChanged): EventBox => ({
+        RoleGranted: <const T extends AccountRoleChanged>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'RoleGranted', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.Account.RoleGranted(value),
         }),
-        RoleRevoked: (value: AccountRoleChanged): EventBox => ({
+        RoleRevoked: <const T extends AccountRoleChanged>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'RoleRevoked', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.Account.RoleRevoked(value),
         }),
-        MetadataInserted: (value: MetadataChanged<lib.AccountId>): EventBox => ({
+        MetadataInserted: <const T extends MetadataChanged<lib.AccountId>>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'MetadataInserted', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.Account.MetadataInserted(value),
         }),
-        MetadataRemoved: (value: MetadataChanged<lib.AccountId>): EventBox => ({
+        MetadataRemoved: <const T extends MetadataChanged<lib.AccountId>>(
+          value: T,
+        ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'Account', lib.Variant<'MetadataRemoved', T>>>> => ({
           kind: 'Data',
           value: DataEvent.Domain.Account.MetadataRemoved(value),
         }),
       },
-      MetadataInserted: (value: MetadataChanged<lib.DomainId>): EventBox => ({
+      MetadataInserted: <const T extends MetadataChanged<lib.DomainId>>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'MetadataInserted', T>>> => ({
         kind: 'Data',
         value: DataEvent.Domain.MetadataInserted(value),
       }),
-      MetadataRemoved: (value: MetadataChanged<lib.DomainId>): EventBox => ({
+      MetadataRemoved: <const T extends MetadataChanged<lib.DomainId>>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'MetadataRemoved', T>>> => ({
         kind: 'Data',
         value: DataEvent.Domain.MetadataRemoved(value),
       }),
-      OwnerChanged: (value: DomainOwnerChanged): EventBox => ({
+      OwnerChanged: <const T extends DomainOwnerChanged>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Domain', lib.Variant<'OwnerChanged', T>>> => ({
         kind: 'Data',
         value: DataEvent.Domain.OwnerChanged(value),
       }),
     },
     Trigger: {
-      Created: (value: TriggerId): EventBox => ({ kind: 'Data', value: DataEvent.Trigger.Created(value) }),
-      Deleted: (value: TriggerId): EventBox => ({ kind: 'Data', value: DataEvent.Trigger.Deleted(value) }),
-      Extended: (value: TriggerNumberOfExecutionsChanged): EventBox => ({
+      Created: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Trigger', lib.Variant<'Created', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Trigger.Created(value),
+      }),
+      Deleted: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Trigger', lib.Variant<'Deleted', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Trigger.Deleted(value),
+      }),
+      Extended: <const T extends TriggerNumberOfExecutionsChanged>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Trigger', lib.Variant<'Extended', T>>> => ({
         kind: 'Data',
         value: DataEvent.Trigger.Extended(value),
       }),
-      Shortened: (value: TriggerNumberOfExecutionsChanged): EventBox => ({
+      Shortened: <const T extends TriggerNumberOfExecutionsChanged>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Trigger', lib.Variant<'Shortened', T>>> => ({
         kind: 'Data',
         value: DataEvent.Trigger.Shortened(value),
       }),
-      MetadataInserted: (value: MetadataChanged<TriggerId>): EventBox => ({
+      MetadataInserted: <const T extends MetadataChanged<TriggerId>>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Trigger', lib.Variant<'MetadataInserted', T>>> => ({
         kind: 'Data',
         value: DataEvent.Trigger.MetadataInserted(value),
       }),
-      MetadataRemoved: (value: MetadataChanged<TriggerId>): EventBox => ({
+      MetadataRemoved: <const T extends MetadataChanged<TriggerId>>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Trigger', lib.Variant<'MetadataRemoved', T>>> => ({
         kind: 'Data',
         value: DataEvent.Trigger.MetadataRemoved(value),
       }),
     },
     Role: {
-      Created: (value: Role): EventBox => ({ kind: 'Data', value: DataEvent.Role.Created(value) }),
-      Deleted: (value: RoleId): EventBox => ({ kind: 'Data', value: DataEvent.Role.Deleted(value) }),
-      PermissionAdded: (value: RolePermissionChanged): EventBox => ({
+      Created: <const T extends Role>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Role', lib.Variant<'Created', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Role.Created(value),
+      }),
+      Deleted: <const T extends RoleId>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Role', lib.Variant<'Deleted', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Role.Deleted(value),
+      }),
+      PermissionAdded: <const T extends RolePermissionChanged>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Role', lib.Variant<'PermissionAdded', T>>> => ({
         kind: 'Data',
         value: DataEvent.Role.PermissionAdded(value),
       }),
-      PermissionRemoved: (value: RolePermissionChanged): EventBox => ({
+      PermissionRemoved: <const T extends RolePermissionChanged>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Role', lib.Variant<'PermissionRemoved', T>>> => ({
         kind: 'Data',
         value: DataEvent.Role.PermissionRemoved(value),
       }),
     },
     Configuration: {
-      Changed: (value: ParameterChanged): EventBox => ({ kind: 'Data', value: DataEvent.Configuration.Changed(value) }),
+      Changed: <const T extends ParameterChanged>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Configuration', lib.Variant<'Changed', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Configuration.Changed(value),
+      }),
     },
     Executor: {
-      Upgraded: (value: ExecutorUpgrade): EventBox => ({ kind: 'Data', value: DataEvent.Executor.Upgraded(value) }),
+      Upgraded: <const T extends ExecutorUpgrade>(
+        value: T,
+      ): lib.Variant<'Data', lib.Variant<'Executor', lib.Variant<'Upgraded', T>>> => ({
+        kind: 'Data',
+        value: DataEvent.Executor.Upgraded(value),
+      }),
     },
   },
-  Time: (value: TimeEvent): EventBox => ({ kind: 'Time', value }),
-  ExecuteTrigger: (value: ExecuteTriggerEvent): EventBox => ({ kind: 'ExecuteTrigger', value }),
-  TriggerCompleted: (value: TriggerCompletedEvent): EventBox => ({ kind: 'TriggerCompleted', value }),
+  Time: <const T extends TimeEvent>(value: T): lib.Variant<'Time', T> => ({ kind: 'Time', value }),
+  ExecuteTrigger: <const T extends ExecuteTriggerEvent>(value: T): lib.Variant<'ExecuteTrigger', T> => ({
+    kind: 'ExecuteTrigger',
+    value,
+  }),
+  TriggerCompleted: <const T extends TriggerCompletedEvent>(value: T): lib.Variant<'TriggerCompleted', T> => ({
+    kind: 'TriggerCompleted',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Pipeline: [PipelineEventBox]
@@ -5762,13 +7640,19 @@ export const Grant = {
 }
 
 export type GrantBox =
-  | lib.SumTypeKindValue<'Permission', Grant<Permission, lib.AccountId>>
-  | lib.SumTypeKindValue<'Role', Grant<RoleId, lib.AccountId>>
-  | lib.SumTypeKindValue<'RolePermission', Grant<Permission, RoleId>>
+  | lib.Variant<'Permission', Grant<Permission, lib.AccountId>>
+  | lib.Variant<'Role', Grant<RoleId, lib.AccountId>>
+  | lib.Variant<'RolePermission', Grant<Permission, RoleId>>
 export const GrantBox = {
-  Permission: (value: Grant<Permission, lib.AccountId>): GrantBox => ({ kind: 'Permission', value }),
-  Role: (value: Grant<RoleId, lib.AccountId>): GrantBox => ({ kind: 'Role', value }),
-  RolePermission: (value: Grant<Permission, RoleId>): GrantBox => ({ kind: 'RolePermission', value }),
+  Permission: <const T extends Grant<Permission, lib.AccountId>>(value: T): lib.Variant<'Permission', T> => ({
+    kind: 'Permission',
+    value,
+  }),
+  Role: <const T extends Grant<RoleId, lib.AccountId>>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  RolePermission: <const T extends Grant<Permission, RoleId>>(value: T): lib.Variant<'RolePermission', T> => ({
+    kind: 'RolePermission',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Permission: [Grant<Permission, lib.AccountId>]
@@ -5846,21 +7730,24 @@ export const Trigger: lib.CodecProvider<Trigger> = {
 }
 
 export type RegisterBox =
-  | lib.SumTypeKindValue<'Peer', PeerId>
-  | lib.SumTypeKindValue<'Domain', NewDomain>
-  | lib.SumTypeKindValue<'Account', NewAccount>
-  | lib.SumTypeKindValue<'AssetDefinition', NewAssetDefinition>
-  | lib.SumTypeKindValue<'Asset', Asset>
-  | lib.SumTypeKindValue<'Role', NewRole>
-  | lib.SumTypeKindValue<'Trigger', Trigger>
+  | lib.Variant<'Peer', PeerId>
+  | lib.Variant<'Domain', NewDomain>
+  | lib.Variant<'Account', NewAccount>
+  | lib.Variant<'AssetDefinition', NewAssetDefinition>
+  | lib.Variant<'Asset', Asset>
+  | lib.Variant<'Role', NewRole>
+  | lib.Variant<'Trigger', Trigger>
 export const RegisterBox = {
-  Peer: (value: PeerId): RegisterBox => ({ kind: 'Peer', value }),
-  Domain: (value: NewDomain): RegisterBox => ({ kind: 'Domain', value }),
-  Account: (value: NewAccount): RegisterBox => ({ kind: 'Account', value }),
-  AssetDefinition: (value: NewAssetDefinition): RegisterBox => ({ kind: 'AssetDefinition', value }),
-  Asset: (value: Asset): RegisterBox => ({ kind: 'Asset', value }),
-  Role: (value: NewRole): RegisterBox => ({ kind: 'Role', value }),
-  Trigger: (value: Trigger): RegisterBox => ({ kind: 'Trigger', value }),
+  Peer: <const T extends PeerId>(value: T): lib.Variant<'Peer', T> => ({ kind: 'Peer', value }),
+  Domain: <const T extends NewDomain>(value: T): lib.Variant<'Domain', T> => ({ kind: 'Domain', value }),
+  Account: <const T extends NewAccount>(value: T): lib.Variant<'Account', T> => ({ kind: 'Account', value }),
+  AssetDefinition: <const T extends NewAssetDefinition>(value: T): lib.Variant<'AssetDefinition', T> => ({
+    kind: 'AssetDefinition',
+    value,
+  }),
+  Asset: <const T extends Asset>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  Role: <const T extends NewRole>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  Trigger: <const T extends Trigger>(value: T): lib.Variant<'Trigger', T> => ({ kind: 'Trigger', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Peer: [PeerId]
@@ -5883,21 +7770,24 @@ export const RegisterBox = {
 }
 
 export type UnregisterBox =
-  | lib.SumTypeKindValue<'Peer', PeerId>
-  | lib.SumTypeKindValue<'Domain', lib.DomainId>
-  | lib.SumTypeKindValue<'Account', lib.AccountId>
-  | lib.SumTypeKindValue<'AssetDefinition', lib.AssetDefinitionId>
-  | lib.SumTypeKindValue<'Asset', lib.AssetId>
-  | lib.SumTypeKindValue<'Role', RoleId>
-  | lib.SumTypeKindValue<'Trigger', TriggerId>
+  | lib.Variant<'Peer', PeerId>
+  | lib.Variant<'Domain', lib.DomainId>
+  | lib.Variant<'Account', lib.AccountId>
+  | lib.Variant<'AssetDefinition', lib.AssetDefinitionId>
+  | lib.Variant<'Asset', lib.AssetId>
+  | lib.Variant<'Role', RoleId>
+  | lib.Variant<'Trigger', TriggerId>
 export const UnregisterBox = {
-  Peer: (value: PeerId): UnregisterBox => ({ kind: 'Peer', value }),
-  Domain: (value: lib.DomainId): UnregisterBox => ({ kind: 'Domain', value }),
-  Account: (value: lib.AccountId): UnregisterBox => ({ kind: 'Account', value }),
-  AssetDefinition: (value: lib.AssetDefinitionId): UnregisterBox => ({ kind: 'AssetDefinition', value }),
-  Asset: (value: lib.AssetId): UnregisterBox => ({ kind: 'Asset', value }),
-  Role: (value: RoleId): UnregisterBox => ({ kind: 'Role', value }),
-  Trigger: (value: TriggerId): UnregisterBox => ({ kind: 'Trigger', value }),
+  Peer: <const T extends PeerId>(value: T): lib.Variant<'Peer', T> => ({ kind: 'Peer', value }),
+  Domain: <const T extends lib.DomainId>(value: T): lib.Variant<'Domain', T> => ({ kind: 'Domain', value }),
+  Account: <const T extends lib.AccountId>(value: T): lib.Variant<'Account', T> => ({ kind: 'Account', value }),
+  AssetDefinition: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'AssetDefinition', T> => ({
+    kind: 'AssetDefinition',
+    value,
+  }),
+  Asset: <const T extends lib.AssetId>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  Role: <const T extends RoleId>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  Trigger: <const T extends TriggerId>(value: T): lib.Variant<'Trigger', T> => ({ kind: 'Trigger', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Peer: [PeerId]
@@ -5930,11 +7820,14 @@ export const Mint = {
 }
 
 export type MintBox =
-  | lib.SumTypeKindValue<'Asset', Mint<Numeric, lib.AssetId>>
-  | lib.SumTypeKindValue<'TriggerRepetitions', Mint<lib.U32, TriggerId>>
+  | lib.Variant<'Asset', Mint<Numeric, lib.AssetId>>
+  | lib.Variant<'TriggerRepetitions', Mint<lib.U32, TriggerId>>
 export const MintBox = {
-  Asset: (value: Mint<Numeric, lib.AssetId>): MintBox => ({ kind: 'Asset', value }),
-  TriggerRepetitions: (value: Mint<lib.U32, TriggerId>): MintBox => ({ kind: 'TriggerRepetitions', value }),
+  Asset: <const T extends Mint<Numeric, lib.AssetId>>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  TriggerRepetitions: <const T extends Mint<lib.U32, TriggerId>>(value: T): lib.Variant<'TriggerRepetitions', T> => ({
+    kind: 'TriggerRepetitions',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Asset: [Mint<Numeric, lib.AssetId>]; TriggerRepetitions: [Mint<lib.U32, TriggerId>] }>([
       [0, 'Asset', lib.codecOf(Mint.with(lib.codecOf(Numeric), lib.codecOf(lib.AssetId)))],
@@ -5944,24 +7837,23 @@ export const MintBox = {
 }
 
 export type TransferBox =
-  | lib.SumTypeKindValue<'Domain', Transfer<lib.AccountId, lib.DomainId, lib.AccountId>>
-  | lib.SumTypeKindValue<'AssetDefinition', Transfer<lib.AccountId, lib.AssetDefinitionId, lib.AccountId>>
-  | lib.SumTypeKindValue<'Asset', AssetTransferBox>
+  | lib.Variant<'Domain', Transfer<lib.AccountId, lib.DomainId, lib.AccountId>>
+  | lib.Variant<'AssetDefinition', Transfer<lib.AccountId, lib.AssetDefinitionId, lib.AccountId>>
+  | lib.Variant<'Asset', AssetTransferBox>
 export const TransferBox = {
-  Domain: (value: Transfer<lib.AccountId, lib.DomainId, lib.AccountId>): TransferBox => ({ kind: 'Domain', value }),
-  AssetDefinition: (value: Transfer<lib.AccountId, lib.AssetDefinitionId, lib.AccountId>): TransferBox => ({
-    kind: 'AssetDefinition',
-    value,
-  }),
+  Domain: <const T extends Transfer<lib.AccountId, lib.DomainId, lib.AccountId>>(
+    value: T,
+  ): lib.Variant<'Domain', T> => ({ kind: 'Domain', value }),
+  AssetDefinition: <const T extends Transfer<lib.AccountId, lib.AssetDefinitionId, lib.AccountId>>(
+    value: T,
+  ): lib.Variant<'AssetDefinition', T> => ({ kind: 'AssetDefinition', value }),
   Asset: {
-    Numeric: (value: Transfer<lib.AssetId, Numeric, lib.AccountId>): TransferBox => ({
-      kind: 'Asset',
-      value: AssetTransferBox.Numeric(value),
-    }),
-    Store: (value: Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>): TransferBox => ({
-      kind: 'Asset',
-      value: AssetTransferBox.Store(value),
-    }),
+    Numeric: <const T extends Transfer<lib.AssetId, Numeric, lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Asset', lib.Variant<'Numeric', T>> => ({ kind: 'Asset', value: AssetTransferBox.Numeric(value) }),
+    Store: <const T extends Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Asset', lib.Variant<'Store', T>> => ({ kind: 'Asset', value: AssetTransferBox.Store(value) }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{
@@ -6002,17 +7894,28 @@ export const SetKeyValue = {
 }
 
 export type SetKeyValueBox =
-  | lib.SumTypeKindValue<'Domain', SetKeyValue<lib.DomainId>>
-  | lib.SumTypeKindValue<'Account', SetKeyValue<lib.AccountId>>
-  | lib.SumTypeKindValue<'AssetDefinition', SetKeyValue<lib.AssetDefinitionId>>
-  | lib.SumTypeKindValue<'Asset', SetKeyValue<lib.AssetId>>
-  | lib.SumTypeKindValue<'Trigger', SetKeyValue<TriggerId>>
+  | lib.Variant<'Domain', SetKeyValue<lib.DomainId>>
+  | lib.Variant<'Account', SetKeyValue<lib.AccountId>>
+  | lib.Variant<'AssetDefinition', SetKeyValue<lib.AssetDefinitionId>>
+  | lib.Variant<'Asset', SetKeyValue<lib.AssetId>>
+  | lib.Variant<'Trigger', SetKeyValue<TriggerId>>
 export const SetKeyValueBox = {
-  Domain: (value: SetKeyValue<lib.DomainId>): SetKeyValueBox => ({ kind: 'Domain', value }),
-  Account: (value: SetKeyValue<lib.AccountId>): SetKeyValueBox => ({ kind: 'Account', value }),
-  AssetDefinition: (value: SetKeyValue<lib.AssetDefinitionId>): SetKeyValueBox => ({ kind: 'AssetDefinition', value }),
-  Asset: (value: SetKeyValue<lib.AssetId>): SetKeyValueBox => ({ kind: 'Asset', value }),
-  Trigger: (value: SetKeyValue<TriggerId>): SetKeyValueBox => ({ kind: 'Trigger', value }),
+  Domain: <const T extends SetKeyValue<lib.DomainId>>(value: T): lib.Variant<'Domain', T> => ({
+    kind: 'Domain',
+    value,
+  }),
+  Account: <const T extends SetKeyValue<lib.AccountId>>(value: T): lib.Variant<'Account', T> => ({
+    kind: 'Account',
+    value,
+  }),
+  AssetDefinition: <const T extends SetKeyValue<lib.AssetDefinitionId>>(
+    value: T,
+  ): lib.Variant<'AssetDefinition', T> => ({ kind: 'AssetDefinition', value }),
+  Asset: <const T extends SetKeyValue<lib.AssetId>>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  Trigger: <const T extends SetKeyValue<TriggerId>>(value: T): lib.Variant<'Trigger', T> => ({
+    kind: 'Trigger',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Domain: [SetKeyValue<lib.DomainId>]
@@ -6044,20 +7947,28 @@ export const RemoveKeyValue = {
 }
 
 export type RemoveKeyValueBox =
-  | lib.SumTypeKindValue<'Domain', RemoveKeyValue<lib.DomainId>>
-  | lib.SumTypeKindValue<'Account', RemoveKeyValue<lib.AccountId>>
-  | lib.SumTypeKindValue<'AssetDefinition', RemoveKeyValue<lib.AssetDefinitionId>>
-  | lib.SumTypeKindValue<'Asset', RemoveKeyValue<lib.AssetId>>
-  | lib.SumTypeKindValue<'Trigger', RemoveKeyValue<TriggerId>>
+  | lib.Variant<'Domain', RemoveKeyValue<lib.DomainId>>
+  | lib.Variant<'Account', RemoveKeyValue<lib.AccountId>>
+  | lib.Variant<'AssetDefinition', RemoveKeyValue<lib.AssetDefinitionId>>
+  | lib.Variant<'Asset', RemoveKeyValue<lib.AssetId>>
+  | lib.Variant<'Trigger', RemoveKeyValue<TriggerId>>
 export const RemoveKeyValueBox = {
-  Domain: (value: RemoveKeyValue<lib.DomainId>): RemoveKeyValueBox => ({ kind: 'Domain', value }),
-  Account: (value: RemoveKeyValue<lib.AccountId>): RemoveKeyValueBox => ({ kind: 'Account', value }),
-  AssetDefinition: (value: RemoveKeyValue<lib.AssetDefinitionId>): RemoveKeyValueBox => ({
-    kind: 'AssetDefinition',
+  Domain: <const T extends RemoveKeyValue<lib.DomainId>>(value: T): lib.Variant<'Domain', T> => ({
+    kind: 'Domain',
     value,
   }),
-  Asset: (value: RemoveKeyValue<lib.AssetId>): RemoveKeyValueBox => ({ kind: 'Asset', value }),
-  Trigger: (value: RemoveKeyValue<TriggerId>): RemoveKeyValueBox => ({ kind: 'Trigger', value }),
+  Account: <const T extends RemoveKeyValue<lib.AccountId>>(value: T): lib.Variant<'Account', T> => ({
+    kind: 'Account',
+    value,
+  }),
+  AssetDefinition: <const T extends RemoveKeyValue<lib.AssetDefinitionId>>(
+    value: T,
+  ): lib.Variant<'AssetDefinition', T> => ({ kind: 'AssetDefinition', value }),
+  Asset: <const T extends RemoveKeyValue<lib.AssetId>>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  Trigger: <const T extends RemoveKeyValue<TriggerId>>(value: T): lib.Variant<'Trigger', T> => ({
+    kind: 'Trigger',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Domain: [RemoveKeyValue<lib.DomainId>]
@@ -6086,13 +7997,19 @@ export const Revoke = {
 }
 
 export type RevokeBox =
-  | lib.SumTypeKindValue<'Permission', Revoke<Permission, lib.AccountId>>
-  | lib.SumTypeKindValue<'Role', Revoke<RoleId, lib.AccountId>>
-  | lib.SumTypeKindValue<'RolePermission', Revoke<Permission, RoleId>>
+  | lib.Variant<'Permission', Revoke<Permission, lib.AccountId>>
+  | lib.Variant<'Role', Revoke<RoleId, lib.AccountId>>
+  | lib.Variant<'RolePermission', Revoke<Permission, RoleId>>
 export const RevokeBox = {
-  Permission: (value: Revoke<Permission, lib.AccountId>): RevokeBox => ({ kind: 'Permission', value }),
-  Role: (value: Revoke<RoleId, lib.AccountId>): RevokeBox => ({ kind: 'Role', value }),
-  RolePermission: (value: Revoke<Permission, RoleId>): RevokeBox => ({ kind: 'RolePermission', value }),
+  Permission: <const T extends Revoke<Permission, lib.AccountId>>(value: T): lib.Variant<'Permission', T> => ({
+    kind: 'Permission',
+    value,
+  }),
+  Role: <const T extends Revoke<RoleId, lib.AccountId>>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  RolePermission: <const T extends Revoke<Permission, RoleId>>(value: T): lib.Variant<'RolePermission', T> => ({
+    kind: 'RolePermission',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Permission: [Revoke<Permission, lib.AccountId>]
@@ -6114,17 +8031,17 @@ export const Upgrade: lib.CodecProvider<Upgrade> = {
 }
 
 export type Level =
-  | lib.SumTypeKind<'TRACE'>
-  | lib.SumTypeKind<'DEBUG'>
-  | lib.SumTypeKind<'INFO'>
-  | lib.SumTypeKind<'WARN'>
-  | lib.SumTypeKind<'ERROR'>
+  | lib.VariantUnit<'TRACE'>
+  | lib.VariantUnit<'DEBUG'>
+  | lib.VariantUnit<'INFO'>
+  | lib.VariantUnit<'WARN'>
+  | lib.VariantUnit<'ERROR'>
 export const Level = {
-  TRACE: Object.freeze<Level>({ kind: 'TRACE' }),
-  DEBUG: Object.freeze<Level>({ kind: 'DEBUG' }),
-  INFO: Object.freeze<Level>({ kind: 'INFO' }),
-  WARN: Object.freeze<Level>({ kind: 'WARN' }),
-  ERROR: Object.freeze<Level>({ kind: 'ERROR' }),
+  TRACE: Object.freeze<lib.VariantUnit<'TRACE'>>({ kind: 'TRACE' }),
+  DEBUG: Object.freeze<lib.VariantUnit<'DEBUG'>>({ kind: 'DEBUG' }),
+  INFO: Object.freeze<lib.VariantUnit<'INFO'>>({ kind: 'INFO' }),
+  WARN: Object.freeze<lib.VariantUnit<'WARN'>>({ kind: 'WARN' }),
+  ERROR: Object.freeze<lib.VariantUnit<'ERROR'>>({ kind: 'ERROR' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ TRACE: []; DEBUG: []; INFO: []; WARN: []; ERROR: [] }>([
       [0, 'TRACE'],
@@ -6148,193 +8065,311 @@ export const Log: lib.CodecProvider<Log> = {
 }
 
 export type InstructionBox =
-  | lib.SumTypeKindValue<'Register', RegisterBox>
-  | lib.SumTypeKindValue<'Unregister', UnregisterBox>
-  | lib.SumTypeKindValue<'Mint', MintBox>
-  | lib.SumTypeKindValue<'Burn', BurnBox>
-  | lib.SumTypeKindValue<'Transfer', TransferBox>
-  | lib.SumTypeKindValue<'SetKeyValue', SetKeyValueBox>
-  | lib.SumTypeKindValue<'RemoveKeyValue', RemoveKeyValueBox>
-  | lib.SumTypeKindValue<'Grant', GrantBox>
-  | lib.SumTypeKindValue<'Revoke', RevokeBox>
-  | lib.SumTypeKindValue<'ExecuteTrigger', ExecuteTrigger>
-  | lib.SumTypeKindValue<'SetParameter', Parameter>
-  | lib.SumTypeKindValue<'Upgrade', Upgrade>
-  | lib.SumTypeKindValue<'Log', Log>
-  | lib.SumTypeKindValue<'Custom', CustomInstruction>
+  | lib.Variant<'Register', RegisterBox>
+  | lib.Variant<'Unregister', UnregisterBox>
+  | lib.Variant<'Mint', MintBox>
+  | lib.Variant<'Burn', BurnBox>
+  | lib.Variant<'Transfer', TransferBox>
+  | lib.Variant<'SetKeyValue', SetKeyValueBox>
+  | lib.Variant<'RemoveKeyValue', RemoveKeyValueBox>
+  | lib.Variant<'Grant', GrantBox>
+  | lib.Variant<'Revoke', RevokeBox>
+  | lib.Variant<'ExecuteTrigger', ExecuteTrigger>
+  | lib.Variant<'SetParameter', Parameter>
+  | lib.Variant<'Upgrade', Upgrade>
+  | lib.Variant<'Log', Log>
+  | lib.Variant<'Custom', CustomInstruction>
 export const InstructionBox = {
   Register: {
-    Peer: (value: PeerId): InstructionBox => ({ kind: 'Register', value: RegisterBox.Peer(value) }),
-    Domain: (value: NewDomain): InstructionBox => ({ kind: 'Register', value: RegisterBox.Domain(value) }),
-    Account: (value: NewAccount): InstructionBox => ({ kind: 'Register', value: RegisterBox.Account(value) }),
-    AssetDefinition: (value: NewAssetDefinition): InstructionBox => ({
+    Peer: <const T extends PeerId>(value: T): lib.Variant<'Register', lib.Variant<'Peer', T>> => ({
+      kind: 'Register',
+      value: RegisterBox.Peer(value),
+    }),
+    Domain: <const T extends NewDomain>(value: T): lib.Variant<'Register', lib.Variant<'Domain', T>> => ({
+      kind: 'Register',
+      value: RegisterBox.Domain(value),
+    }),
+    Account: <const T extends NewAccount>(value: T): lib.Variant<'Register', lib.Variant<'Account', T>> => ({
+      kind: 'Register',
+      value: RegisterBox.Account(value),
+    }),
+    AssetDefinition: <const T extends NewAssetDefinition>(
+      value: T,
+    ): lib.Variant<'Register', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'Register',
       value: RegisterBox.AssetDefinition(value),
     }),
-    Asset: (value: Asset): InstructionBox => ({ kind: 'Register', value: RegisterBox.Asset(value) }),
-    Role: (value: NewRole): InstructionBox => ({ kind: 'Register', value: RegisterBox.Role(value) }),
-    Trigger: (value: Trigger): InstructionBox => ({ kind: 'Register', value: RegisterBox.Trigger(value) }),
+    Asset: <const T extends Asset>(value: T): lib.Variant<'Register', lib.Variant<'Asset', T>> => ({
+      kind: 'Register',
+      value: RegisterBox.Asset(value),
+    }),
+    Role: <const T extends NewRole>(value: T): lib.Variant<'Register', lib.Variant<'Role', T>> => ({
+      kind: 'Register',
+      value: RegisterBox.Role(value),
+    }),
+    Trigger: <const T extends Trigger>(value: T): lib.Variant<'Register', lib.Variant<'Trigger', T>> => ({
+      kind: 'Register',
+      value: RegisterBox.Trigger(value),
+    }),
   },
   Unregister: {
-    Peer: (value: PeerId): InstructionBox => ({ kind: 'Unregister', value: UnregisterBox.Peer(value) }),
-    Domain: (value: lib.DomainId): InstructionBox => ({ kind: 'Unregister', value: UnregisterBox.Domain(value) }),
-    Account: (value: lib.AccountId): InstructionBox => ({ kind: 'Unregister', value: UnregisterBox.Account(value) }),
-    AssetDefinition: (value: lib.AssetDefinitionId): InstructionBox => ({
+    Peer: <const T extends PeerId>(value: T): lib.Variant<'Unregister', lib.Variant<'Peer', T>> => ({
+      kind: 'Unregister',
+      value: UnregisterBox.Peer(value),
+    }),
+    Domain: <const T extends lib.DomainId>(value: T): lib.Variant<'Unregister', lib.Variant<'Domain', T>> => ({
+      kind: 'Unregister',
+      value: UnregisterBox.Domain(value),
+    }),
+    Account: <const T extends lib.AccountId>(value: T): lib.Variant<'Unregister', lib.Variant<'Account', T>> => ({
+      kind: 'Unregister',
+      value: UnregisterBox.Account(value),
+    }),
+    AssetDefinition: <const T extends lib.AssetDefinitionId>(
+      value: T,
+    ): lib.Variant<'Unregister', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'Unregister',
       value: UnregisterBox.AssetDefinition(value),
     }),
-    Asset: (value: lib.AssetId): InstructionBox => ({ kind: 'Unregister', value: UnregisterBox.Asset(value) }),
-    Role: (value: RoleId): InstructionBox => ({ kind: 'Unregister', value: UnregisterBox.Role(value) }),
-    Trigger: (value: TriggerId): InstructionBox => ({ kind: 'Unregister', value: UnregisterBox.Trigger(value) }),
+    Asset: <const T extends lib.AssetId>(value: T): lib.Variant<'Unregister', lib.Variant<'Asset', T>> => ({
+      kind: 'Unregister',
+      value: UnregisterBox.Asset(value),
+    }),
+    Role: <const T extends RoleId>(value: T): lib.Variant<'Unregister', lib.Variant<'Role', T>> => ({
+      kind: 'Unregister',
+      value: UnregisterBox.Role(value),
+    }),
+    Trigger: <const T extends TriggerId>(value: T): lib.Variant<'Unregister', lib.Variant<'Trigger', T>> => ({
+      kind: 'Unregister',
+      value: UnregisterBox.Trigger(value),
+    }),
   },
   Mint: {
-    Asset: (value: Mint<Numeric, lib.AssetId>): InstructionBox => ({ kind: 'Mint', value: MintBox.Asset(value) }),
-    TriggerRepetitions: (value: Mint<lib.U32, TriggerId>): InstructionBox => ({
+    Asset: <const T extends Mint<Numeric, lib.AssetId>>(value: T): lib.Variant<'Mint', lib.Variant<'Asset', T>> => ({
+      kind: 'Mint',
+      value: MintBox.Asset(value),
+    }),
+    TriggerRepetitions: <const T extends Mint<lib.U32, TriggerId>>(
+      value: T,
+    ): lib.Variant<'Mint', lib.Variant<'TriggerRepetitions', T>> => ({
       kind: 'Mint',
       value: MintBox.TriggerRepetitions(value),
     }),
   },
   Burn: {
-    Asset: (value: Burn<Numeric, lib.AssetId>): InstructionBox => ({ kind: 'Burn', value: BurnBox.Asset(value) }),
-    TriggerRepetitions: (value: Burn<lib.U32, TriggerId>): InstructionBox => ({
+    Asset: <const T extends Burn<Numeric, lib.AssetId>>(value: T): lib.Variant<'Burn', lib.Variant<'Asset', T>> => ({
+      kind: 'Burn',
+      value: BurnBox.Asset(value),
+    }),
+    TriggerRepetitions: <const T extends Burn<lib.U32, TriggerId>>(
+      value: T,
+    ): lib.Variant<'Burn', lib.Variant<'TriggerRepetitions', T>> => ({
       kind: 'Burn',
       value: BurnBox.TriggerRepetitions(value),
     }),
   },
   Transfer: {
-    Domain: (value: Transfer<lib.AccountId, lib.DomainId, lib.AccountId>): InstructionBox => ({
-      kind: 'Transfer',
-      value: TransferBox.Domain(value),
-    }),
-    AssetDefinition: (value: Transfer<lib.AccountId, lib.AssetDefinitionId, lib.AccountId>): InstructionBox => ({
+    Domain: <const T extends Transfer<lib.AccountId, lib.DomainId, lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Transfer', lib.Variant<'Domain', T>> => ({ kind: 'Transfer', value: TransferBox.Domain(value) }),
+    AssetDefinition: <const T extends Transfer<lib.AccountId, lib.AssetDefinitionId, lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Transfer', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'Transfer',
       value: TransferBox.AssetDefinition(value),
     }),
     Asset: {
-      Numeric: (value: Transfer<lib.AssetId, Numeric, lib.AccountId>): InstructionBox => ({
+      Numeric: <const T extends Transfer<lib.AssetId, Numeric, lib.AccountId>>(
+        value: T,
+      ): lib.Variant<'Transfer', lib.Variant<'Asset', lib.Variant<'Numeric', T>>> => ({
         kind: 'Transfer',
         value: TransferBox.Asset.Numeric(value),
       }),
-      Store: (value: Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>): InstructionBox => ({
+      Store: <const T extends Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>(
+        value: T,
+      ): lib.Variant<'Transfer', lib.Variant<'Asset', lib.Variant<'Store', T>>> => ({
         kind: 'Transfer',
         value: TransferBox.Asset.Store(value),
       }),
     },
   },
   SetKeyValue: {
-    Domain: (value: SetKeyValue<lib.DomainId>): InstructionBox => ({
+    Domain: <const T extends SetKeyValue<lib.DomainId>>(
+      value: T,
+    ): lib.Variant<'SetKeyValue', lib.Variant<'Domain', T>> => ({
       kind: 'SetKeyValue',
       value: SetKeyValueBox.Domain(value),
     }),
-    Account: (value: SetKeyValue<lib.AccountId>): InstructionBox => ({
+    Account: <const T extends SetKeyValue<lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'SetKeyValue', lib.Variant<'Account', T>> => ({
       kind: 'SetKeyValue',
       value: SetKeyValueBox.Account(value),
     }),
-    AssetDefinition: (value: SetKeyValue<lib.AssetDefinitionId>): InstructionBox => ({
+    AssetDefinition: <const T extends SetKeyValue<lib.AssetDefinitionId>>(
+      value: T,
+    ): lib.Variant<'SetKeyValue', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'SetKeyValue',
       value: SetKeyValueBox.AssetDefinition(value),
     }),
-    Asset: (value: SetKeyValue<lib.AssetId>): InstructionBox => ({
+    Asset: <const T extends SetKeyValue<lib.AssetId>>(
+      value: T,
+    ): lib.Variant<'SetKeyValue', lib.Variant<'Asset', T>> => ({
       kind: 'SetKeyValue',
       value: SetKeyValueBox.Asset(value),
     }),
-    Trigger: (value: SetKeyValue<TriggerId>): InstructionBox => ({
+    Trigger: <const T extends SetKeyValue<TriggerId>>(
+      value: T,
+    ): lib.Variant<'SetKeyValue', lib.Variant<'Trigger', T>> => ({
       kind: 'SetKeyValue',
       value: SetKeyValueBox.Trigger(value),
     }),
   },
   RemoveKeyValue: {
-    Domain: (value: RemoveKeyValue<lib.DomainId>): InstructionBox => ({
+    Domain: <const T extends RemoveKeyValue<lib.DomainId>>(
+      value: T,
+    ): lib.Variant<'RemoveKeyValue', lib.Variant<'Domain', T>> => ({
       kind: 'RemoveKeyValue',
       value: RemoveKeyValueBox.Domain(value),
     }),
-    Account: (value: RemoveKeyValue<lib.AccountId>): InstructionBox => ({
+    Account: <const T extends RemoveKeyValue<lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'RemoveKeyValue', lib.Variant<'Account', T>> => ({
       kind: 'RemoveKeyValue',
       value: RemoveKeyValueBox.Account(value),
     }),
-    AssetDefinition: (value: RemoveKeyValue<lib.AssetDefinitionId>): InstructionBox => ({
+    AssetDefinition: <const T extends RemoveKeyValue<lib.AssetDefinitionId>>(
+      value: T,
+    ): lib.Variant<'RemoveKeyValue', lib.Variant<'AssetDefinition', T>> => ({
       kind: 'RemoveKeyValue',
       value: RemoveKeyValueBox.AssetDefinition(value),
     }),
-    Asset: (value: RemoveKeyValue<lib.AssetId>): InstructionBox => ({
+    Asset: <const T extends RemoveKeyValue<lib.AssetId>>(
+      value: T,
+    ): lib.Variant<'RemoveKeyValue', lib.Variant<'Asset', T>> => ({
       kind: 'RemoveKeyValue',
       value: RemoveKeyValueBox.Asset(value),
     }),
-    Trigger: (value: RemoveKeyValue<TriggerId>): InstructionBox => ({
+    Trigger: <const T extends RemoveKeyValue<TriggerId>>(
+      value: T,
+    ): lib.Variant<'RemoveKeyValue', lib.Variant<'Trigger', T>> => ({
       kind: 'RemoveKeyValue',
       value: RemoveKeyValueBox.Trigger(value),
     }),
   },
   Grant: {
-    Permission: (value: Grant<Permission, lib.AccountId>): InstructionBox => ({
+    Permission: <const T extends Grant<Permission, lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Grant', lib.Variant<'Permission', T>> => ({ kind: 'Grant', value: GrantBox.Permission(value) }),
+    Role: <const T extends Grant<RoleId, lib.AccountId>>(value: T): lib.Variant<'Grant', lib.Variant<'Role', T>> => ({
       kind: 'Grant',
-      value: GrantBox.Permission(value),
+      value: GrantBox.Role(value),
     }),
-    Role: (value: Grant<RoleId, lib.AccountId>): InstructionBox => ({ kind: 'Grant', value: GrantBox.Role(value) }),
-    RolePermission: (value: Grant<Permission, RoleId>): InstructionBox => ({
+    RolePermission: <const T extends Grant<Permission, RoleId>>(
+      value: T,
+    ): lib.Variant<'Grant', lib.Variant<'RolePermission', T>> => ({
       kind: 'Grant',
       value: GrantBox.RolePermission(value),
     }),
   },
   Revoke: {
-    Permission: (value: Revoke<Permission, lib.AccountId>): InstructionBox => ({
+    Permission: <const T extends Revoke<Permission, lib.AccountId>>(
+      value: T,
+    ): lib.Variant<'Revoke', lib.Variant<'Permission', T>> => ({ kind: 'Revoke', value: RevokeBox.Permission(value) }),
+    Role: <const T extends Revoke<RoleId, lib.AccountId>>(value: T): lib.Variant<'Revoke', lib.Variant<'Role', T>> => ({
       kind: 'Revoke',
-      value: RevokeBox.Permission(value),
+      value: RevokeBox.Role(value),
     }),
-    Role: (value: Revoke<RoleId, lib.AccountId>): InstructionBox => ({ kind: 'Revoke', value: RevokeBox.Role(value) }),
-    RolePermission: (value: Revoke<Permission, RoleId>): InstructionBox => ({
+    RolePermission: <const T extends Revoke<Permission, RoleId>>(
+      value: T,
+    ): lib.Variant<'Revoke', lib.Variant<'RolePermission', T>> => ({
       kind: 'Revoke',
       value: RevokeBox.RolePermission(value),
     }),
   },
-  ExecuteTrigger: (value: ExecuteTrigger): InstructionBox => ({ kind: 'ExecuteTrigger', value }),
+  ExecuteTrigger: <const T extends ExecuteTrigger>(value: T): lib.Variant<'ExecuteTrigger', T> => ({
+    kind: 'ExecuteTrigger',
+    value,
+  }),
   SetParameter: {
     Sumeragi: {
-      BlockTimeMs: (value: lib.U64): InstructionBox => ({
+      BlockTimeMs: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'BlockTimeMs', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.Sumeragi.BlockTimeMs(value),
       }),
-      CommitTimeMs: (value: lib.U64): InstructionBox => ({
+      CommitTimeMs: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'CommitTimeMs', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.Sumeragi.CommitTimeMs(value),
       }),
-      MaxClockDriftMs: (value: lib.U64): InstructionBox => ({
+      MaxClockDriftMs: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'MaxClockDriftMs', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.Sumeragi.MaxClockDriftMs(value),
       }),
     },
     Block: {
-      MaxTransactions: (value: lib.U64): InstructionBox => ({
+      MaxTransactions: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Block', lib.Variant<'MaxTransactions', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.Block.MaxTransactions(value),
       }),
     },
     Transaction: {
-      MaxInstructions: (value: lib.U64): InstructionBox => ({
+      MaxInstructions: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Transaction', lib.Variant<'MaxInstructions', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.Transaction.MaxInstructions(value),
       }),
-      SmartContractSize: (value: lib.U64): InstructionBox => ({
+      SmartContractSize: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Transaction', lib.Variant<'SmartContractSize', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.Transaction.SmartContractSize(value),
       }),
     },
     SmartContract: {
-      Fuel: (value: lib.U64): InstructionBox => ({ kind: 'SetParameter', value: Parameter.SmartContract.Fuel(value) }),
-      Memory: (value: lib.U64): InstructionBox => ({
+      Fuel: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'SmartContract', lib.Variant<'Fuel', T>>> => ({
+        kind: 'SetParameter',
+        value: Parameter.SmartContract.Fuel(value),
+      }),
+      Memory: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'SmartContract', lib.Variant<'Memory', T>>> => ({
         kind: 'SetParameter',
         value: Parameter.SmartContract.Memory(value),
       }),
     },
     Executor: {
-      Fuel: (value: lib.U64): InstructionBox => ({ kind: 'SetParameter', value: Parameter.Executor.Fuel(value) }),
-      Memory: (value: lib.U64): InstructionBox => ({ kind: 'SetParameter', value: Parameter.Executor.Memory(value) }),
+      Fuel: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Executor', lib.Variant<'Fuel', T>>> => ({
+        kind: 'SetParameter',
+        value: Parameter.Executor.Fuel(value),
+      }),
+      Memory: <const T extends lib.U64>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Executor', lib.Variant<'Memory', T>>> => ({
+        kind: 'SetParameter',
+        value: Parameter.Executor.Memory(value),
+      }),
     },
-    Custom: (value: CustomParameter): InstructionBox => ({ kind: 'SetParameter', value: Parameter.Custom(value) }),
+    Custom: <const T extends CustomParameter>(value: T): lib.Variant<'SetParameter', lib.Variant<'Custom', T>> => ({
+      kind: 'SetParameter',
+      value: Parameter.Custom(value),
+    }),
   },
-  Upgrade: (value: Upgrade): InstructionBox => ({ kind: 'Upgrade', value }),
-  Log: (value: Log): InstructionBox => ({ kind: 'Log', value }),
-  Custom: (value: CustomInstruction): InstructionBox => ({ kind: 'Custom', value }),
+  Upgrade: <const T extends Upgrade>(value: T): lib.Variant<'Upgrade', T> => ({ kind: 'Upgrade', value }),
+  Log: <const T extends Log>(value: T): lib.Variant<'Log', T> => ({ kind: 'Log', value }),
+  Custom: <const T extends CustomInstruction>(value: T): lib.Variant<'Custom', T> => ({ kind: 'Custom', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Register: [RegisterBox]
@@ -6443,13 +8478,13 @@ export const MultisigPropose: lib.CodecProvider<MultisigPropose> = {
 }
 
 export type MultisigInstructionBox =
-  | lib.SumTypeKindValue<'Register', MultisigRegister>
-  | lib.SumTypeKindValue<'Propose', MultisigPropose>
-  | lib.SumTypeKindValue<'Approve', MultisigApprove>
+  | lib.Variant<'Register', MultisigRegister>
+  | lib.Variant<'Propose', MultisigPropose>
+  | lib.Variant<'Approve', MultisigApprove>
 export const MultisigInstructionBox = {
-  Register: (value: MultisigRegister): MultisigInstructionBox => ({ kind: 'Register', value }),
-  Propose: (value: MultisigPropose): MultisigInstructionBox => ({ kind: 'Propose', value }),
-  Approve: (value: MultisigApprove): MultisigInstructionBox => ({ kind: 'Approve', value }),
+  Register: <const T extends MultisigRegister>(value: T): lib.Variant<'Register', T> => ({ kind: 'Register', value }),
+  Propose: <const T extends MultisigPropose>(value: T): lib.Variant<'Propose', T> => ({ kind: 'Propose', value }),
+  Approve: <const T extends MultisigApprove>(value: T): lib.Variant<'Approve', T> => ({ kind: 'Approve', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Register: [MultisigRegister]; Propose: [MultisigPropose]; Approve: [MultisigApprove] }>([
       [0, 'Register', lib.codecOf(MultisigRegister)],
@@ -6581,13 +8616,13 @@ export const SocketAddrHost: lib.CodecProvider<SocketAddrHost> = {
 }
 
 export type SocketAddr =
-  | lib.SumTypeKindValue<'Ipv4', SocketAddrV4>
-  | lib.SumTypeKindValue<'Ipv6', SocketAddrV6>
-  | lib.SumTypeKindValue<'Host', SocketAddrHost>
+  | lib.Variant<'Ipv4', SocketAddrV4>
+  | lib.Variant<'Ipv6', SocketAddrV6>
+  | lib.Variant<'Host', SocketAddrHost>
 export const SocketAddr = {
-  Ipv4: (value: SocketAddrV4): SocketAddr => ({ kind: 'Ipv4', value }),
-  Ipv6: (value: SocketAddrV6): SocketAddr => ({ kind: 'Ipv6', value }),
-  Host: (value: SocketAddrHost): SocketAddr => ({ kind: 'Host', value }),
+  Ipv4: <const T extends SocketAddrV4>(value: T): lib.Variant<'Ipv4', T> => ({ kind: 'Ipv4', value }),
+  Ipv6: <const T extends SocketAddrV6>(value: T): lib.Variant<'Ipv6', T> => ({ kind: 'Ipv6', value }),
+  Host: <const T extends SocketAddrHost>(value: T): lib.Variant<'Host', T> => ({ kind: 'Host', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Ipv4: [SocketAddrV4]; Ipv6: [SocketAddrV6]; Host: [SocketAddrHost] }>([
       [0, 'Ipv4', lib.codecOf(SocketAddrV4)],
@@ -6612,13 +8647,15 @@ export type PeerIdPredicateAtom = never
 export const PeerIdPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type PeerIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', PeerIdPredicateAtom>
-  | lib.SumTypeKindValue<'PublicKey', PublicKeyProjectionPredicate>
+  | lib.Variant<'Atom', PeerIdPredicateAtom>
+  | lib.Variant<'PublicKey', PublicKeyProjectionPredicate>
 export const PeerIdProjectionPredicate = {
   Atom: {},
   PublicKey: {
     Atom: {
-      Equals: (value: lib.PublicKeyWrap): PeerIdProjectionPredicate => ({
+      Equals: <const T extends lib.PublicKeyWrap>(
+        value: T,
+      ): lib.Variant<'PublicKey', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'PublicKey',
         value: PublicKeyProjectionPredicate.Atom.Equals(value),
       }),
@@ -6632,13 +8669,14 @@ export const PeerIdProjectionPredicate = {
     .discriminated(),
 }
 
-export type PeerIdProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'PublicKey', PublicKeyProjectionSelector>
+export type PeerIdProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'PublicKey', PublicKeyProjectionSelector>
 export const PeerIdProjectionSelector = {
-  Atom: Object.freeze<PeerIdProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   PublicKey: {
-    Atom: Object.freeze<PeerIdProjectionSelector>({ kind: 'PublicKey', value: PublicKeyProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'PublicKey', lib.VariantUnit<'Atom'>>>({
+      kind: 'PublicKey',
+      value: PublicKeyProjectionSelector.Atom,
+    }),
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; PublicKey: [PublicKeyProjectionSelector] }>([
@@ -6651,7 +8689,7 @@ export const PeerIdProjectionSelector = {
 export type PermissionPredicateAtom = never
 export const PermissionPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
-export type PermissionProjectionPredicate = lib.SumTypeKindValue<'Atom', PermissionPredicateAtom>
+export type PermissionProjectionPredicate = lib.Variant<'Atom', PermissionPredicateAtom>
 export const PermissionProjectionPredicate = {
   Atom: {},
   [lib.CodecSymbol]: lib
@@ -6659,9 +8697,9 @@ export const PermissionProjectionPredicate = {
     .discriminated(),
 }
 
-export type PermissionProjectionSelector = lib.SumTypeKind<'Atom'>
+export type PermissionProjectionSelector = lib.VariantUnit<'Atom'>
 export const PermissionProjectionSelector = {
-  Atom: Object.freeze<PermissionProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   [lib.CodecSymbol]: lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
 }
 
@@ -6687,34 +8725,45 @@ export const QueryWithFilter = {
 export type RolePredicateAtom = never
 export const RolePredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
-export type RoleIdPredicateAtom = lib.SumTypeKindValue<'Equals', RoleId>
+export type RoleIdPredicateAtom = lib.Variant<'Equals', RoleId>
 export const RoleIdPredicateAtom = {
-  Equals: (value: RoleId): RoleIdPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends RoleId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib.enumCodec<{ Equals: [RoleId] }>([[0, 'Equals', lib.codecOf(RoleId)]]).discriminated(),
 }
 
 export type RoleIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', RoleIdPredicateAtom>
-  | lib.SumTypeKindValue<'Name', NameProjectionPredicate>
+  | lib.Variant<'Atom', RoleIdPredicateAtom>
+  | lib.Variant<'Name', NameProjectionPredicate>
 export const RoleIdProjectionPredicate = {
   Atom: {
-    Equals: (value: RoleId): RoleIdProjectionPredicate => ({ kind: 'Atom', value: RoleIdPredicateAtom.Equals(value) }),
+    Equals: <const T extends RoleId>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
+      kind: 'Atom',
+      value: RoleIdPredicateAtom.Equals(value),
+    }),
   },
   Name: {
     Atom: {
-      Equals: (value: lib.String): RoleIdProjectionPredicate => ({
+      Equals: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Equals(value),
       }),
-      Contains: (value: lib.String): RoleIdProjectionPredicate => ({
+      Contains: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Contains(value),
       }),
-      StartsWith: (value: lib.String): RoleIdProjectionPredicate => ({
+      StartsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.StartsWith(value),
       }),
-      EndsWith: (value: lib.String): RoleIdProjectionPredicate => ({
+      EndsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.EndsWith(value),
       }),
@@ -6729,32 +8778,40 @@ export const RoleIdProjectionPredicate = {
 }
 
 export type RoleProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', RolePredicateAtom>
-  | lib.SumTypeKindValue<'Id', RoleIdProjectionPredicate>
+  | lib.Variant<'Atom', RolePredicateAtom>
+  | lib.Variant<'Id', RoleIdProjectionPredicate>
 export const RoleProjectionPredicate = {
   Atom: {},
   Id: {
     Atom: {
-      Equals: (value: RoleId): RoleProjectionPredicate => ({
+      Equals: <const T extends RoleId>(value: T): lib.Variant<'Id', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Id',
         value: RoleIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): RoleProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: RoleIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): RoleProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Id',
           value: RoleIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): RoleProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Id',
           value: RoleIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): RoleProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Id',
           value: RoleIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -6769,10 +8826,15 @@ export const RoleProjectionPredicate = {
     .discriminated(),
 }
 
-export type RoleIdProjectionSelector = lib.SumTypeKind<'Atom'> | lib.SumTypeKindValue<'Name', NameProjectionSelector>
+export type RoleIdProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'Name', NameProjectionSelector>
 export const RoleIdProjectionSelector = {
-  Atom: Object.freeze<RoleIdProjectionSelector>({ kind: 'Atom' }),
-  Name: { Atom: Object.freeze<RoleIdProjectionSelector>({ kind: 'Name', value: NameProjectionSelector.Atom }) },
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
+  Name: {
+    Atom: Object.freeze<lib.Variant<'Name', lib.VariantUnit<'Atom'>>>({
+      kind: 'Name',
+      value: NameProjectionSelector.Atom,
+    }),
+  },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
@@ -6781,12 +8843,20 @@ export const RoleIdProjectionSelector = {
     .discriminated(),
 }
 
-export type RoleProjectionSelector = lib.SumTypeKind<'Atom'> | lib.SumTypeKindValue<'Id', RoleIdProjectionSelector>
+export type RoleProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'Id', RoleIdProjectionSelector>
 export const RoleProjectionSelector = {
-  Atom: Object.freeze<RoleProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Id: {
-    Atom: Object.freeze<RoleProjectionSelector>({ kind: 'Id', value: RoleIdProjectionSelector.Atom }),
-    Name: { Atom: Object.freeze<RoleProjectionSelector>({ kind: 'Id', value: RoleIdProjectionSelector.Name.Atom }) },
+    Atom: Object.freeze<lib.Variant<'Id', lib.VariantUnit<'Atom'>>>({
+      kind: 'Id',
+      value: RoleIdProjectionSelector.Atom,
+    }),
+    Name: {
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: RoleIdProjectionSelector.Name.Atom,
+      }),
+    },
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [RoleIdProjectionSelector] }>([
@@ -6796,37 +8866,45 @@ export const RoleProjectionSelector = {
     .discriminated(),
 }
 
-export type TriggerIdPredicateAtom = lib.SumTypeKindValue<'Equals', TriggerId>
+export type TriggerIdPredicateAtom = lib.Variant<'Equals', TriggerId>
 export const TriggerIdPredicateAtom = {
-  Equals: (value: TriggerId): TriggerIdPredicateAtom => ({ kind: 'Equals', value }),
+  Equals: <const T extends TriggerId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib.enumCodec<{ Equals: [TriggerId] }>([[0, 'Equals', lib.codecOf(TriggerId)]]).discriminated(),
 }
 
 export type TriggerIdProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', TriggerIdPredicateAtom>
-  | lib.SumTypeKindValue<'Name', NameProjectionPredicate>
+  | lib.Variant<'Atom', TriggerIdPredicateAtom>
+  | lib.Variant<'Name', NameProjectionPredicate>
 export const TriggerIdProjectionPredicate = {
   Atom: {
-    Equals: (value: TriggerId): TriggerIdProjectionPredicate => ({
+    Equals: <const T extends TriggerId>(value: T): lib.Variant<'Atom', lib.Variant<'Equals', T>> => ({
       kind: 'Atom',
       value: TriggerIdPredicateAtom.Equals(value),
     }),
   },
   Name: {
     Atom: {
-      Equals: (value: lib.String): TriggerIdProjectionPredicate => ({
+      Equals: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Equals(value),
       }),
-      Contains: (value: lib.String): TriggerIdProjectionPredicate => ({
+      Contains: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.Contains(value),
       }),
-      StartsWith: (value: lib.String): TriggerIdProjectionPredicate => ({
+      StartsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.StartsWith(value),
       }),
-      EndsWith: (value: lib.String): TriggerIdProjectionPredicate => ({
+      EndsWith: <const T extends lib.String>(
+        value: T,
+      ): lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>> => ({
         kind: 'Name',
         value: NameProjectionPredicate.Atom.EndsWith(value),
       }),
@@ -6840,10 +8918,15 @@ export const TriggerIdProjectionPredicate = {
     .discriminated(),
 }
 
-export type TriggerIdProjectionSelector = lib.SumTypeKind<'Atom'> | lib.SumTypeKindValue<'Name', NameProjectionSelector>
+export type TriggerIdProjectionSelector = lib.VariantUnit<'Atom'> | lib.Variant<'Name', NameProjectionSelector>
 export const TriggerIdProjectionSelector = {
-  Atom: Object.freeze<TriggerIdProjectionSelector>({ kind: 'Atom' }),
-  Name: { Atom: Object.freeze<TriggerIdProjectionSelector>({ kind: 'Name', value: NameProjectionSelector.Atom }) },
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
+  Name: {
+    Atom: Object.freeze<lib.Variant<'Name', lib.VariantUnit<'Atom'>>>({
+      kind: 'Name',
+      value: NameProjectionSelector.Atom,
+    }),
+  },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
@@ -6856,33 +8939,43 @@ export type TriggerPredicateAtom = never
 export const TriggerPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type TriggerProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', TriggerPredicateAtom>
-  | lib.SumTypeKindValue<'Id', TriggerIdProjectionPredicate>
-  | lib.SumTypeKindValue<'Action', ActionProjectionPredicate>
+  | lib.Variant<'Atom', TriggerPredicateAtom>
+  | lib.Variant<'Id', TriggerIdProjectionPredicate>
+  | lib.Variant<'Action', ActionProjectionPredicate>
 export const TriggerProjectionPredicate = {
   Atom: {},
   Id: {
     Atom: {
-      Equals: (value: TriggerId): TriggerProjectionPredicate => ({
+      Equals: <const T extends TriggerId>(
+        value: T,
+      ): lib.Variant<'Id', lib.Variant<'Atom', lib.Variant<'Equals', T>>> => ({
         kind: 'Id',
         value: TriggerIdProjectionPredicate.Atom.Equals(value),
       }),
     },
     Name: {
       Atom: {
-        Equals: (value: lib.String): TriggerProjectionPredicate => ({
+        Equals: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Id',
           value: TriggerIdProjectionPredicate.Name.Atom.Equals(value),
         }),
-        Contains: (value: lib.String): TriggerProjectionPredicate => ({
+        Contains: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'Contains', T>>>> => ({
           kind: 'Id',
           value: TriggerIdProjectionPredicate.Name.Atom.Contains(value),
         }),
-        StartsWith: (value: lib.String): TriggerProjectionPredicate => ({
+        StartsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'StartsWith', T>>>> => ({
           kind: 'Id',
           value: TriggerIdProjectionPredicate.Name.Atom.StartsWith(value),
         }),
-        EndsWith: (value: lib.String): TriggerProjectionPredicate => ({
+        EndsWith: <const T extends lib.String>(
+          value: T,
+        ): lib.Variant<'Id', lib.Variant<'Name', lib.Variant<'Atom', lib.Variant<'EndsWith', T>>>> => ({
           kind: 'Id',
           value: TriggerIdProjectionPredicate.Name.Atom.EndsWith(value),
         }),
@@ -6893,7 +8986,9 @@ export const TriggerProjectionPredicate = {
     Atom: {},
     Metadata: {
       Atom: {},
-      Key: (value: MetadataKeyProjectionPredicate): TriggerProjectionPredicate => ({
+      Key: <const T extends MetadataKeyProjectionPredicate>(
+        value: T,
+      ): lib.Variant<'Action', lib.Variant<'Metadata', lib.Variant<'Key', T>>> => ({
         kind: 'Action',
         value: ActionProjectionPredicate.Metadata.Key(value),
       }),
@@ -6913,22 +9008,36 @@ export const TriggerProjectionPredicate = {
 }
 
 export type TriggerProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Id', TriggerIdProjectionSelector>
-  | lib.SumTypeKindValue<'Action', ActionProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Id', TriggerIdProjectionSelector>
+  | lib.Variant<'Action', ActionProjectionSelector>
 export const TriggerProjectionSelector = {
-  Atom: Object.freeze<TriggerProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Id: {
-    Atom: Object.freeze<TriggerProjectionSelector>({ kind: 'Id', value: TriggerIdProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Id', lib.VariantUnit<'Atom'>>>({
+      kind: 'Id',
+      value: TriggerIdProjectionSelector.Atom,
+    }),
     Name: {
-      Atom: Object.freeze<TriggerProjectionSelector>({ kind: 'Id', value: TriggerIdProjectionSelector.Name.Atom }),
+      Atom: Object.freeze<lib.Variant<'Id', lib.Variant<'Name', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Id',
+        value: TriggerIdProjectionSelector.Name.Atom,
+      }),
     },
   },
   Action: {
-    Atom: Object.freeze<TriggerProjectionSelector>({ kind: 'Action', value: ActionProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Action', lib.VariantUnit<'Atom'>>>({
+      kind: 'Action',
+      value: ActionProjectionSelector.Atom,
+    }),
     Metadata: {
-      Atom: Object.freeze<TriggerProjectionSelector>({ kind: 'Action', value: ActionProjectionSelector.Metadata.Atom }),
-      Key: (value: MetadataKeyProjectionSelector): TriggerProjectionSelector => ({
+      Atom: Object.freeze<lib.Variant<'Action', lib.Variant<'Metadata', lib.VariantUnit<'Atom'>>>>({
+        kind: 'Action',
+        value: ActionProjectionSelector.Metadata.Atom,
+      }),
+      Key: <const T extends MetadataKeyProjectionSelector>(
+        value: T,
+      ): lib.Variant<'Action', lib.Variant<'Metadata', lib.Variant<'Key', T>>> => ({
         kind: 'Action',
         value: ActionProjectionSelector.Metadata.Key(value),
       }),
@@ -6947,15 +9056,17 @@ export type SignedBlockPredicateAtom = never
 export const SignedBlockPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 
 export type SignedBlockProjectionPredicate =
-  | lib.SumTypeKindValue<'Atom', SignedBlockPredicateAtom>
-  | lib.SumTypeKindValue<'Header', BlockHeaderProjectionPredicate>
+  | lib.Variant<'Atom', SignedBlockPredicateAtom>
+  | lib.Variant<'Header', BlockHeaderProjectionPredicate>
 export const SignedBlockProjectionPredicate = {
   Atom: {},
   Header: {
     Atom: {},
     Hash: {
       Atom: {
-        Equals: (value: lib.HashWrap): SignedBlockProjectionPredicate => ({
+        Equals: <const T extends lib.HashWrap>(
+          value: T,
+        ): lib.Variant<'Header', lib.Variant<'Hash', lib.Variant<'Atom', lib.Variant<'Equals', T>>>> => ({
           kind: 'Header',
           value: BlockHeaderProjectionPredicate.Hash.Atom.Equals(value),
         }),
@@ -6971,14 +9082,17 @@ export const SignedBlockProjectionPredicate = {
 }
 
 export type SignedBlockProjectionSelector =
-  | lib.SumTypeKind<'Atom'>
-  | lib.SumTypeKindValue<'Header', BlockHeaderProjectionSelector>
+  | lib.VariantUnit<'Atom'>
+  | lib.Variant<'Header', BlockHeaderProjectionSelector>
 export const SignedBlockProjectionSelector = {
-  Atom: Object.freeze<SignedBlockProjectionSelector>({ kind: 'Atom' }),
+  Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   Header: {
-    Atom: Object.freeze<SignedBlockProjectionSelector>({ kind: 'Header', value: BlockHeaderProjectionSelector.Atom }),
+    Atom: Object.freeze<lib.Variant<'Header', lib.VariantUnit<'Atom'>>>({
+      kind: 'Header',
+      value: BlockHeaderProjectionSelector.Atom,
+    }),
     Hash: {
-      Atom: Object.freeze<SignedBlockProjectionSelector>({
+      Atom: Object.freeze<lib.Variant<'Header', lib.Variant<'Hash', lib.VariantUnit<'Atom'>>>>({
         kind: 'Header',
         value: BlockHeaderProjectionSelector.Hash.Atom,
       }),
@@ -6993,19 +9107,19 @@ export const SignedBlockProjectionSelector = {
 }
 
 export type QueryBox =
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindDomains',
       QueryWithFilter<null, lib.CompoundPredicate<DomainProjectionPredicate>, lib.Vec<DomainProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindAccounts',
       QueryWithFilter<null, lib.CompoundPredicate<AccountProjectionPredicate>, lib.Vec<AccountProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindAssets',
       QueryWithFilter<null, lib.CompoundPredicate<AssetProjectionPredicate>, lib.Vec<AssetProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindAssetsDefinitions',
       QueryWithFilter<
         null,
@@ -7013,15 +9127,15 @@ export type QueryBox =
         lib.Vec<AssetDefinitionProjectionSelector>
       >
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindRoles',
       QueryWithFilter<null, lib.CompoundPredicate<RoleProjectionPredicate>, lib.Vec<RoleProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindRoleIds',
       QueryWithFilter<null, lib.CompoundPredicate<RoleIdProjectionPredicate>, lib.Vec<RoleIdProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindPermissionsByAccountId',
       QueryWithFilter<
         FindPermissionsByAccountId,
@@ -7029,7 +9143,7 @@ export type QueryBox =
         lib.Vec<PermissionProjectionSelector>
       >
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindRolesByAccountId',
       QueryWithFilter<
         FindRolesByAccountId,
@@ -7037,7 +9151,7 @@ export type QueryBox =
         lib.Vec<RoleIdProjectionSelector>
       >
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindAccountsWithAsset',
       QueryWithFilter<
         FindAccountsWithAsset,
@@ -7045,19 +9159,19 @@ export type QueryBox =
         lib.Vec<AccountProjectionSelector>
       >
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindPeers',
       QueryWithFilter<null, lib.CompoundPredicate<PeerIdProjectionPredicate>, lib.Vec<PeerIdProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindActiveTriggerIds',
       QueryWithFilter<null, lib.CompoundPredicate<TriggerIdProjectionPredicate>, lib.Vec<TriggerIdProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindTriggers',
       QueryWithFilter<null, lib.CompoundPredicate<TriggerProjectionPredicate>, lib.Vec<TriggerProjectionSelector>>
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindTransactions',
       QueryWithFilter<
         null,
@@ -7065,7 +9179,7 @@ export type QueryBox =
         lib.Vec<CommittedTransactionProjectionSelector>
       >
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindBlocks',
       QueryWithFilter<
         null,
@@ -7073,7 +9187,7 @@ export type QueryBox =
         lib.Vec<SignedBlockProjectionSelector>
       >
     >
-  | lib.SumTypeKindValue<
+  | lib.Variant<
       'FindBlockHeaders',
       QueryWithFilter<
         null,
@@ -7082,83 +9196,141 @@ export type QueryBox =
       >
     >
 export const QueryBox = {
-  FindDomains: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<DomainProjectionPredicate>, lib.Vec<DomainProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindDomains', value }),
-  FindAccounts: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<AccountProjectionPredicate>, lib.Vec<AccountProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindAccounts', value }),
-  FindAssets: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<AssetProjectionPredicate>, lib.Vec<AssetProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindAssets', value }),
-  FindAssetsDefinitions: (
-    value: QueryWithFilter<
+  FindDomains: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<DomainProjectionPredicate>,
+      lib.Vec<DomainProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindDomains', T> => ({ kind: 'FindDomains', value }),
+  FindAccounts: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<AccountProjectionPredicate>,
+      lib.Vec<AccountProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindAccounts', T> => ({ kind: 'FindAccounts', value }),
+  FindAssets: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<AssetProjectionPredicate>,
+      lib.Vec<AssetProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindAssets', T> => ({ kind: 'FindAssets', value }),
+  FindAssetsDefinitions: <
+    const T extends QueryWithFilter<
       null,
       lib.CompoundPredicate<AssetDefinitionProjectionPredicate>,
       lib.Vec<AssetDefinitionProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindAssetsDefinitions', value }),
-  FindRoles: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<RoleProjectionPredicate>, lib.Vec<RoleProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindRoles', value }),
-  FindRoleIds: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<RoleIdProjectionPredicate>, lib.Vec<RoleIdProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindRoleIds', value }),
-  FindPermissionsByAccountId: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindAssetsDefinitions', T> => ({ kind: 'FindAssetsDefinitions', value }),
+  FindRoles: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<RoleProjectionPredicate>,
+      lib.Vec<RoleProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindRoles', T> => ({ kind: 'FindRoles', value }),
+  FindRoleIds: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<RoleIdProjectionPredicate>,
+      lib.Vec<RoleIdProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindRoleIds', T> => ({ kind: 'FindRoleIds', value }),
+  FindPermissionsByAccountId: <
+    const T extends QueryWithFilter<
       FindPermissionsByAccountId,
       lib.CompoundPredicate<PermissionProjectionPredicate>,
       lib.Vec<PermissionProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindPermissionsByAccountId', value }),
-  FindRolesByAccountId: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindPermissionsByAccountId', T> => ({ kind: 'FindPermissionsByAccountId', value }),
+  FindRolesByAccountId: <
+    const T extends QueryWithFilter<
       FindRolesByAccountId,
       lib.CompoundPredicate<RoleIdProjectionPredicate>,
       lib.Vec<RoleIdProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindRolesByAccountId', value }),
-  FindAccountsWithAsset: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindRolesByAccountId', T> => ({ kind: 'FindRolesByAccountId', value }),
+  FindAccountsWithAsset: <
+    const T extends QueryWithFilter<
       FindAccountsWithAsset,
       lib.CompoundPredicate<AccountProjectionPredicate>,
       lib.Vec<AccountProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindAccountsWithAsset', value }),
-  FindPeers: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<PeerIdProjectionPredicate>, lib.Vec<PeerIdProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindPeers', value }),
-  FindActiveTriggerIds: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindAccountsWithAsset', T> => ({ kind: 'FindAccountsWithAsset', value }),
+  FindPeers: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<PeerIdProjectionPredicate>,
+      lib.Vec<PeerIdProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindPeers', T> => ({ kind: 'FindPeers', value }),
+  FindActiveTriggerIds: <
+    const T extends QueryWithFilter<
       null,
       lib.CompoundPredicate<TriggerIdProjectionPredicate>,
       lib.Vec<TriggerIdProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindActiveTriggerIds', value }),
-  FindTriggers: (
-    value: QueryWithFilter<null, lib.CompoundPredicate<TriggerProjectionPredicate>, lib.Vec<TriggerProjectionSelector>>,
-  ): QueryBox => ({ kind: 'FindTriggers', value }),
-  FindTransactions: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindActiveTriggerIds', T> => ({ kind: 'FindActiveTriggerIds', value }),
+  FindTriggers: <
+    const T extends QueryWithFilter<
+      null,
+      lib.CompoundPredicate<TriggerProjectionPredicate>,
+      lib.Vec<TriggerProjectionSelector>
+    >,
+  >(
+    value: T,
+  ): lib.Variant<'FindTriggers', T> => ({ kind: 'FindTriggers', value }),
+  FindTransactions: <
+    const T extends QueryWithFilter<
       null,
       lib.CompoundPredicate<CommittedTransactionProjectionPredicate>,
       lib.Vec<CommittedTransactionProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindTransactions', value }),
-  FindBlocks: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindTransactions', T> => ({ kind: 'FindTransactions', value }),
+  FindBlocks: <
+    const T extends QueryWithFilter<
       null,
       lib.CompoundPredicate<SignedBlockProjectionPredicate>,
       lib.Vec<SignedBlockProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindBlocks', value }),
-  FindBlockHeaders: (
-    value: QueryWithFilter<
+  >(
+    value: T,
+  ): lib.Variant<'FindBlocks', T> => ({ kind: 'FindBlocks', value }),
+  FindBlockHeaders: <
+    const T extends QueryWithFilter<
       null,
       lib.CompoundPredicate<BlockHeaderProjectionPredicate>,
       lib.Vec<BlockHeaderProjectionSelector>
     >,
-  ): QueryBox => ({ kind: 'FindBlockHeaders', value }),
+  >(
+    value: T,
+  ): lib.Variant<'FindBlockHeaders', T> => ({ kind: 'FindBlockHeaders', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       FindDomains: [
@@ -7409,76 +9581,112 @@ export const QueryBox = {
 }
 
 export type QueryOutputBatchBox =
-  | lib.SumTypeKindValue<'PublicKey', lib.Vec<lib.PublicKeyWrap>>
-  | lib.SumTypeKindValue<'String', lib.Vec<lib.String>>
-  | lib.SumTypeKindValue<'Metadata', lib.Vec<lib.Map<lib.Name, lib.Json>>>
-  | lib.SumTypeKindValue<'Json', lib.Vec<lib.Json>>
-  | lib.SumTypeKindValue<'Numeric', lib.Vec<Numeric>>
-  | lib.SumTypeKindValue<'Name', lib.Vec<lib.Name>>
-  | lib.SumTypeKindValue<'DomainId', lib.Vec<lib.DomainId>>
-  | lib.SumTypeKindValue<'Domain', lib.Vec<Domain>>
-  | lib.SumTypeKindValue<'AccountId', lib.Vec<lib.AccountId>>
-  | lib.SumTypeKindValue<'Account', lib.Vec<Account>>
-  | lib.SumTypeKindValue<'AssetId', lib.Vec<lib.AssetId>>
-  | lib.SumTypeKindValue<'Asset', lib.Vec<Asset>>
-  | lib.SumTypeKindValue<'AssetValue', lib.Vec<AssetValue>>
-  | lib.SumTypeKindValue<'AssetDefinitionId', lib.Vec<lib.AssetDefinitionId>>
-  | lib.SumTypeKindValue<'AssetDefinition', lib.Vec<AssetDefinition>>
-  | lib.SumTypeKindValue<'Role', lib.Vec<Role>>
-  | lib.SumTypeKindValue<'Parameter', lib.Vec<Parameter>>
-  | lib.SumTypeKindValue<'Permission', lib.Vec<Permission>>
-  | lib.SumTypeKindValue<'CommittedTransaction', lib.Vec<CommittedTransaction>>
-  | lib.SumTypeKindValue<'SignedTransaction', lib.Vec<SignedTransaction>>
-  | lib.SumTypeKindValue<'TransactionHash', lib.Vec<lib.HashWrap>>
-  | lib.SumTypeKindValue<'TransactionRejectionReason', lib.Vec<lib.Option<TransactionRejectionReason>>>
-  | lib.SumTypeKindValue<'Peer', lib.Vec<PeerId>>
-  | lib.SumTypeKindValue<'RoleId', lib.Vec<RoleId>>
-  | lib.SumTypeKindValue<'TriggerId', lib.Vec<TriggerId>>
-  | lib.SumTypeKindValue<'Trigger', lib.Vec<Trigger>>
-  | lib.SumTypeKindValue<'Action', lib.Vec<Action>>
-  | lib.SumTypeKindValue<'Block', lib.Vec<SignedBlock>>
-  | lib.SumTypeKindValue<'BlockHeader', lib.Vec<BlockHeader>>
-  | lib.SumTypeKindValue<'BlockHeaderHash', lib.Vec<lib.HashWrap>>
+  | lib.Variant<'PublicKey', lib.Vec<lib.PublicKeyWrap>>
+  | lib.Variant<'String', lib.Vec<lib.String>>
+  | lib.Variant<'Metadata', lib.Vec<lib.Map<lib.Name, lib.Json>>>
+  | lib.Variant<'Json', lib.Vec<lib.Json>>
+  | lib.Variant<'Numeric', lib.Vec<Numeric>>
+  | lib.Variant<'Name', lib.Vec<lib.Name>>
+  | lib.Variant<'DomainId', lib.Vec<lib.DomainId>>
+  | lib.Variant<'Domain', lib.Vec<Domain>>
+  | lib.Variant<'AccountId', lib.Vec<lib.AccountId>>
+  | lib.Variant<'Account', lib.Vec<Account>>
+  | lib.Variant<'AssetId', lib.Vec<lib.AssetId>>
+  | lib.Variant<'Asset', lib.Vec<Asset>>
+  | lib.Variant<'AssetValue', lib.Vec<AssetValue>>
+  | lib.Variant<'AssetDefinitionId', lib.Vec<lib.AssetDefinitionId>>
+  | lib.Variant<'AssetDefinition', lib.Vec<AssetDefinition>>
+  | lib.Variant<'Role', lib.Vec<Role>>
+  | lib.Variant<'Parameter', lib.Vec<Parameter>>
+  | lib.Variant<'Permission', lib.Vec<Permission>>
+  | lib.Variant<'CommittedTransaction', lib.Vec<CommittedTransaction>>
+  | lib.Variant<'SignedTransaction', lib.Vec<SignedTransaction>>
+  | lib.Variant<'TransactionHash', lib.Vec<lib.HashWrap>>
+  | lib.Variant<'TransactionRejectionReason', lib.Vec<lib.Option<TransactionRejectionReason>>>
+  | lib.Variant<'Peer', lib.Vec<PeerId>>
+  | lib.Variant<'RoleId', lib.Vec<RoleId>>
+  | lib.Variant<'TriggerId', lib.Vec<TriggerId>>
+  | lib.Variant<'Trigger', lib.Vec<Trigger>>
+  | lib.Variant<'Action', lib.Vec<Action>>
+  | lib.Variant<'Block', lib.Vec<SignedBlock>>
+  | lib.Variant<'BlockHeader', lib.Vec<BlockHeader>>
+  | lib.Variant<'BlockHeaderHash', lib.Vec<lib.HashWrap>>
 export const QueryOutputBatchBox = {
-  PublicKey: (value: lib.Vec<lib.PublicKeyWrap>): QueryOutputBatchBox => ({ kind: 'PublicKey', value }),
-  String: (value: lib.Vec<lib.String>): QueryOutputBatchBox => ({ kind: 'String', value }),
-  Metadata: (value: lib.Vec<lib.Map<lib.Name, lib.Json>>): QueryOutputBatchBox => ({ kind: 'Metadata', value }),
-  Json: (value: lib.Vec<lib.Json>): QueryOutputBatchBox => ({ kind: 'Json', value }),
-  Numeric: (value: lib.Vec<Numeric>): QueryOutputBatchBox => ({ kind: 'Numeric', value }),
-  Name: (value: lib.Vec<lib.Name>): QueryOutputBatchBox => ({ kind: 'Name', value }),
-  DomainId: (value: lib.Vec<lib.DomainId>): QueryOutputBatchBox => ({ kind: 'DomainId', value }),
-  Domain: (value: lib.Vec<Domain>): QueryOutputBatchBox => ({ kind: 'Domain', value }),
-  AccountId: (value: lib.Vec<lib.AccountId>): QueryOutputBatchBox => ({ kind: 'AccountId', value }),
-  Account: (value: lib.Vec<Account>): QueryOutputBatchBox => ({ kind: 'Account', value }),
-  AssetId: (value: lib.Vec<lib.AssetId>): QueryOutputBatchBox => ({ kind: 'AssetId', value }),
-  Asset: (value: lib.Vec<Asset>): QueryOutputBatchBox => ({ kind: 'Asset', value }),
-  AssetValue: (value: lib.Vec<AssetValue>): QueryOutputBatchBox => ({ kind: 'AssetValue', value }),
-  AssetDefinitionId: (value: lib.Vec<lib.AssetDefinitionId>): QueryOutputBatchBox => ({
-    kind: 'AssetDefinitionId',
+  PublicKey: <const T extends lib.Vec<lib.PublicKeyWrap>>(value: T): lib.Variant<'PublicKey', T> => ({
+    kind: 'PublicKey',
     value,
   }),
-  AssetDefinition: (value: lib.Vec<AssetDefinition>): QueryOutputBatchBox => ({ kind: 'AssetDefinition', value }),
-  Role: (value: lib.Vec<Role>): QueryOutputBatchBox => ({ kind: 'Role', value }),
-  Parameter: (value: lib.Vec<Parameter>): QueryOutputBatchBox => ({ kind: 'Parameter', value }),
-  Permission: (value: lib.Vec<Permission>): QueryOutputBatchBox => ({ kind: 'Permission', value }),
-  CommittedTransaction: (value: lib.Vec<CommittedTransaction>): QueryOutputBatchBox => ({
-    kind: 'CommittedTransaction',
+  String: <const T extends lib.Vec<lib.String>>(value: T): lib.Variant<'String', T> => ({ kind: 'String', value }),
+  Metadata: <const T extends lib.Vec<lib.Map<lib.Name, lib.Json>>>(value: T): lib.Variant<'Metadata', T> => ({
+    kind: 'Metadata',
     value,
   }),
-  SignedTransaction: (value: lib.Vec<SignedTransaction>): QueryOutputBatchBox => ({ kind: 'SignedTransaction', value }),
-  TransactionHash: (value: lib.Vec<lib.HashWrap>): QueryOutputBatchBox => ({ kind: 'TransactionHash', value }),
-  TransactionRejectionReason: (value: lib.Vec<lib.Option<TransactionRejectionReason>>): QueryOutputBatchBox => ({
-    kind: 'TransactionRejectionReason',
+  Json: <const T extends lib.Vec<lib.Json>>(value: T): lib.Variant<'Json', T> => ({ kind: 'Json', value }),
+  Numeric: <const T extends lib.Vec<Numeric>>(value: T): lib.Variant<'Numeric', T> => ({ kind: 'Numeric', value }),
+  Name: <const T extends lib.Vec<lib.Name>>(value: T): lib.Variant<'Name', T> => ({ kind: 'Name', value }),
+  DomainId: <const T extends lib.Vec<lib.DomainId>>(value: T): lib.Variant<'DomainId', T> => ({
+    kind: 'DomainId',
     value,
   }),
-  Peer: (value: lib.Vec<PeerId>): QueryOutputBatchBox => ({ kind: 'Peer', value }),
-  RoleId: (value: lib.Vec<RoleId>): QueryOutputBatchBox => ({ kind: 'RoleId', value }),
-  TriggerId: (value: lib.Vec<TriggerId>): QueryOutputBatchBox => ({ kind: 'TriggerId', value }),
-  Trigger: (value: lib.Vec<Trigger>): QueryOutputBatchBox => ({ kind: 'Trigger', value }),
-  Action: (value: lib.Vec<Action>): QueryOutputBatchBox => ({ kind: 'Action', value }),
-  Block: (value: lib.Vec<SignedBlock>): QueryOutputBatchBox => ({ kind: 'Block', value }),
-  BlockHeader: (value: lib.Vec<BlockHeader>): QueryOutputBatchBox => ({ kind: 'BlockHeader', value }),
-  BlockHeaderHash: (value: lib.Vec<lib.HashWrap>): QueryOutputBatchBox => ({ kind: 'BlockHeaderHash', value }),
+  Domain: <const T extends lib.Vec<Domain>>(value: T): lib.Variant<'Domain', T> => ({ kind: 'Domain', value }),
+  AccountId: <const T extends lib.Vec<lib.AccountId>>(value: T): lib.Variant<'AccountId', T> => ({
+    kind: 'AccountId',
+    value,
+  }),
+  Account: <const T extends lib.Vec<Account>>(value: T): lib.Variant<'Account', T> => ({ kind: 'Account', value }),
+  AssetId: <const T extends lib.Vec<lib.AssetId>>(value: T): lib.Variant<'AssetId', T> => ({ kind: 'AssetId', value }),
+  Asset: <const T extends lib.Vec<Asset>>(value: T): lib.Variant<'Asset', T> => ({ kind: 'Asset', value }),
+  AssetValue: <const T extends lib.Vec<AssetValue>>(value: T): lib.Variant<'AssetValue', T> => ({
+    kind: 'AssetValue',
+    value,
+  }),
+  AssetDefinitionId: <const T extends lib.Vec<lib.AssetDefinitionId>>(
+    value: T,
+  ): lib.Variant<'AssetDefinitionId', T> => ({ kind: 'AssetDefinitionId', value }),
+  AssetDefinition: <const T extends lib.Vec<AssetDefinition>>(value: T): lib.Variant<'AssetDefinition', T> => ({
+    kind: 'AssetDefinition',
+    value,
+  }),
+  Role: <const T extends lib.Vec<Role>>(value: T): lib.Variant<'Role', T> => ({ kind: 'Role', value }),
+  Parameter: <const T extends lib.Vec<Parameter>>(value: T): lib.Variant<'Parameter', T> => ({
+    kind: 'Parameter',
+    value,
+  }),
+  Permission: <const T extends lib.Vec<Permission>>(value: T): lib.Variant<'Permission', T> => ({
+    kind: 'Permission',
+    value,
+  }),
+  CommittedTransaction: <const T extends lib.Vec<CommittedTransaction>>(
+    value: T,
+  ): lib.Variant<'CommittedTransaction', T> => ({ kind: 'CommittedTransaction', value }),
+  SignedTransaction: <const T extends lib.Vec<SignedTransaction>>(value: T): lib.Variant<'SignedTransaction', T> => ({
+    kind: 'SignedTransaction',
+    value,
+  }),
+  TransactionHash: <const T extends lib.Vec<lib.HashWrap>>(value: T): lib.Variant<'TransactionHash', T> => ({
+    kind: 'TransactionHash',
+    value,
+  }),
+  TransactionRejectionReason: <const T extends lib.Vec<lib.Option<TransactionRejectionReason>>>(
+    value: T,
+  ): lib.Variant<'TransactionRejectionReason', T> => ({ kind: 'TransactionRejectionReason', value }),
+  Peer: <const T extends lib.Vec<PeerId>>(value: T): lib.Variant<'Peer', T> => ({ kind: 'Peer', value }),
+  RoleId: <const T extends lib.Vec<RoleId>>(value: T): lib.Variant<'RoleId', T> => ({ kind: 'RoleId', value }),
+  TriggerId: <const T extends lib.Vec<TriggerId>>(value: T): lib.Variant<'TriggerId', T> => ({
+    kind: 'TriggerId',
+    value,
+  }),
+  Trigger: <const T extends lib.Vec<Trigger>>(value: T): lib.Variant<'Trigger', T> => ({ kind: 'Trigger', value }),
+  Action: <const T extends lib.Vec<Action>>(value: T): lib.Variant<'Action', T> => ({ kind: 'Action', value }),
+  Block: <const T extends lib.Vec<SignedBlock>>(value: T): lib.Variant<'Block', T> => ({ kind: 'Block', value }),
+  BlockHeader: <const T extends lib.Vec<BlockHeader>>(value: T): lib.Variant<'BlockHeader', T> => ({
+    kind: 'BlockHeader',
+    value,
+  }),
+  BlockHeaderHash: <const T extends lib.Vec<lib.HashWrap>>(value: T): lib.Variant<'BlockHeaderHash', T> => ({
+    kind: 'BlockHeaderHash',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       PublicKey: [lib.Vec<lib.PublicKeyWrap>]
@@ -7598,10 +9806,10 @@ export const QueryParams: lib.CodecProvider<QueryParams> = {
   }),
 }
 
-export type SingularQueryBox = lib.SumTypeKind<'FindExecutorDataModel'> | lib.SumTypeKind<'FindParameters'>
+export type SingularQueryBox = lib.VariantUnit<'FindExecutorDataModel'> | lib.VariantUnit<'FindParameters'>
 export const SingularQueryBox = {
-  FindExecutorDataModel: Object.freeze<SingularQueryBox>({ kind: 'FindExecutorDataModel' }),
-  FindParameters: Object.freeze<SingularQueryBox>({ kind: 'FindParameters' }),
+  FindExecutorDataModel: Object.freeze<lib.VariantUnit<'FindExecutorDataModel'>>({ kind: 'FindExecutorDataModel' }),
+  FindParameters: Object.freeze<lib.VariantUnit<'FindParameters'>>({ kind: 'FindParameters' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ FindExecutorDataModel: []; FindParameters: [] }>([
       [0, 'FindExecutorDataModel'],
@@ -7622,19 +9830,22 @@ export const QueryWithParams: lib.CodecProvider<QueryWithParams> = {
 }
 
 export type QueryRequest =
-  | lib.SumTypeKindValue<'Singular', SingularQueryBox>
-  | lib.SumTypeKindValue<'Start', QueryWithParams>
-  | lib.SumTypeKindValue<'Continue', ForwardCursor>
+  | lib.Variant<'Singular', SingularQueryBox>
+  | lib.Variant<'Start', QueryWithParams>
+  | lib.Variant<'Continue', ForwardCursor>
 export const QueryRequest = {
   Singular: {
-    FindExecutorDataModel: Object.freeze<QueryRequest>({
+    FindExecutorDataModel: Object.freeze<lib.Variant<'Singular', lib.VariantUnit<'FindExecutorDataModel'>>>({
       kind: 'Singular',
       value: SingularQueryBox.FindExecutorDataModel,
     }),
-    FindParameters: Object.freeze<QueryRequest>({ kind: 'Singular', value: SingularQueryBox.FindParameters }),
+    FindParameters: Object.freeze<lib.Variant<'Singular', lib.VariantUnit<'FindParameters'>>>({
+      kind: 'Singular',
+      value: SingularQueryBox.FindParameters,
+    }),
   },
-  Start: (value: QueryWithParams): QueryRequest => ({ kind: 'Start', value }),
-  Continue: (value: ForwardCursor): QueryRequest => ({ kind: 'Continue', value }),
+  Start: <const T extends QueryWithParams>(value: T): lib.Variant<'Start', T> => ({ kind: 'Start', value }),
+  Continue: <const T extends ForwardCursor>(value: T): lib.Variant<'Continue', T> => ({ kind: 'Continue', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Singular: [SingularQueryBox]; Start: [QueryWithParams]; Continue: [ForwardCursor] }>([
       [0, 'Singular', lib.codecOf(SingularQueryBox)],
@@ -7656,11 +9867,14 @@ export const QueryRequestWithAuthority: lib.CodecProvider<QueryRequestWithAuthor
 }
 
 export type SingularQueryOutputBox =
-  | lib.SumTypeKindValue<'ExecutorDataModel', ExecutorDataModel>
-  | lib.SumTypeKindValue<'Parameters', Parameters>
+  | lib.Variant<'ExecutorDataModel', ExecutorDataModel>
+  | lib.Variant<'Parameters', Parameters>
 export const SingularQueryOutputBox = {
-  ExecutorDataModel: (value: ExecutorDataModel): SingularQueryOutputBox => ({ kind: 'ExecutorDataModel', value }),
-  Parameters: (value: Parameters): SingularQueryOutputBox => ({ kind: 'Parameters', value }),
+  ExecutorDataModel: <const T extends ExecutorDataModel>(value: T): lib.Variant<'ExecutorDataModel', T> => ({
+    kind: 'ExecutorDataModel',
+    value,
+  }),
+  Parameters: <const T extends Parameters>(value: T): lib.Variant<'Parameters', T> => ({ kind: 'Parameters', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ ExecutorDataModel: [ExecutorDataModel]; Parameters: [Parameters] }>([
       [0, 'ExecutorDataModel', lib.codecOf(ExecutorDataModel)],
@@ -7669,21 +9883,21 @@ export const SingularQueryOutputBox = {
     .discriminated(),
 }
 
-export type QueryResponse =
-  | lib.SumTypeKindValue<'Singular', SingularQueryOutputBox>
-  | lib.SumTypeKindValue<'Iterable', QueryOutput>
+export type QueryResponse = lib.Variant<'Singular', SingularQueryOutputBox> | lib.Variant<'Iterable', QueryOutput>
 export const QueryResponse = {
   Singular: {
-    ExecutorDataModel: (value: ExecutorDataModel): QueryResponse => ({
+    ExecutorDataModel: <const T extends ExecutorDataModel>(
+      value: T,
+    ): lib.Variant<'Singular', lib.Variant<'ExecutorDataModel', T>> => ({
       kind: 'Singular',
       value: SingularQueryOutputBox.ExecutorDataModel(value),
     }),
-    Parameters: (value: Parameters): QueryResponse => ({
+    Parameters: <const T extends Parameters>(value: T): lib.Variant<'Singular', lib.Variant<'Parameters', T>> => ({
       kind: 'Singular',
       value: SingularQueryOutputBox.Parameters(value),
     }),
   },
-  Iterable: (value: QueryOutput): QueryResponse => ({ kind: 'Iterable', value }),
+  Iterable: <const T extends QueryOutput>(value: T): lib.Variant<'Iterable', T> => ({ kind: 'Iterable', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Singular: [SingularQueryOutputBox]; Iterable: [QueryOutput] }>([
       [0, 'Singular', lib.codecOf(SingularQueryOutputBox)],
@@ -7727,9 +9941,9 @@ export const SignedQueryV1: lib.CodecProvider<SignedQueryV1> = {
   }),
 }
 
-export type SignedQuery = lib.SumTypeKindValue<'V1', SignedQueryV1>
+export type SignedQuery = lib.Variant<'V1', SignedQueryV1>
 export const SignedQuery = {
-  V1: (value: SignedQueryV1): SignedQuery => ({ kind: 'V1', value }),
+  V1: <const T extends SignedQueryV1>(value: T): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
   [lib.CodecSymbol]: lib.enumCodec<{ V1: [SignedQueryV1] }>([[1, 'V1', lib.codecOf(SignedQueryV1)]]).discriminated(),
 }
 

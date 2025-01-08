@@ -1,73 +1,56 @@
 import * as scale from '@scale-codec/core'
-import {
-  Codec,
-  type CodecProvider,
-  CodecSymbol,
-  codecOf,
-  CodecSymbol as codecSymbol,
-  enumCodec,
-  lazyCodec,
-  structCodec,
-} from '../codec'
+import { Codec, type CodecProvider, CodecSymbol, codecOf, enumCodec, lazyCodec, structCodec } from '../codec'
 import type { JsonValue } from 'type-fest'
-import {
-  hexDecode,
-  type SumTypeKind,
-  type SumTypeKindValue,
-  // type BRAND,
-  type Define,
-  type Parse,
-  hexEncode,
-} from '../util'
+import { type Parse, type Variant, type VariantUnit, hexDecode, hexEncode } from '../util'
 import * as crypto from '@iroha2/crypto-core'
 
 export type U8 = number
 export const U8: CodecProvider<U8> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeU8, decode: scale.decodeU8 }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeU8, decode: scale.decodeU8 }),
 }
 
 export type U16 = number
 export const U16: CodecProvider<U16> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeU16, decode: scale.decodeU16 }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeU16, decode: scale.decodeU16 }),
 }
 
 export type U32 = number
 export const U32: CodecProvider<U32> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }),
 }
 
 export type U64 = bigint
 export const U64: CodecProvider<U64> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeU64, decode: scale.decodeU64 }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeU64, decode: scale.decodeU64 }),
 }
 
 export type U128 = bigint
 export const U128: CodecProvider<U128> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeU128, decode: scale.decodeU128 }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeU128, decode: scale.decodeU128 }),
 }
 
 export type BytesVec = Uint8Array
 
 export const BytesVec: CodecProvider<BytesVec> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeUint8Vec, decode: scale.decodeUint8Vec }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeUint8Vec, decode: scale.decodeUint8Vec }),
 }
 
 export type Bool = boolean
 
 export const Bool: CodecProvider<Bool> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeBool, decode: scale.decodeBool }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeBool, decode: scale.decodeBool }),
 }
 
 export type String = string
 
 export const String: CodecProvider<string> = {
-  [codecSymbol]: new Codec({ encode: scale.encodeStr, decode: scale.decodeStr }),
+  [CodecSymbol]: new Codec({ encode: scale.encodeStr, decode: scale.decodeStr }),
 }
 
 export type Compact = bigint
 
 export const Compact: CodecProvider<bigint> = {
-  [codecSymbol]: new Codec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
+  [CodecSymbol]: new Codec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
 }
 
 export type NonZero<T extends number | bigint> = T
@@ -78,7 +61,7 @@ export const NonZero = {
     return value as NonZero<T>
   },
   with: <T extends number | bigint>(int: Codec<T>): CodecProvider<NonZero<T>> => ({
-    [codecSymbol]: int as Codec<NonZero<T>>,
+    [CodecSymbol]: int as Codec<NonZero<T>>,
   }),
 }
 
@@ -86,7 +69,7 @@ export type Option<T> = null | T
 
 export const Option = {
   with: <T>(value: Codec<T>): CodecProvider<Option<T>> => ({
-    [codecSymbol]: new Codec({
+    [CodecSymbol]: new Codec({
       encode: scale.createOptionEncoder(value.raw.encode),
       decode: scale.createOptionDecoder(value.raw.decode),
     }).wrap<Option<T>>({
@@ -99,7 +82,7 @@ export type Map<K, V> = globalThis.Map<K, V>
 
 export const Map = {
   with: <K, V>(key: Codec<K>, value: Codec<V>): CodecProvider<Map<K, V>> => ({
-    [codecSymbol]: new Codec({
+    [CodecSymbol]: new Codec({
       encode: scale.createMapEncoder(key.raw.encode, value.raw.encode),
       decode: scale.createMapDecoder(key.raw.decode, value.raw.decode),
     }),
@@ -110,7 +93,7 @@ export type Vec<T> = globalThis.Array<T>
 
 export const Vec = {
   with: <T>(item: Codec<T>): CodecProvider<Vec<T>> => ({
-    [codecSymbol]: new Codec({
+    [CodecSymbol]: new Codec({
       encode: scale.createVecEncoder(item.raw.encode),
       decode: scale.createVecDecoder(item.raw.decode),
     }),
@@ -119,7 +102,7 @@ export const Vec = {
 
 // TODO document that parse/stringify json lazily when needed
 export class Json<T extends JsonValue = JsonValue> {
-  public static [codecSymbol]: Codec<Json<JsonValue>> = codecOf(String).wrap({
+  public static [CodecSymbol]: Codec<Json<JsonValue>> = codecOf(String).wrap({
     toBase: (x) => x.asJsonString(),
     fromBase: (str) => Json.fromJsonString(str),
   })
@@ -164,7 +147,7 @@ export class Json<T extends JsonValue = JsonValue> {
 }
 
 export class Timestamp {
-  public static [codecSymbol]: Codec<Timestamp> = codecOf(U64).wrap({
+  public static [CodecSymbol]: Codec<Timestamp> = codecOf(U64).wrap({
     toBase: (x) => x.asMillis(),
     fromBase: (x) => Timestamp.fromMillis(x),
   })
@@ -196,7 +179,7 @@ export class Timestamp {
 export { Timestamp as TimestampU128 }
 
 export class Duration {
-  public static [codecSymbol]: Codec<Duration> = U64[codecSymbol].wrap({
+  public static [CodecSymbol]: Codec<Duration> = U64[CodecSymbol].wrap({
     fromBase: (x) => Duration.fromMillis(x),
     toBase: (y) => y.asMillis(),
   })
@@ -217,9 +200,9 @@ export class Duration {
 }
 
 export type CompoundPredicate<Atom> =
-  | SumTypeKindValue<'Atom', Atom>
-  | SumTypeKindValue<'Not', CompoundPredicate<Atom>>
-  | SumTypeKindValue<'And' | 'Or', CompoundPredicate<Atom>[]>
+  | Variant<'Atom', Atom>
+  | Variant<'Not', CompoundPredicate<Atom>>
+  | Variant<'And' | 'Or', CompoundPredicate<Atom>[]>
 
 export const CompoundPredicate = {
   // TODO: freeze `value: []` too?
@@ -257,19 +240,19 @@ export const CompoundPredicate = {
       [3, 'Or', codecOf(Vec.with(lazySelf))],
     ]).discriminated()
 
-    return { [codecSymbol]: codec }
+    return { [CodecSymbol]: codec }
   },
 }
 
 // Crypto specials
-export type Algorithm = SumTypeKind<crypto.Algorithm>
+export type Algorithm = VariantUnit<crypto.Algorithm>
 
 export const Algorithm = {
   Ed25519: Object.freeze<Algorithm>({ kind: 'ed25519' }),
   Secp256k1: Object.freeze<Algorithm>({ kind: 'secp256k1' }),
   BlsNormal: Object.freeze<Algorithm>({ kind: 'bls_normal' }),
   BlsSmall: Object.freeze<Algorithm>({ kind: 'bls_small' }),
-  [codecSymbol]: enumCodec<{
+  [CodecSymbol]: enumCodec<{
     ed25519: []
     secp256k1: []
     bls_normal: []
@@ -285,7 +268,7 @@ export const Algorithm = {
 const HASH_ARR_LEN = 32
 
 export class HashWrap {
-  public static [codecSymbol]: Codec<HashWrap> = new Codec({
+  public static [CodecSymbol]: Codec<HashWrap> = new Codec({
     encode: scale.createUint8ArrayEncoder(HASH_ARR_LEN),
     decode: scale.createUint8ArrayDecoder(HASH_ARR_LEN),
   }).wrap<HashWrap>({
@@ -338,7 +321,7 @@ interface PubKeyObj {
 }
 
 export class PublicKeyWrap {
-  public static [codecSymbol]: Codec<PublicKeyWrap> = structCodec(['algorithm', 'payload'], {
+  public static [CodecSymbol]: Codec<PublicKeyWrap> = structCodec(['algorithm', 'payload'], {
     algorithm: codecOf(Algorithm),
     payload: codecOf(BytesVec),
   }).wrap({
@@ -409,7 +392,7 @@ export class PublicKeyWrap {
 }
 
 export class SignatureWrap {
-  public static [codecSymbol]: Codec<SignatureWrap> = codecOf(BytesVec).wrap<SignatureWrap>({
+  public static [CodecSymbol]: Codec<SignatureWrap> = codecOf(BytesVec).wrap<SignatureWrap>({
     toBase: (higher) => higher.asRaw(),
     fromBase: (lower) => SignatureWrap.fromRaw(lower),
   })
@@ -469,7 +452,7 @@ export class SignatureWrap {
 export type Name = string
 
 export const Name: CodecProvider<Name> & Parse<string, Name> = {
-  [codecSymbol]: codecOf(String).wrap<Name>({ toBase: (x) => x, fromBase: (x) => x as Name }),
+  [CodecSymbol]: codecOf(String).wrap<Name>({ toBase: (x) => x, fromBase: (x) => x as Name }),
   parse: (unchecked: string) => {
     if (!unchecked.length) throw new SyntaxError(`Name should not be empty`)
     if (/[\s#@]/.test(unchecked))
@@ -487,7 +470,7 @@ export type DomainId = Name
 export const DomainId = Name as CodecProvider<DomainId> & Parse<string, DomainId>
 
 export class AccountId {
-  public static [codecSymbol]: Codec<AccountId> = structCodec<{ signatory: PublicKeyWrap; domain: DomainId }>(
+  public static [CodecSymbol]: Codec<AccountId> = structCodec<{ signatory: PublicKeyWrap; domain: DomainId }>(
     ['domain', 'signatory'],
     {
       domain: codecOf(DomainId),
@@ -530,7 +513,7 @@ function accountIdFromStr(str: string): AccountId {
 }
 
 export class AssetDefinitionId {
-  public static [codecSymbol]: Codec<AssetDefinitionId> = structCodec<{
+  public static [CodecSymbol]: Codec<AssetDefinitionId> = structCodec<{
     name: Name
     domain: DomainId
   }>(['domain', 'name'], {
@@ -578,7 +561,7 @@ function assetDefIdFromStr(input: string) {
 }
 
 export class AssetId {
-  public static [codecSymbol]: Codec<AssetId> = structCodec<{ account: AccountId; definition: AssetDefinitionId }>(
+  public static [CodecSymbol]: Codec<AssetId> = structCodec<{ account: AccountId; definition: AssetDefinitionId }>(
     ['account', 'definition'],
     { account: codecOf(AccountId), definition: codecOf(AssetDefinitionId) },
   ).wrap<AssetId>({ toBase: (higher) => higher, fromBase: (lower) => new AssetId(lower.account, lower.definition) })

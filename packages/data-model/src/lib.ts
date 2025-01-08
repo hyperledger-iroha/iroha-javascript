@@ -13,7 +13,7 @@ import * as crypto from '@iroha2/crypto-core'
 
 export * from './items/index'
 export { type Codec, type CodecProvider, codecOf } from './codec'
-export { SumTypeKind, SumTypeKindValue } from './util'
+export type { Variant, VariantUnit } from './util'
 
 /**
  * The one that is used for e.g. {@link types.TransactionEventFilter}

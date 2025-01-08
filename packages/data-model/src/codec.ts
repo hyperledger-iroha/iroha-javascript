@@ -1,6 +1,6 @@
 import * as scale from '@scale-codec/core'
 import { hexDecode } from './util'
-import type { SumTypeKind, SumTypeKindValue } from './util'
+import type { Variant, VariantUnit } from './util'
 
 export interface RawScaleCodec<T> {
   encode: scale.Encode<T>
@@ -82,9 +82,9 @@ export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate
   public discriminated<
     T extends {
       [Tag in keyof E]: E[Tag] extends []
-        ? SumTypeKind<Tag>
+        ? VariantUnit<Tag>
         : E[Tag] extends [infer Value]
-          ? SumTypeKindValue<Tag, Value>
+          ? Variant<Tag, Value>
           : never
     }[keyof E],
   >(): Codec<T> {
