@@ -4,7 +4,6 @@ import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
 import { match } from 'ts-pattern'
-export { default as QUERY_IMPLS, type QueryImpl } from './impl-query'
 
 export type Binary = 'irohad' | 'iroha_kagami' | 'iroha_codec'
 
@@ -17,7 +16,11 @@ export type Binary = 'irohad' | 'iroha_kagami' | 'iroha_codec'
 export async function resolveBinary(bin: Binary): Promise<{ path: string }> {
   const binaryPath = resolveBinaryPath(bin)
   if (!(await isAccessible(binaryPath))) {
-    throw new Error(`Binary "${bin}" is not accessible on path "${binaryPath}". Ensure to call \`buildBinary()\` first`)
+    throw new Error(
+      `Binary "${bin}" is not accessible on path "${binaryPath}".\n` +
+        `Make sure to call "buildBinary('${bin}')" first, or run in terminal:\n\n` +
+        `  pnpm --filter iroha-source cli build ${bin}`,
+    )
   }
   return { path: binaryPath }
 }

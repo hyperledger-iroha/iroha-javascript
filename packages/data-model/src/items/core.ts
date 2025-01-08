@@ -2,77 +2,55 @@ import * as scale from '@scale-codec/core'
 import {
   Codec,
   type CodecProvider,
-  CodecSymbol as codecSymbol,
+  CodecSymbol,
   codecOf,
+  CodecSymbol as codecSymbol,
   enumCodec,
   lazyCodec,
   structCodec,
-  CodecSymbol,
 } from '../codec'
 import type { JsonValue } from 'type-fest'
 import {
   hexDecode,
   type SumTypeKind,
   type SumTypeKindValue,
-  type BRAND,
+  // type BRAND,
   type Define,
   type Parse,
   hexEncode,
 } from '../util'
 import * as crypto from '@iroha2/crypto-core'
 
-interface IntType<T extends number | bigint, Name extends string>
-  extends CodecProvider<T & BRAND<Name>>,
-    Define<T, T & BRAND<Name>> {}
-
-function defineInt<T extends number | bigint, Name extends string>(codec: Codec<T>): IntType<T, Name> {
-  const ret: IntType<T, Name> = {
-    [codecSymbol]: codec.wrap<T & BRAND<Name>>({
-      toBase: (x) => x,
-      fromBase: (x) => ret.define(x),
-    }),
-    define: (x) => x as T & BRAND<Name>,
-  }
-  return ret
+export type U8 = number
+export const U8: CodecProvider<U8> = {
+  [codecSymbol]: new Codec({ encode: scale.encodeU8, decode: scale.decodeU8 }),
 }
 
-export type U8 = number & BRAND<'U8'>
-export const U8: IntType<number, 'U8'> = defineInt<number, 'U8'>(
-  new Codec({ encode: scale.encodeU8, decode: scale.decodeU8 }),
-)
+export type U16 = number
+export const U16: CodecProvider<U16> = {
+  [codecSymbol]: new Codec({ encode: scale.encodeU16, decode: scale.decodeU16 }),
+}
 
-export type U16 = number & BRAND<'U16'>
-export const U16: IntType<number, 'U16'> = defineInt<number, 'U16'>(
-  new Codec({ encode: scale.encodeU16, decode: scale.decodeU16 }),
-)
+export type U32 = number
+export const U32: CodecProvider<U32> = {
+  [codecSymbol]: new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }),
+}
 
-export type U32 = number & BRAND<'U32'>
-export const U32: IntType<number, 'U32'> = defineInt<number, 'U32'>(
-  new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }),
-)
+export type U64 = bigint
+export const U64: CodecProvider<U64> = {
+  [codecSymbol]: new Codec({ encode: scale.encodeU64, decode: scale.decodeU64 }),
+}
 
-export type U64 = bigint & BRAND<'U64'>
-export const U64: IntType<bigint, 'U64'> = defineInt<bigint, 'U64'>(
-  new Codec({ encode: scale.encodeU64, decode: scale.decodeU64 }),
-)
-
-export type U128 = bigint & BRAND<'U128'>
-export const U128: IntType<bigint, 'U128'> = defineInt<bigint, 'U128'>(
-  new Codec({ encode: scale.encodeU128, decode: scale.decodeU128 }),
-)
+export type U128 = bigint
+export const U128: CodecProvider<U128> = {
+  [codecSymbol]: new Codec({ encode: scale.encodeU128, decode: scale.decodeU128 }),
+}
 
 export type BytesVec = Uint8Array
 
 export const BytesVec: CodecProvider<BytesVec> = {
   [codecSymbol]: new Codec({ encode: scale.encodeUint8Vec, decode: scale.decodeUint8Vec }),
 }
-
-// export type U8Array = Uint8Array
-// export const U8Array = {
-//   withLen: (len: number): CodecProvider<U8Array> => ({
-//     [CodecSymbol]: new Codec({ encode: scale.createUint8ArrayEncoder(len), decode: scale.createUint8ArrayDecoder(len)})
-//   })
-// }
 
 export type Bool = boolean
 
@@ -86,13 +64,13 @@ export const String: CodecProvider<string> = {
   [codecSymbol]: new Codec({ encode: scale.encodeStr, decode: scale.decodeStr }),
 }
 
-export type Compact = bigint & BRAND<'Compact'>
+export type Compact = bigint
 
-export const Compact: IntType<bigint, 'Compact'> = defineInt<bigint, 'Compact'>(
-  new Codec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
-)
+export const Compact: CodecProvider<bigint> = {
+  [codecSymbol]: new Codec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
+}
 
-export type NonZero<T extends number | bigint> = T & BRAND<'NonZero'>
+export type NonZero<T extends number | bigint> = T
 
 export const NonZero = {
   parse: <T extends number | bigint>(value: T): NonZero<T> => {
@@ -187,16 +165,16 @@ export class Json<T extends JsonValue = JsonValue> {
 
 export class Timestamp {
   public static [codecSymbol]: Codec<Timestamp> = codecOf(U64).wrap({
-    toBase: (x) => x.asMilliseconds(),
-    fromBase: (x) => Timestamp.fromMilliseconds(x),
+    toBase: (x) => x.asMillis(),
+    fromBase: (x) => Timestamp.fromMillis(x),
   })
 
   public static fromDate(value: Date): Timestamp {
-    return new Timestamp(U64.define(BigInt(value.getTime())))
+    return new Timestamp(BigInt(value.getTime()))
   }
 
-  public static fromMilliseconds(value: number | bigint | U64): Timestamp {
-    return new Timestamp(U64.define(BigInt(value)))
+  public static fromMillis(value: number | bigint | U64): Timestamp {
+    return new Timestamp(BigInt(value))
   }
 
   private _ms: U64
@@ -210,16 +188,33 @@ export class Timestamp {
     return new Date(Number(this._ms))
   }
 
-  public asMilliseconds(): U64 {
+  public asMillis(): U64 {
     return this._ms
   }
 }
 
 export { Timestamp as TimestampU128 }
 
-export type Duration = U64 & BRAND<'DurationMilliseconds'>
+export class Duration {
+  public static [codecSymbol]: Codec<Duration> = U64[codecSymbol].wrap({
+    fromBase: (x) => Duration.fromMillis(x),
+    toBase: (y) => y.asMillis(),
+  })
 
-export const Duration: IntType<U64, 'DurationMilliseconds'> = defineInt<U64, 'DurationMilliseconds'>(codecOf(U64))
+  public static fromMillis(ms: number | bigint): Duration {
+    return new Duration(BigInt(ms))
+  }
+
+  _ms: bigint
+
+  private constructor(ms: bigint) {
+    this._ms = ms
+  }
+
+  public asMillis(): bigint {
+    return this._ms
+  }
+}
 
 export type CompoundPredicate<Atom> =
   | SumTypeKindValue<'Atom', Atom>
@@ -231,15 +226,15 @@ export const CompoundPredicate = {
   /**
    * Predicate that always passes.
    *
-   * It is simply the `And` variant with empty list of predicates (same logic as for {@link Array.prototype.every}).
+   * It is simply the `And` variant with no predicates, which is always True (same logic as for {@link Array.prototype.every}).
    */
-  PASS: Object.freeze<CompoundPredicate<never>>({ kind: 'And', value: [] }),
+  PASS: Object.freeze({ kind: 'And', value: [] }),
   /**
    * Predicate that always fails.
    *
-   * It is sipmly the `Or` variant with empty list of predicates (same logic as for {@link Array.prototype.some}).
+   * It is sipmly the `Or` variant with no predicates, which is always False (same logic as for {@link Array.prototype.some}).
    */
-  FAIL: Object.freeze<CompoundPredicate<never>>({ kind: 'Or', value: [] }),
+  FAIL: Object.freeze({ kind: 'Or', value: [] }),
 
   Atom: <T>(value: T): CompoundPredicate<T> => ({ kind: 'Atom', value }),
   Not: <T>(predicate: CompoundPredicate<T>): CompoundPredicate<T> => ({ kind: 'Not', value: predicate }),
@@ -295,10 +290,10 @@ export class HashWrap {
     decode: scale.createUint8ArrayDecoder(HASH_ARR_LEN),
   }).wrap<HashWrap>({
     fromBase: (lower) => HashWrap.fromRaw(lower),
-    toBase: (higher) => higher.toRaw(),
+    toBase: (higher) => higher.asRaw(),
   })
 
-  public static fromString(hex: string): HashWrap {
+  public static fromHex(hex: string): HashWrap {
     return new HashWrap(hex, null)
   }
 
@@ -318,14 +313,14 @@ export class HashWrap {
     this._raw = raw
   }
 
-  public toRaw(): Uint8Array {
+  public asRaw(): Uint8Array {
     if (!this._raw) {
       this._raw = new Uint8Array(hexDecode(this._hex!))
     }
     return this._raw
   }
 
-  public toString(): string {
+  public asHex(): string {
     if (!this._hex) {
       this._hex = hexEncode(this._raw!)
     }
@@ -351,8 +346,13 @@ export class PublicKeyWrap {
     fromBase: (x) => new PublicKeyWrap(x, null, null),
   })
 
-  public static fromString(hex: string): PublicKeyWrap {
-    return new PublicKeyWrap(null, hex, null)
+  public static fromHex(hex: string): PublicKeyWrap {
+    try {
+      const checked = crypto.PublicKey.fromMultihash(hex)
+      return new PublicKeyWrap(null, hex, checked)
+    } catch (err) {
+      throw new SyntaxError(`Bad PublicKey syntax in "${hex}": ${err.message}`)
+    }
   }
 
   public static fromCrypto(pubkey: crypto.PublicKey): PublicKeyWrap {
@@ -385,7 +385,7 @@ export class PublicKeyWrap {
     return this.getOrCreateObj().payload
   }
 
-  public toCrypto(): crypto.PublicKey {
+  public asCrypto(): crypto.PublicKey {
     if (!this._crypto) {
       if (this._hex) this._crypto = crypto.PublicKey.fromMultihash(this._hex)
       else this._crypto = crypto.PublicKey.fromBytes(this._obj!.algorithm.kind, crypto.Bytes.array(this._obj!.payload))
@@ -393,7 +393,7 @@ export class PublicKeyWrap {
     return this._crypto
   }
 
-  public toString() {
+  public asHex() {
     if (!this._hex) {
       if (!this._crypto)
         this._crypto = crypto.PublicKey.fromBytes(this._obj!.algorithm.kind, crypto.Bytes.array(this._obj!.payload))
@@ -404,18 +404,19 @@ export class PublicKeyWrap {
   }
 
   public toJSON() {
-    return this.toString()
+    return this.asHex()
   }
 }
 
 export class SignatureWrap {
   public static [codecSymbol]: Codec<SignatureWrap> = codecOf(BytesVec).wrap<SignatureWrap>({
-    toBase: (higher) => higher.toRaw(),
+    toBase: (higher) => higher.asRaw(),
     fromBase: (lower) => SignatureWrap.fromRaw(lower),
   })
 
-  public static fromString(hex: string): SignatureWrap {
-    return new SignatureWrap(hex, null, null)
+  public static fromHex(hex: string): SignatureWrap {
+    const raw = Uint8Array.from(hexDecode(hex))
+    return new SignatureWrap(hex, raw, null)
   }
 
   public static fromRaw(bytes: Uint8Array): SignatureWrap {
@@ -426,22 +427,46 @@ export class SignatureWrap {
     return new SignatureWrap(null, null, signature)
   }
 
+  private _hex: null | string
+  private _raw: null | Uint8Array
+  private _crypto: null | crypto.Signature
+
   private constructor(hex: null | string, raw: null | Uint8Array, crypto: null | crypto.Signature) {
-    // TODO
+    this._hex = hex
+    this._raw = raw
+    this._crypto = crypto
   }
 
-  public toCrypto(): crypto.Signature {}
+  public asCrypto(): crypto.Signature {
+    if (!this._crypto) {
+      if (this._raw) this._crypto = crypto.Signature.fromBytes(crypto.Bytes.array(this._raw))
+      else this._crypto = crypto.Signature.fromBytes(crypto.Bytes.hex(this._hex!))
+    }
+    return this._crypto
+  }
 
-  public toString(): string {}
+  public asHex(): string {
+    if (!this._hex) {
+      if (this._raw) this._hex = hexEncode(this._raw)
+      else this._hex = this._crypto!.payload('hex')
+    }
+    return this._hex
+  }
+
+  public asRaw(): Uint8Array {
+    if (!this._raw) {
+      // only if created from crypto
+      this._raw = this._crypto!.payload()
+    }
+    return this._raw
+  }
 
   public toJSON(): string {
-    return this.toString()
+    return this.asHex()
   }
-
-  public toRaw(): Uint8Array {}
 }
 
-export type Name = string & BRAND<'Name'>
+export type Name = string
 
 export const Name: CodecProvider<Name> & Parse<string, Name> = {
   [codecSymbol]: codecOf(String).wrap<Name>({ toBase: (x) => x, fromBase: (x) => x as Name }),
@@ -457,7 +482,7 @@ export const Name: CodecProvider<Name> & Parse<string, Name> = {
   },
 }
 
-export type DomainId = Name & BRAND<'DomainId'>
+export type DomainId = Name
 
 export const DomainId = Name as CodecProvider<DomainId> & Parse<string, DomainId>
 
@@ -487,12 +512,12 @@ export class AccountId {
   }
 
   public toString(): string {
-    return `${this.signatory.toString()}@${this.domain}`
+    return `${this.signatory.asHex()}@${this.domain}`
   }
 }
 
 function accountIdFromObj({ signatory, domain }: { signatory: string; domain: string }): AccountId {
-  return new AccountId(PublicKeyWrap.fromString(signatory), DomainId.parse(domain))
+  return new AccountId(PublicKeyWrap.fromHex(signatory), DomainId.parse(domain))
 }
 
 function accountIdFromStr(str: string): AccountId {
@@ -544,7 +569,9 @@ function assetDefIdFromObj({ name, domain }: { name: string; domain: string }) {
 function assetDefIdFromStr(input: string) {
   const parts = input.split('#')
   if (parts.length !== 2) {
-    throw new SyntaxError(`AssetDefinitionId should have format '⟨name⟩#⟨domain⟩, e.g. 'rose#wonderland', got '${input}'`)
+    throw new SyntaxError(
+      `AssetDefinitionId should have format '⟨name⟩#⟨domain⟩, e.g. 'rose#wonderland', got '${input}'`,
+    )
   }
   const [name, domain] = parts
   return assetDefIdFromObj({ name, domain })

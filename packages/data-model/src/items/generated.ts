@@ -64,7 +64,7 @@ export interface MetadataChanged<T0> {
   value: lib.Json
 }
 export const MetadataChanged = {
-  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<MetadataChanged<T0>> => ({
+  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<MetadataChanged<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<MetadataChanged<T0>>(['target', 'key', 'value'], {
       target: t0,
       key: lib.codecOf(lib.Name),
@@ -827,7 +827,7 @@ export interface Mismatch<T0> {
   actual: T0
 }
 export const Mismatch = {
-  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<Mismatch<T0>> => ({
+  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<Mismatch<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<Mismatch<T0>>(['expected', 'actual'], { expected: t0, actual: t0 }),
   }),
 }
@@ -5992,7 +5992,7 @@ export interface SetKeyValue<T0> {
   value: lib.Json
 }
 export const SetKeyValue = {
-  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<SetKeyValue<T0>> => ({
+  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<SetKeyValue<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<SetKeyValue<T0>>(['object', 'key', 'value'], {
       object: t0,
       key: lib.codecOf(lib.Name),
@@ -6035,7 +6035,7 @@ export interface RemoveKeyValue<T0> {
   key: lib.Name
 }
 export const RemoveKeyValue = {
-  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<RemoveKeyValue<T0>> => ({
+  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<RemoveKeyValue<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<RemoveKeyValue<T0>>(['object', 'key'], {
       object: t0,
       key: lib.codecOf(lib.Name),
@@ -7731,4 +7731,39 @@ export type SignedQuery = lib.SumTypeKindValue<'V1', SignedQueryV1>
 export const SignedQuery = {
   V1: (value: SignedQueryV1): SignedQuery => ({ kind: 'V1', value }),
   [lib.CodecSymbol]: lib.enumCodec<{ V1: [SignedQueryV1] }>([[1, 'V1', lib.codecOf(SignedQueryV1)]]).discriminated(),
+}
+
+export interface Uptime {
+  secs: lib.Compact
+  nanos: lib.U32
+}
+export const Uptime: lib.CodecProvider<Uptime> = {
+  [lib.CodecSymbol]: lib.structCodec<Uptime>(['secs', 'nanos'], {
+    secs: lib.codecOf(lib.Compact),
+    nanos: lib.codecOf(lib.U32),
+  }),
+}
+
+export interface Status {
+  peers: lib.Compact
+  blocks: lib.Compact
+  txsAccepted: lib.Compact
+  txsRejected: lib.Compact
+  uptime: Uptime
+  viewChanges: lib.Compact
+  queueSize: lib.Compact
+}
+export const Status: lib.CodecProvider<Status> = {
+  [lib.CodecSymbol]: lib.structCodec<Status>(
+    ['peers', 'blocks', 'txsAccepted', 'txsRejected', 'uptime', 'viewChanges', 'queueSize'],
+    {
+      peers: lib.codecOf(lib.Compact),
+      blocks: lib.codecOf(lib.Compact),
+      txsAccepted: lib.codecOf(lib.Compact),
+      txsRejected: lib.codecOf(lib.Compact),
+      uptime: lib.codecOf(Uptime),
+      viewChanges: lib.codecOf(lib.Compact),
+      queueSize: lib.codecOf(lib.Compact),
+    },
+  ),
 }

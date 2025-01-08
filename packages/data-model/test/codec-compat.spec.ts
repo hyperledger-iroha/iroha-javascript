@@ -3,7 +3,7 @@ import * as dm from '@iroha2/data-model'
 import type { SCHEMA } from '@iroha2/data-model-schema'
 import { resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID } from './util'
 
 async function encodeWithCLI(type: keyof typeof SCHEMA, data: JsonValue): Promise<Uint8Array> {
@@ -61,12 +61,12 @@ function casesSchedule() {
     defCase({
       ...base,
       json: { start_ms: 400 },
-      value: { start: dm.Timestamp.fromMilliseconds(400), period: null },
+      value: { start: dm.Timestamp.fromMillis(400), period: null },
     }),
     defCase({
       ...base,
       json: { start_ms: 500 },
-      value: { start: dm.Timestamp.fromMilliseconds(500n), period: null },
+      value: { start: dm.Timestamp.fromMillis(500n), period: null },
     }),
     defCase({
       ...base,
@@ -76,7 +76,7 @@ function casesSchedule() {
     defCase({
       ...base,
       json: { start_ms: 400, period_ms: 100 },
-      value: { start: dm.Timestamp.fromMilliseconds(400), period: 100n as dm.Duration },
+      value: { start: dm.Timestamp.fromMillis(400), period: dm.Duration.fromMillis(100) },
     }),
   ]
 }
@@ -116,9 +116,9 @@ function casesCompoundPredicates() {
   } as const
   const atom = defCase({
     ...base,
-    json: { Atom: { Id: { AccountId: { DomainId: { Equals: 'wonderland' } } } } },
+    json: { Atom: { Id: { Account: { Domain: { Name: { Atom: { Equals: 'wonderland' } } } } } } },
     value: dm.CompoundPredicate.Atom<dm.AssetProjectionPredicate>(
-      dm.AssetProjectionPredicate.Id.Account.Domain.Atom.Equals(dm.DomainId.parse('wonderland')),
+      dm.AssetProjectionPredicate.Id.Account.Domain.Name.Atom.Equals(dm.DomainId.parse('wonderland')),
     ),
   } as const)
   return [
@@ -136,7 +136,6 @@ function casesCompoundPredicates() {
     }),
   ]
 }
-
 test.each([
   caseHash(),
   defCase({
@@ -168,7 +167,7 @@ test.each([
     },
     dm.AccountId.parse('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
     new dm.AccountId(
-      dm.PublicKeyWrap.fromString('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'),
+      dm.PublicKeyWrap.fromHex('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'),
       dm.DomainId.parse('badland'),
     ),
   ),
@@ -195,7 +194,7 @@ test.each([
     json: { Time: { interval: { since_ms: 15_000, length_ms: 18_000 } } },
     codec: dm.EventBox,
     value: dm.EventBox.Time({
-      interval: { since: dm.Timestamp.fromMilliseconds(15_000), length: 18_000n as dm.Duration },
+      interval: { since: dm.Timestamp.fromMillis(15_000), length: dm.Duration.fromMillis(18_000) },
     }),
   }),
   ...casesTxPayload(),
@@ -213,9 +212,13 @@ test.each([
     value: {
       authority: SAMPLE_ACCOUNT_ID,
       request: dm.QueryRequest.Start({
-        query: dm.QueryBox.FindAccounts({ predicate: dm.CompoundPredicate.PASS, query: null, selector: [] }),
+        query: dm.QueryBox.FindAccounts({
+          predicate: dm.CompoundPredicate.PASS,
+          query: null,
+          selector: [dm.AccountProjectionSelector.Atom],
+        }),
         params: {
-          pagination: { offset: dm.U64.define(0n), limit: null },
+          pagination: { offset: 0n, limit: null },
           sorting: { sortByMetadataKey: null },
           fetchSize: null,
         },
@@ -254,13 +257,13 @@ test.each([
         nonce: null,
         metadata: new Map(),
       },
-      signature: dm.SignatureWrap.fromString(
+      signature: dm.SignatureWrap.fromHex(
         '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
       ),
     }),
   }),
   // TODO: add SignedBlock
-])(`Ensure correct parsing & encoding of $type: $value`, async <T>(data: Case<T>) => {
+])(`Check encoding against iroha_codec of type $type: $value`, async <T>(data: Case<T>) => {
   const referenceEncoded = await encodeWithCLI(data.type, data.json)
   const actualEncoded = dm.codecOf(data.codec).encode(data.value)
   expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))

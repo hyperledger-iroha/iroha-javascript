@@ -1,18 +1,37 @@
 import { describe, expect, test } from 'vitest'
+import type { Schema} from '@iroha2/data-model-schema';
 import { SCHEMA } from '@iroha2/data-model-schema'
-import { enumShortcuts, type EmitCode, generate, renderShortcutsTree } from './codegen'
-import { QUERY_IMPLS } from '@iroha2/iroha-source'
+import { type EmitCode, enumShortcuts, generate, renderShortcutsTree } from './codegen'
 import { format } from 'prettier'
 import PRETTIER_OPTIONS from '../../../.prettierrc.js'
 
+/**
+ * There are not included into the schema for some reason, but are useful to generate code for.
+ */
+const EXTENSION: Schema = {
+  Status: {
+    Struct: [
+      { name: 'peers', type: 'Compact<u128>' },
+      { name: 'blocks', type: 'Compact<u128>' },
+      { name: 'txs_accepted', type: 'Compact<u128>' },
+      { name: 'txs_rejected', type: 'Compact<u128>' },
+      { name: 'uptime', type: 'Uptime' },
+      { name: 'view_changes', type: 'Compact<u128>' },
+      { name: 'queue_size', type: 'Compact<u128>' },
+    ],
+  },
+  Uptime: {
+    Struct: [
+      { name: 'secs', type: 'Compact<u128>' },
+      { name: 'nanos', type: 'u32' },
+    ],
+  },
+}
+
 /* TODO
 
-- I   manually re-arrange structs (for shortcuts, + maybe to avoid extra lazy stuff)
 - II  fix core types
 - II  more object.freeze
-- II  think about never-enums. Just generate as never? (with a note that these are stubs) Or eliminate entirely from the schema/shortcuts tree?
-- III fix Action -> Executable -> Action recursion
-- III fix type -> interface 
 - III codecFromPair()?
 - III Codec - differentiate input/output types?
 
@@ -21,7 +40,8 @@ import PRETTIER_OPTIONS from '../../../.prettierrc.js'
 // convenient for development in watch mode
 // works almost as if JavaScript supported comptime codegen
 test('codegen snapshot', async () => {
-  const code = generate(SCHEMA, QUERY_IMPLS, './generated-lib')
+  expect(SCHEMA).not.contain.keys(Object.keys(EXTENSION))
+  const code = generate({ ...SCHEMA, ...EXTENSION }, './generated-lib')
   const formatted = await format(code, { parser: 'typescript', ...PRETTIER_OPTIONS })
   expect(formatted).toMatchFileSnapshot('../src/items/generated.ts')
 })

@@ -88,12 +88,12 @@ export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate
           : never
     }[keyof E],
   >(): Codec<T> {
-    return this.wrap<{ t: string; value?: any }>({
+    return this.wrap<{ kind: string; value?: any }>({
       toBase: (value) => {
-        if (value.value !== undefined) return scale.variant<any>(value.t, value.value)
-        return scale.variant<any>(value.t)
+        if (value.value !== undefined) return scale.variant<any>(value.kind, value.value)
+        return scale.variant<any>(value.kind)
       },
-      fromBase: (value) => ({ t: value.tag, value: value.content }),
+      fromBase: (value) => ({ kind: value.tag, value: value.content }),
     }) as any
   }
 
@@ -118,11 +118,14 @@ export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): 
   const decoders: scale.EnumDecoders<any> = {}
 
   for (const [dis, tag, codec] of schema) {
-    ;(encoders as any)[tag] = codec ? [dis, codec.rawEncode] : dis
-    ;(decoders as any)[dis] = codec ? [tag, codec.rawDecode] : tag
+    ;(encoders as any)[tag] = codec ? [dis, codec.raw.encode] : dis
+    ;(decoders as any)[dis] = codec ? [tag, codec.raw.decode] : tag
   }
 
-  return new EnumCodec(scale.createEnumEncoder<any>(encoders), scale.createEnumDecoder<any>(decoders))
+  return new EnumCodec({
+    encode: scale.createEnumEncoder<any>(encoders),
+    decode: scale.createEnumDecoder<any>(decoders),
+  })
 }
 
 type TupleFromCodecs<T> = T extends [Codec<infer Head>, ...infer Tail]
@@ -132,32 +135,26 @@ type TupleFromCodecs<T> = T extends [Codec<infer Head>, ...infer Tail]
     : never
 
 export function tupleCodec<T extends [Codec<any>, ...Codec<any>[]]>(codecs: T): Codec<TupleFromCodecs<T>> {
-  return codec(
-    scale.createTupleEncoder(codecs.map((x) => x.rawEncode) as any),
-    scale.createTupleDecoder(codecs.map((x) => x.rawDecode) as any),
-  )
+  return new Codec({
+    encode: scale.createTupleEncoder(codecs.map((x) => x.raw.encode) as any),
+    decode: scale.createTupleDecoder(codecs.map((x) => x.raw.decode) as any),
+  })
 }
-
-/**
- * @internal
- */
-export type EnumOptionInput<T extends string, Z extends z.ZodType> =
-  z.input<Z> extends infer I ? (I extends undefined ? { t: T; value?: I } : { t: T; value: I }) : never
 
 export declare type StructCodecsSchema<T> = {
   [K in keyof T]: [K, Codec<T[K]>]
 }[keyof T][]
 
-export function structCodec<T>(order: (keyof T)[], schema: { [K in keyof T]: Codec<T[K]> }): Codec<T> {
+export function structCodec<T>(order: (keyof T & string)[], schema: { [K in keyof T]: Codec<T[K]> }): Codec<T> {
   const encoders: scale.StructEncoders<any> = []
   const decoders: scale.StructDecoders<any> = []
 
-  for (const [field, codec] of schema as [string, Codec<any>][]) {
-    encoders.push([field, codec.rawEncode])
-    decoders.push([field, codec.rawDecode])
+  for (const field of order) {
+    encoders.push([field, schema[field].raw.encode])
+    decoders.push([field, schema[field].raw.decode])
   }
 
-  return codec(scale.createStructEncoder(encoders), scale.createStructDecoder(decoders))
+  return new Codec({ encode: scale.createStructEncoder(encoders), decode: scale.createStructDecoder(decoders) })
 }
 
 const thisCodecShouldNeverBeCalled = () => {
@@ -168,23 +165,21 @@ export const neverCodec: Codec<never> = new Codec({
   decode: thisCodecShouldNeverBeCalled,
 })
 
-export const nullCodec: Codec<null> = new Codec(scale.encodeUnit, scale.decodeUnit)
+export const nullCodec: Codec<null> = new Codec({ encode: scale.encodeUnit, decode: scale.decodeUnit })
 
 export function bitmapCodec<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
-  const reprCodec = U32$codec
-  const reprSchema = U32$schema
   const REPR_MAX = 2 ** 32 - 1
 
-  const toMask = (set: Set<Name>) => {
+  const toMask = (set: Set<Name>): number => {
     let num = 0
     for (const i of set) {
       num |= masks[i]
     }
-    return reprSchema.parse(num)
+    return num
   }
 
   const masksArray = (Object.entries(masks) as [Name, number][]).map(([k, v]) => ({ key: k, value: v }))
-  const fromMask = (bitmask: U32): Set<Name> => {
+  const fromMask = (bitmask: number): Set<Name> => {
     const set = new Set<Name>()
     let bitmaskMut: number = bitmask
     for (const mask of masksArray) {
@@ -203,5 +198,5 @@ export function bitmapCodec<Name extends string>(masks: { [K in Name]: number })
     return set
   }
 
-  return reprCodec.wrap(toMask, fromMask)
+  return new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }).wrap({ toBase: toMask, fromBase: fromMask })
 }

@@ -1,17 +1,5 @@
-export interface Define<I, O> {
-  define: (input: I) => O
-}
-
 export interface Parse<I, O> {
   parse: (input: I) => O
-}
-
-declare const BRAND: unique symbol
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export declare type BRAND<T extends string | number | symbol> = {
-  [BRAND]: {
-    [k in T]: true
-  }
 }
 
 export interface SumTypeKind<K> {

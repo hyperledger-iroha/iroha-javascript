@@ -2,13 +2,12 @@
 /* eslint-disable max-nested-callbacks */
 import type { Algorithm } from '@iroha2/crypto-core'
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
-import type { QueryImpl } from '@iroha2/iroha-source'
-import { camelCase, pascalCase } from 'change-case'
+import { camelCase } from 'change-case'
 import { deepEqual } from 'fast-equals'
 import invariant from 'tiny-invariant'
-import { isMatching, match, P } from 'ts-pattern'
+import { P, isMatching, match } from 'ts-pattern'
 
-export function generate(schema: Schema, queryImpls: QueryImpl[], libModule: string): string {
+export function generate(schema: Schema, libModule: string): string {
   const resolver = new Resolver(schema)
   const emits = Object.keys(schema)
     .map<[string, TypeRefWithEmit]>((key) => [key, resolver.resolve(key)])
@@ -17,7 +16,6 @@ export function generate(schema: Schema, queryImpls: QueryImpl[], libModule: str
         const prevEmit = map.get(resolved.id)
         const newEmit = resolved.emit()
         if (prevEmit) {
-          // invariant(resolved.params?.length, () => `Only types with generics could duplicate emits. Resolved ID: ${resolved.id}; original ID: ${originId}`)
           invariant(
             deepEqual(newEmit, prevEmit),
             () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
@@ -33,12 +31,7 @@ export function generate(schema: Schema, queryImpls: QueryImpl[], libModule: str
 
   const arranged = arrangeEmits(emits)
 
-  return [
-    `import * as lib from '${libModule}'`,
-    ...arranged.map((id) => renderEmit(id, emits)),
-    // TODO
-    // generateQueryImpls(emits, queryImpls, resolver),
-  ].join('\n\n')
+  return [`import * as lib from '${libModule}'`, ...arranged.map((id) => renderEmit(id, emits))].join('\n\n')
 }
 
 export type Ident = string
@@ -51,7 +44,6 @@ export type EmitCode =
   | { t: 'tuple'; elements: TypeRef[] }
   | { t: 'bitmap'; repr: LibType; masks: EmitBitmapMask[] }
   | { t: 'alias'; to: TypeRef }
-// | { t: 'null' }
 
 export interface EmitStructField {
   name: string
@@ -65,7 +57,7 @@ export interface EmitBitmapMask {
 
 export type TypeRefWithEmit = (TypeRef & { t: 'local'; emit?: () => EmitCode }) | Exclude<TypeRef, { t: 'local' }>
 
-export type EmitEnumVariant = {
+export interface EmitEnumVariant {
   tag: string
   discriminant: number
   /** "null" means an empty variant */
@@ -95,13 +87,9 @@ export type LibType =
   | 'Compact'
   | 'Vec'
   | 'Map'
-  // | 'Array'
   | 'Json'
   | 'Bool'
-  // | 'U8Array'
-  // | 'U15Array'
   | 'Timestamp'
-  // | 'TimestampU128'
   | 'Duration'
   | 'Name'
   | 'CompoundPredicate'
@@ -722,7 +710,7 @@ const CYCLE_BREAK_POINTS = new Set(['InstructionBox'])
  * The algorithm is designed for DAGs (directed **acyclic** graphs).
  * However, the schema has _one_ cycle, with `InstructionBox` type.
  * To resolve this, the algorithm pretends as if no one refers to `InstructionBox`.
- * For this reason, all references to `InstructionBox` in the emitted code **must be lazy**.
+ * For this reason, **all** references to `InstructionBox` in the emitted code **must be lazy**.
  */
 function arrangeEmits(map: EmitsMap): string[] {
   const graph = new Map<string, Set<string>>()
@@ -783,7 +771,7 @@ function renderRef(ref: TypeRef): RefRender {
         codec: lazy ? `lib.lazyCodec(() => ${codec})` : codec,
       }
     })
-    .with({ t: 'lib', params: P.array() }, ({ id, params: params }) => {
+    .with({ t: 'lib', params: P.array() }, ({ id, params }) => {
       const typeGenerics = `<${params.map((x) => renderRef(x).type).join(', ')}>`
 
       return {
@@ -987,80 +975,3 @@ function renderEmit(id: string, map: EmitsMap): string {
 function upcase<S extends string>(s: S): Uppercase<S> {
   return s.toUpperCase() as Uppercase<S>
 }
-
-// function generateQueryImpls(schema: EmitTypesMap, queryImpls: QueryImpl[], resolver: Resolver) {
-//   const iterableOutputVariants = match(schema.get('QueryOutputBatchBox'))
-//     .with({ t: 'enum' }, ({ variants }) => variants)
-//     .otherwise((x) => {
-//       throw new Error(`unexpected iterable query output box: ${String(x)}`)
-//     })
-//     .map((x) =>
-//       match(x)
-//         .with({ tag: P.select('tag'), type: { t: 'lib', id: 'Vec', generics: [P.select('type')] } }, (x) => x)
-//         .otherwise(() => {
-//           throw new Error('bad variant')
-//         }),
-//     )
-//   const singularOutputVariants = match(schema.get('SingularQueryOutputBox'))
-//     .with({ t: 'enum' }, ({ variants }) => variants)
-//     .otherwise((x) => {
-//       throw new Error(`unexpected singular query output box: ${String(x)}`)
-//     })
-//     .map((x) =>
-//       match(x)
-//         .with({ tag: P.select('tag'), type: P.select('type') }, (x) => x)
-//         .otherwise(() => {
-//           throw new Error('bad variant')
-//         }),
-//     )
-
-//   const { singular, iter } = queryImpls.reduce(
-//     (acc, impl) => {
-//       if (impl.t === 'singular') acc.singular.push(impl)
-//       else acc.iter.push(impl)
-//       return acc
-//     },
-//     { singular: new Array<QueryImpl>(), iter: new Array<QueryImpl>() },
-//   )
-
-//   const outputTypes = (impls: QueryImpl[]) =>
-//     impls
-//       .map((impl) => {
-//         const outputTypeId = ident.transform(impl.output)
-//         const outputIdent = match(impl)
-//           .returnType<TypeRef>()
-//           .with({ t: 'singular' }, () => outputTypeId)
-//           .with({ t: 'iter' }, () => ({ t: 'lib', id: 'Vec', params: [outputTypeId] }))
-//           .exhaustive()
-
-//         return { query: impl.query, type: renderRef(outputIdent).type }
-//       })
-//       .map((x) => `  ${x.query}: ${x.type}`)
-//       .join('\n')
-
-//   const outputKinds = (impls: QueryImpl[], variants: { tag: string; type: TypeRef }[]) =>
-//     impls
-//       .map(({ query, output }) => {
-//         const outputTypeId = ident.transform(output)
-//         const tag = match(
-//           variants.find((x) =>
-//             match(x)
-//               .with({ type: P.when((x) => deepEqual(x, outputTypeId)) }, () => true)
-//               .otherwise(() => false),
-//           ),
-//         )
-//           .with({ tag: P.select() }, (tag) => tag)
-//           .otherwise(() => {
-//             throw new Error(`Expected to find a variant for '${query}' query`)
-//           })
-//         return `  ${query}: '${tag}',`
-//       })
-//       .join('\n')
-
-//   return [
-//     `export interface QueryOutputMap {\n${outputTypes(iter)}\n}`,
-//     `export const QueryOutputKindMap = {\n${outputKinds(iter, iterableOutputVariants)}\n} as const`,
-//     `export interface SingularQueryOutputMap {\n${outputTypes(singular)}\n}`,
-//     `export const SingularQueryOutputKindMap = {\n${outputKinds(singular, singularOutputVariants)}\n} as const`,
-//   ].join('\n')
-// }
