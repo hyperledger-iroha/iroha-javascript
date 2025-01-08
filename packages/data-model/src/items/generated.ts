@@ -1,13 +1,16 @@
 import * as lib from './generated-lib'
 
+export type Metadata = lib.Map<lib.Name, lib.Json>
+export const Metadata = lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))
+
 export interface Account {
   id: lib.AccountId
-  metadata: lib.Map<lib.Name, lib.Json>
+  metadata: Metadata
 }
 export const Account: lib.CodecProvider<Account> = {
   [lib.CodecSymbol]: lib.structCodec<Account>(['id', 'metadata'], {
     id: lib.codecOf(lib.AccountId),
-    metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+    metadata: lib.codecOf(Metadata),
   }),
 }
 
@@ -22,14 +25,14 @@ export const Numeric: lib.CodecProvider<Numeric> = {
   }),
 }
 
-export type AssetValue = lib.Variant<'Numeric', Numeric> | lib.Variant<'Store', lib.Map<lib.Name, lib.Json>>
+export type AssetValue = lib.Variant<'Numeric', Numeric> | lib.Variant<'Store', Metadata>
 export const AssetValue = {
   Numeric: <const T extends Numeric>(value: T): lib.Variant<'Numeric', T> => ({ kind: 'Numeric', value }),
-  Store: <const T extends lib.Map<lib.Name, lib.Json>>(value: T): lib.Variant<'Store', T> => ({ kind: 'Store', value }),
+  Store: <const T extends Metadata>(value: T): lib.Variant<'Store', T> => ({ kind: 'Store', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Numeric: [Numeric]; Store: [lib.Map<lib.Name, lib.Json>] }>([
+    .enumCodec<{ Numeric: [Numeric]; Store: [Metadata] }>([
       [0, 'Numeric', lib.codecOf(Numeric)],
-      [1, 'Store', lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json)))],
+      [1, 'Store', lib.codecOf(Metadata)],
     ])
     .discriminated(),
 }
@@ -754,17 +757,20 @@ export const AccountProjectionSelector = {
     .discriminated(),
 }
 
-export type Executable = lib.Variant<'Instructions', lib.Vec<InstructionBox>> | lib.Variant<'Wasm', lib.Vec<lib.U8>>
+export type WasmSmartContract = lib.Vec<lib.U8>
+export const WasmSmartContract = lib.Vec.with(lib.codecOf(lib.U8))
+
+export type Executable = lib.Variant<'Instructions', lib.Vec<InstructionBox>> | lib.Variant<'Wasm', WasmSmartContract>
 export const Executable = {
   Instructions: <const T extends lib.Vec<InstructionBox>>(value: T): lib.Variant<'Instructions', T> => ({
     kind: 'Instructions',
     value,
   }),
-  Wasm: <const T extends lib.Vec<lib.U8>>(value: T): lib.Variant<'Wasm', T> => ({ kind: 'Wasm', value }),
+  Wasm: <const T extends WasmSmartContract>(value: T): lib.Variant<'Wasm', T> => ({ kind: 'Wasm', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Instructions: [lib.Vec<InstructionBox>]; Wasm: [lib.Vec<lib.U8>] }>([
+    .enumCodec<{ Instructions: [lib.Vec<InstructionBox>]; Wasm: [WasmSmartContract] }>([
       [0, 'Instructions', lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox))))],
-      [1, 'Wasm', lib.codecOf(lib.Vec.with(lib.codecOf(lib.U8)))],
+      [1, 'Wasm', lib.codecOf(WasmSmartContract)],
     ])
     .discriminated(),
 }
@@ -1180,6 +1186,9 @@ export const QueryExecutionFail = {
     .discriminated(),
 }
 
+export type CustomParameterId = lib.Name
+export const CustomParameterId = lib.Name
+
 export type IdBox =
   | lib.Variant<'DomainId', lib.DomainId>
   | lib.Variant<'AccountId', lib.AccountId>
@@ -1189,7 +1198,7 @@ export type IdBox =
   | lib.Variant<'TriggerId', TriggerId>
   | lib.Variant<'RoleId', RoleId>
   | lib.Variant<'Permission', Permission>
-  | lib.Variant<'CustomParameterId', lib.Name>
+  | lib.Variant<'CustomParameterId', CustomParameterId>
 export const IdBox = {
   DomainId: <const T extends lib.DomainId>(value: T): lib.Variant<'DomainId', T> => ({ kind: 'DomainId', value }),
   AccountId: <const T extends lib.AccountId>(value: T): lib.Variant<'AccountId', T> => ({ kind: 'AccountId', value }),
@@ -1202,7 +1211,7 @@ export const IdBox = {
   TriggerId: <const T extends TriggerId>(value: T): lib.Variant<'TriggerId', T> => ({ kind: 'TriggerId', value }),
   RoleId: <const T extends RoleId>(value: T): lib.Variant<'RoleId', T> => ({ kind: 'RoleId', value }),
   Permission: <const T extends Permission>(value: T): lib.Variant<'Permission', T> => ({ kind: 'Permission', value }),
-  CustomParameterId: <const T extends lib.Name>(value: T): lib.Variant<'CustomParameterId', T> => ({
+  CustomParameterId: <const T extends CustomParameterId>(value: T): lib.Variant<'CustomParameterId', T> => ({
     kind: 'CustomParameterId',
     value,
   }),
@@ -1216,7 +1225,7 @@ export const IdBox = {
       TriggerId: [TriggerId]
       RoleId: [RoleId]
       Permission: [Permission]
-      CustomParameterId: [lib.Name]
+      CustomParameterId: [CustomParameterId]
     }>([
       [0, 'DomainId', lib.codecOf(lib.DomainId)],
       [1, 'AccountId', lib.codecOf(lib.AccountId)],
@@ -1226,7 +1235,7 @@ export const IdBox = {
       [5, 'TriggerId', lib.codecOf(TriggerId)],
       [6, 'RoleId', lib.codecOf(RoleId)],
       [7, 'Permission', lib.codecOf(Permission)],
-      [8, 'CustomParameterId', lib.codecOf(lib.Name)],
+      [8, 'CustomParameterId', lib.codecOf(CustomParameterId)],
     ])
     .discriminated(),
 }
@@ -3844,13 +3853,15 @@ export const TransactionStatus = {
 
 export interface TransactionEventFilter {
   hash: lib.Option<lib.HashWrap>
-  blockHeight: lib.Option<lib.Option<lib.U64>>
+  blockHeight: lib.Option<lib.Option<lib.NonZero<lib.U64>>>
   status: lib.Option<TransactionStatus>
 }
 export const TransactionEventFilter: lib.CodecProvider<TransactionEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionEventFilter>(['hash', 'blockHeight', 'status'], {
     hash: lib.codecOf(lib.Option.with(lib.codecOf(lib.HashWrap))),
-    blockHeight: lib.codecOf(lib.Option.with(lib.codecOf(lib.Option.with(lib.codecOf(lib.U64))))),
+    blockHeight: lib.codecOf(
+      lib.Option.with(lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))))),
+    ),
     status: lib.codecOf(lib.Option.with(lib.codecOf(TransactionStatus))),
   }),
 }
@@ -3892,12 +3903,12 @@ export const BlockStatus = {
 }
 
 export interface BlockEventFilter {
-  height: lib.Option<lib.U64>
+  height: lib.Option<lib.NonZero<lib.U64>>
   status: lib.Option<BlockStatus>
 }
 export const BlockEventFilter: lib.CodecProvider<BlockEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<BlockEventFilter>(['height', 'status'], {
-    height: lib.codecOf(lib.Option.with(lib.codecOf(lib.U64))),
+    height: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
     status: lib.codecOf(lib.Option.with(lib.codecOf(BlockStatus))),
   }),
 }
@@ -4176,6 +4187,9 @@ export const ExecutionTime = {
     .discriminated(),
 }
 
+export type TimeEventFilter = ExecutionTime
+export const TimeEventFilter = ExecutionTime
+
 export interface ExecuteTriggerEventFilter {
   triggerId: lib.Option<TriggerId>
   authority: lib.Option<lib.AccountId>
@@ -4213,7 +4227,7 @@ export const TriggerCompletedEventFilter: lib.CodecProvider<TriggerCompletedEven
 export type EventFilterBox =
   | lib.Variant<'Pipeline', PipelineEventFilterBox>
   | lib.Variant<'Data', DataEventFilter>
-  | lib.Variant<'Time', ExecutionTime>
+  | lib.Variant<'Time', TimeEventFilter>
   | lib.Variant<'ExecuteTrigger', ExecuteTriggerEventFilter>
   | lib.Variant<'TriggerCompleted', TriggerCompletedEventFilter>
 export const EventFilterBox = {
@@ -4272,16 +4286,7 @@ export const EventFilterBox = {
       value: DataEventFilter.Executor(value),
     }),
   },
-  Time: {
-    PreCommit: Object.freeze<lib.Variant<'Time', lib.VariantUnit<'PreCommit'>>>({
-      kind: 'Time',
-      value: ExecutionTime.PreCommit,
-    }),
-    Schedule: <const T extends Schedule>(value: T): lib.Variant<'Time', lib.Variant<'Schedule', T>> => ({
-      kind: 'Time',
-      value: ExecutionTime.Schedule(value),
-    }),
-  },
+  Time: <const T extends TimeEventFilter>(value: T): lib.Variant<'Time', T> => ({ kind: 'Time', value }),
   ExecuteTrigger: <const T extends ExecuteTriggerEventFilter>(value: T): lib.Variant<'ExecuteTrigger', T> => ({
     kind: 'ExecuteTrigger',
     value,
@@ -4294,13 +4299,13 @@ export const EventFilterBox = {
     .enumCodec<{
       Pipeline: [PipelineEventFilterBox]
       Data: [DataEventFilter]
-      Time: [ExecutionTime]
+      Time: [TimeEventFilter]
       ExecuteTrigger: [ExecuteTriggerEventFilter]
       TriggerCompleted: [TriggerCompletedEventFilter]
     }>([
       [0, 'Pipeline', lib.codecOf(PipelineEventFilterBox)],
       [1, 'Data', lib.codecOf(DataEventFilter)],
-      [2, 'Time', lib.codecOf(ExecutionTime)],
+      [2, 'Time', lib.codecOf(TimeEventFilter)],
       [3, 'ExecuteTrigger', lib.codecOf(ExecuteTriggerEventFilter)],
       [4, 'TriggerCompleted', lib.codecOf(TriggerCompletedEventFilter)],
     ])
@@ -4312,7 +4317,7 @@ export interface Action {
   repeats: Repeats
   authority: lib.AccountId
   filter: EventFilterBox
-  metadata: lib.Map<lib.Name, lib.Json>
+  metadata: Metadata
 }
 export const Action: lib.CodecProvider<Action> = {
   [lib.CodecSymbol]: lib.structCodec<Action>(['executable', 'repeats', 'authority', 'filter', 'metadata'], {
@@ -4320,7 +4325,7 @@ export const Action: lib.CodecProvider<Action> = {
     repeats: lib.codecOf(Repeats),
     authority: lib.codecOf(lib.AccountId),
     filter: lib.codecOf(EventFilterBox),
-    metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+    metadata: lib.codecOf(Metadata),
   }),
 }
 
@@ -4384,12 +4389,15 @@ export const Mintable = {
     .discriminated(),
 }
 
+export type IpfsPath = lib.String
+export const IpfsPath = lib.String
+
 export interface AssetDefinition {
   id: lib.AssetDefinitionId
   type: AssetType
   mintable: Mintable
-  logo: lib.Option<lib.String>
-  metadata: lib.Map<lib.Name, lib.Json>
+  logo: lib.Option<IpfsPath>
+  metadata: Metadata
   ownedBy: lib.AccountId
   totalQuantity: Numeric
 }
@@ -4400,8 +4408,8 @@ export const AssetDefinition: lib.CodecProvider<AssetDefinition> = {
       id: lib.codecOf(lib.AssetDefinitionId),
       type: lib.codecOf(AssetType),
       mintable: lib.codecOf(Mintable),
-      logo: lib.codecOf(lib.Option.with(lib.codecOf(lib.String))),
-      metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+      logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
+      metadata: lib.codecOf(Metadata),
       ownedBy: lib.codecOf(lib.AccountId),
       totalQuantity: lib.codecOf(Numeric),
     },
@@ -5418,19 +5426,20 @@ export const Transfer = {
 
 export type AssetTransferBox =
   | lib.Variant<'Numeric', Transfer<lib.AssetId, Numeric, lib.AccountId>>
-  | lib.Variant<'Store', Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>
+  | lib.Variant<'Store', Transfer<lib.AssetId, Metadata, lib.AccountId>>
 export const AssetTransferBox = {
   Numeric: <const T extends Transfer<lib.AssetId, Numeric, lib.AccountId>>(value: T): lib.Variant<'Numeric', T> => ({
     kind: 'Numeric',
     value,
   }),
-  Store: <const T extends Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>(
-    value: T,
-  ): lib.Variant<'Store', T> => ({ kind: 'Store', value }),
+  Store: <const T extends Transfer<lib.AssetId, Metadata, lib.AccountId>>(value: T): lib.Variant<'Store', T> => ({
+    kind: 'Store',
+    value,
+  }),
   [lib.CodecSymbol]: lib
     .enumCodec<{
       Numeric: [Transfer<lib.AssetId, Numeric, lib.AccountId>]
-      Store: [Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>]
+      Store: [Transfer<lib.AssetId, Metadata, lib.AccountId>]
     }>([
       [
         0,
@@ -5440,33 +5449,27 @@ export const AssetTransferBox = {
       [
         1,
         'Store',
-        lib.codecOf(
-          Transfer.with(
-            lib.codecOf(lib.AssetId),
-            lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
-            lib.codecOf(lib.AccountId),
-          ),
-        ),
+        lib.codecOf(Transfer.with(lib.codecOf(lib.AssetId), lib.codecOf(Metadata), lib.codecOf(lib.AccountId))),
       ],
     ])
     .discriminated(),
 }
 
 export interface BlockHeader {
-  height: lib.U64
+  height: lib.NonZero<lib.U64>
   prevBlockHash: lib.Option<lib.HashWrap>
   transactionsHash: lib.HashWrap
-  creationTimeMs: lib.U64
+  creationTime: lib.Timestamp
   viewChangeIndex: lib.U32
 }
 export const BlockHeader: lib.CodecProvider<BlockHeader> = {
   [lib.CodecSymbol]: lib.structCodec<BlockHeader>(
-    ['height', 'prevBlockHash', 'transactionsHash', 'creationTimeMs', 'viewChangeIndex'],
+    ['height', 'prevBlockHash', 'transactionsHash', 'creationTime', 'viewChangeIndex'],
     {
-      height: lib.codecOf(lib.U64),
+      height: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
       prevBlockHash: lib.codecOf(lib.Option.with(lib.codecOf(lib.HashWrap))),
       transactionsHash: lib.codecOf(lib.HashWrap),
-      creationTimeMs: lib.codecOf(lib.U64),
+      creationTime: lib.codecOf(lib.Timestamp),
       viewChangeIndex: lib.codecOf(lib.U32),
     },
   ),
@@ -5566,26 +5569,29 @@ export const BlockSignature: lib.CodecProvider<BlockSignature> = {
   }),
 }
 
+export type ChainId = lib.String
+export const ChainId = lib.String
+
 export interface TransactionPayload {
-  chain: lib.String
+  chain: ChainId
   authority: lib.AccountId
   creationTime: lib.Timestamp
   instructions: Executable
-  timeToLive: lib.Option<lib.Duration>
-  nonce: lib.Option<lib.U32>
-  metadata: lib.Map<lib.Name, lib.Json>
+  timeToLive: lib.Option<lib.NonZero<lib.Duration>>
+  nonce: lib.Option<lib.NonZero<lib.U32>>
+  metadata: Metadata
 }
 export const TransactionPayload: lib.CodecProvider<TransactionPayload> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionPayload>(
     ['chain', 'authority', 'creationTime', 'instructions', 'timeToLive', 'nonce', 'metadata'],
     {
-      chain: lib.codecOf(lib.String),
+      chain: lib.codecOf(ChainId),
       authority: lib.codecOf(lib.AccountId),
       creationTime: lib.codecOf(lib.Timestamp),
       instructions: lib.codecOf(Executable),
-      timeToLive: lib.codecOf(lib.Option.with(lib.codecOf(lib.Duration))),
-      nonce: lib.codecOf(lib.Option.with(lib.codecOf(lib.U32))),
-      metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+      timeToLive: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.Duration))))),
+      nonce: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U32))))),
+      metadata: lib.codecOf(Metadata),
     },
   ),
 }
@@ -5639,22 +5645,38 @@ export const SignedBlock = {
   [lib.CodecSymbol]: lib.enumCodec<{ V1: [SignedBlockV1] }>([[1, 'V1', lib.codecOf(SignedBlockV1)]]).discriminated(),
 }
 
-export type BlockParameter = lib.Variant<'MaxTransactions', lib.U64>
+export type BlockMessage = SignedBlock
+export const BlockMessage = SignedBlock
+
+export type BlockParameter = lib.Variant<'MaxTransactions', lib.NonZero<lib.U64>>
 export const BlockParameter = {
-  MaxTransactions: <const T extends lib.U64>(value: T): lib.Variant<'MaxTransactions', T> => ({
+  MaxTransactions: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'MaxTransactions', T> => ({
     kind: 'MaxTransactions',
     value,
   }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ MaxTransactions: [lib.U64] }>([[0, 'MaxTransactions', lib.codecOf(lib.U64)]])
+    .enumCodec<{
+      MaxTransactions: [lib.NonZero<lib.U64>]
+    }>([[0, 'MaxTransactions', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))]])
     .discriminated(),
 }
 
 export interface BlockParameters {
-  maxTransactions: lib.U64
+  maxTransactions: lib.NonZero<lib.U64>
 }
 export const BlockParameters: lib.CodecProvider<BlockParameters> = {
-  [lib.CodecSymbol]: lib.structCodec<BlockParameters>(['maxTransactions'], { maxTransactions: lib.codecOf(lib.U64) }),
+  [lib.CodecSymbol]: lib.structCodec<BlockParameters>(['maxTransactions'], {
+    maxTransactions: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+  }),
+}
+
+export interface BlockSubscriptionRequest {
+  fromBlockHeight: lib.NonZero<lib.U64>
+}
+export const BlockSubscriptionRequest: lib.CodecProvider<BlockSubscriptionRequest> = {
+  [lib.CodecSymbol]: lib.structCodec<BlockSubscriptionRequest>(['fromBlockHeight'], {
+    fromBlockHeight: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+  }),
 }
 
 export interface Burn<T0, T1> {
@@ -6274,65 +6296,66 @@ export const CommittedTransactionProjectionSelector = {
 }
 
 export type SumeragiParameter =
-  | lib.Variant<'BlockTimeMs', lib.U64>
-  | lib.Variant<'CommitTimeMs', lib.U64>
-  | lib.Variant<'MaxClockDriftMs', lib.U64>
+  | lib.Variant<'BlockTime', lib.Duration>
+  | lib.Variant<'CommitTime', lib.Duration>
+  | lib.Variant<'MaxClockDrift', lib.Duration>
 export const SumeragiParameter = {
-  BlockTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'BlockTimeMs', T> => ({ kind: 'BlockTimeMs', value }),
-  CommitTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'CommitTimeMs', T> => ({
-    kind: 'CommitTimeMs',
-    value,
-  }),
-  MaxClockDriftMs: <const T extends lib.U64>(value: T): lib.Variant<'MaxClockDriftMs', T> => ({
-    kind: 'MaxClockDriftMs',
+  BlockTime: <const T extends lib.Duration>(value: T): lib.Variant<'BlockTime', T> => ({ kind: 'BlockTime', value }),
+  CommitTime: <const T extends lib.Duration>(value: T): lib.Variant<'CommitTime', T> => ({ kind: 'CommitTime', value }),
+  MaxClockDrift: <const T extends lib.Duration>(value: T): lib.Variant<'MaxClockDrift', T> => ({
+    kind: 'MaxClockDrift',
     value,
   }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ BlockTimeMs: [lib.U64]; CommitTimeMs: [lib.U64]; MaxClockDriftMs: [lib.U64] }>([
-      [0, 'BlockTimeMs', lib.codecOf(lib.U64)],
-      [1, 'CommitTimeMs', lib.codecOf(lib.U64)],
-      [2, 'MaxClockDriftMs', lib.codecOf(lib.U64)],
+    .enumCodec<{ BlockTime: [lib.Duration]; CommitTime: [lib.Duration]; MaxClockDrift: [lib.Duration] }>([
+      [0, 'BlockTime', lib.codecOf(lib.Duration)],
+      [1, 'CommitTime', lib.codecOf(lib.Duration)],
+      [2, 'MaxClockDrift', lib.codecOf(lib.Duration)],
     ])
     .discriminated(),
 }
 
-export type TransactionParameter = lib.Variant<'MaxInstructions', lib.U64> | lib.Variant<'SmartContractSize', lib.U64>
+export type TransactionParameter =
+  | lib.Variant<'MaxInstructions', lib.NonZero<lib.U64>>
+  | lib.Variant<'SmartContractSize', lib.NonZero<lib.U64>>
 export const TransactionParameter = {
-  MaxInstructions: <const T extends lib.U64>(value: T): lib.Variant<'MaxInstructions', T> => ({
+  MaxInstructions: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'MaxInstructions', T> => ({
     kind: 'MaxInstructions',
     value,
   }),
-  SmartContractSize: <const T extends lib.U64>(value: T): lib.Variant<'SmartContractSize', T> => ({
+  SmartContractSize: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'SmartContractSize', T> => ({
     kind: 'SmartContractSize',
     value,
   }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ MaxInstructions: [lib.U64]; SmartContractSize: [lib.U64] }>([
-      [0, 'MaxInstructions', lib.codecOf(lib.U64)],
-      [1, 'SmartContractSize', lib.codecOf(lib.U64)],
+    .enumCodec<{ MaxInstructions: [lib.NonZero<lib.U64>]; SmartContractSize: [lib.NonZero<lib.U64>] }>([
+      [0, 'MaxInstructions', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
+      [1, 'SmartContractSize', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
     ])
     .discriminated(),
 }
 
-export type SmartContractParameter = lib.Variant<'Fuel', lib.U64> | lib.Variant<'Memory', lib.U64>
+export type SmartContractParameter =
+  | lib.Variant<'Fuel', lib.NonZero<lib.U64>>
+  | lib.Variant<'Memory', lib.NonZero<lib.U64>>
 export const SmartContractParameter = {
-  Fuel: <const T extends lib.U64>(value: T): lib.Variant<'Fuel', T> => ({ kind: 'Fuel', value }),
-  Memory: <const T extends lib.U64>(value: T): lib.Variant<'Memory', T> => ({ kind: 'Memory', value }),
+  Fuel: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'Fuel', T> => ({ kind: 'Fuel', value }),
+  Memory: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'Memory', T> => ({ kind: 'Memory', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Fuel: [lib.U64]; Memory: [lib.U64] }>([
-      [0, 'Fuel', lib.codecOf(lib.U64)],
-      [1, 'Memory', lib.codecOf(lib.U64)],
+    .enumCodec<{ Fuel: [lib.NonZero<lib.U64>]; Memory: [lib.NonZero<lib.U64>] }>([
+      [0, 'Fuel', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
+      [1, 'Memory', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
     ])
     .discriminated(),
 }
 
 export interface CustomParameter {
-  id: lib.Name
+  id: CustomParameterId
   payload: lib.Json
 }
 export const CustomParameter: lib.CodecProvider<CustomParameter> = {
   [lib.CodecSymbol]: lib.structCodec<CustomParameter>(['id', 'payload'], {
-    id: lib.codecOf(lib.Name),
+    id: lib.codecOf(CustomParameterId),
     payload: lib.codecOf(lib.Json),
   }),
 }
@@ -6346,35 +6369,37 @@ export type Parameter =
   | lib.Variant<'Custom', CustomParameter>
 export const Parameter = {
   Sumeragi: {
-    BlockTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'Sumeragi', lib.Variant<'BlockTimeMs', T>> => ({
+    BlockTime: <const T extends lib.Duration>(value: T): lib.Variant<'Sumeragi', lib.Variant<'BlockTime', T>> => ({
       kind: 'Sumeragi',
-      value: SumeragiParameter.BlockTimeMs(value),
+      value: SumeragiParameter.BlockTime(value),
     }),
-    CommitTimeMs: <const T extends lib.U64>(value: T): lib.Variant<'Sumeragi', lib.Variant<'CommitTimeMs', T>> => ({
+    CommitTime: <const T extends lib.Duration>(value: T): lib.Variant<'Sumeragi', lib.Variant<'CommitTime', T>> => ({
       kind: 'Sumeragi',
-      value: SumeragiParameter.CommitTimeMs(value),
+      value: SumeragiParameter.CommitTime(value),
     }),
-    MaxClockDriftMs: <const T extends lib.U64>(
+    MaxClockDrift: <const T extends lib.Duration>(
       value: T,
-    ): lib.Variant<'Sumeragi', lib.Variant<'MaxClockDriftMs', T>> => ({
+    ): lib.Variant<'Sumeragi', lib.Variant<'MaxClockDrift', T>> => ({
       kind: 'Sumeragi',
-      value: SumeragiParameter.MaxClockDriftMs(value),
+      value: SumeragiParameter.MaxClockDrift(value),
     }),
   },
   Block: {
-    MaxTransactions: <const T extends lib.U64>(value: T): lib.Variant<'Block', lib.Variant<'MaxTransactions', T>> => ({
+    MaxTransactions: <const T extends lib.NonZero<lib.U64>>(
+      value: T,
+    ): lib.Variant<'Block', lib.Variant<'MaxTransactions', T>> => ({
       kind: 'Block',
       value: BlockParameter.MaxTransactions(value),
     }),
   },
   Transaction: {
-    MaxInstructions: <const T extends lib.U64>(
+    MaxInstructions: <const T extends lib.NonZero<lib.U64>>(
       value: T,
     ): lib.Variant<'Transaction', lib.Variant<'MaxInstructions', T>> => ({
       kind: 'Transaction',
       value: TransactionParameter.MaxInstructions(value),
     }),
-    SmartContractSize: <const T extends lib.U64>(
+    SmartContractSize: <const T extends lib.NonZero<lib.U64>>(
       value: T,
     ): lib.Variant<'Transaction', lib.Variant<'SmartContractSize', T>> => ({
       kind: 'Transaction',
@@ -6382,21 +6407,23 @@ export const Parameter = {
     }),
   },
   SmartContract: {
-    Fuel: <const T extends lib.U64>(value: T): lib.Variant<'SmartContract', lib.Variant<'Fuel', T>> => ({
+    Fuel: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'SmartContract', lib.Variant<'Fuel', T>> => ({
       kind: 'SmartContract',
       value: SmartContractParameter.Fuel(value),
     }),
-    Memory: <const T extends lib.U64>(value: T): lib.Variant<'SmartContract', lib.Variant<'Memory', T>> => ({
+    Memory: <const T extends lib.NonZero<lib.U64>>(
+      value: T,
+    ): lib.Variant<'SmartContract', lib.Variant<'Memory', T>> => ({
       kind: 'SmartContract',
       value: SmartContractParameter.Memory(value),
     }),
   },
   Executor: {
-    Fuel: <const T extends lib.U64>(value: T): lib.Variant<'Executor', lib.Variant<'Fuel', T>> => ({
+    Fuel: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'Executor', lib.Variant<'Fuel', T>> => ({
       kind: 'Executor',
       value: SmartContractParameter.Fuel(value),
     }),
-    Memory: <const T extends lib.U64>(value: T): lib.Variant<'Executor', lib.Variant<'Memory', T>> => ({
+    Memory: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'Executor', lib.Variant<'Memory', T>> => ({
       kind: 'Executor',
       value: SmartContractParameter.Memory(value),
     }),
@@ -6461,15 +6488,15 @@ export const PeerEvent = {
 
 export interface Domain {
   id: lib.DomainId
-  logo: lib.Option<lib.String>
-  metadata: lib.Map<lib.Name, lib.Json>
+  logo: lib.Option<IpfsPath>
+  metadata: Metadata
   ownedBy: lib.AccountId
 }
 export const Domain: lib.CodecProvider<Domain> = {
   [lib.CodecSymbol]: lib.structCodec<Domain>(['id', 'logo', 'metadata', 'ownedBy'], {
     id: lib.codecOf(lib.DomainId),
-    logo: lib.codecOf(lib.Option.with(lib.codecOf(lib.String))),
-    metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+    logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
+    metadata: lib.codecOf(Metadata),
     ownedBy: lib.codecOf(lib.AccountId),
   }),
 }
@@ -6767,14 +6794,14 @@ export const RoleEvent = {
 }
 
 export interface ExecutorDataModel {
-  parameters: lib.Map<lib.Name, CustomParameter>
+  parameters: lib.Map<CustomParameterId, CustomParameter>
   instructions: lib.Vec<lib.String>
   permissions: lib.Vec<lib.String>
   schema: lib.Json
 }
 export const ExecutorDataModel: lib.CodecProvider<ExecutorDataModel> = {
   [lib.CodecSymbol]: lib.structCodec<ExecutorDataModel>(['parameters', 'instructions', 'permissions', 'schema'], {
-    parameters: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(CustomParameter))),
+    parameters: lib.codecOf(lib.Map.with(lib.codecOf(CustomParameterId), lib.codecOf(CustomParameter))),
     instructions: lib.codecOf(lib.Vec.with(lib.codecOf(lib.String))),
     permissions: lib.codecOf(lib.Vec.with(lib.codecOf(lib.String))),
     schema: lib.codecOf(lib.Json),
@@ -7168,13 +7195,13 @@ export const DomainProjectionSelector = {
 
 export interface TransactionEvent {
   hash: lib.HashWrap
-  blockHeight: lib.Option<lib.U64>
+  blockHeight: lib.Option<lib.NonZero<lib.U64>>
   status: TransactionStatus
 }
 export const TransactionEvent: lib.CodecProvider<TransactionEvent> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionEvent>(['hash', 'blockHeight', 'status'], {
     hash: lib.codecOf(lib.HashWrap),
-    blockHeight: lib.codecOf(lib.Option.with(lib.codecOf(lib.U64))),
+    blockHeight: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
     status: lib.codecOf(TransactionStatus),
   }),
 }
@@ -7551,6 +7578,18 @@ export const EventBox = {
     .discriminated(),
 }
 
+export type EventMessage = EventBox
+export const EventMessage = EventBox
+
+export interface EventSubscriptionRequest {
+  filters: lib.Vec<EventFilterBox>
+}
+export const EventSubscriptionRequest: lib.CodecProvider<EventSubscriptionRequest> = {
+  [lib.CodecSymbol]: lib.structCodec<EventSubscriptionRequest>(['filters'], {
+    filters: lib.codecOf(lib.Vec.with(lib.codecOf(EventFilterBox))),
+  }),
+}
+
 export interface ExecuteTrigger {
   trigger: TriggerId
   args: lib.Json
@@ -7563,10 +7602,10 @@ export const ExecuteTrigger: lib.CodecProvider<ExecuteTrigger> = {
 }
 
 export interface Executor {
-  wasm: lib.Vec<lib.U8>
+  wasm: WasmSmartContract
 }
 export const Executor: lib.CodecProvider<Executor> = {
-  [lib.CodecSymbol]: lib.structCodec<Executor>(['wasm'], { wasm: lib.codecOf(lib.Vec.with(lib.codecOf(lib.U8))) }),
+  [lib.CodecSymbol]: lib.structCodec<Executor>(['wasm'], { wasm: lib.codecOf(WasmSmartContract) }),
 }
 
 export interface FindAccountsWithAsset {
@@ -7594,12 +7633,12 @@ export const FindRolesByAccountId: lib.CodecProvider<FindRolesByAccountId> = {
 
 export interface ForwardCursor {
   query: lib.String
-  cursor: lib.U64
+  cursor: lib.NonZero<lib.U64>
 }
 export const ForwardCursor: lib.CodecProvider<ForwardCursor> = {
   [lib.CodecSymbol]: lib.structCodec<ForwardCursor>(['query', 'cursor'], {
     query: lib.codecOf(lib.String),
-    cursor: lib.codecOf(lib.U64),
+    cursor: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
   }),
 }
 
@@ -7668,25 +7707,25 @@ export const GrantBox = {
 
 export interface NewDomain {
   id: lib.DomainId
-  logo: lib.Option<lib.String>
-  metadata: lib.Map<lib.Name, lib.Json>
+  logo: lib.Option<IpfsPath>
+  metadata: Metadata
 }
 export const NewDomain: lib.CodecProvider<NewDomain> = {
   [lib.CodecSymbol]: lib.structCodec<NewDomain>(['id', 'logo', 'metadata'], {
     id: lib.codecOf(lib.DomainId),
-    logo: lib.codecOf(lib.Option.with(lib.codecOf(lib.String))),
-    metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+    logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
+    metadata: lib.codecOf(Metadata),
   }),
 }
 
 export interface NewAccount {
   id: lib.AccountId
-  metadata: lib.Map<lib.Name, lib.Json>
+  metadata: Metadata
 }
 export const NewAccount: lib.CodecProvider<NewAccount> = {
   [lib.CodecSymbol]: lib.structCodec<NewAccount>(['id', 'metadata'], {
     id: lib.codecOf(lib.AccountId),
-    metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+    metadata: lib.codecOf(Metadata),
   }),
 }
 
@@ -7694,16 +7733,16 @@ export interface NewAssetDefinition {
   id: lib.AssetDefinitionId
   type: AssetType
   mintable: Mintable
-  logo: lib.Option<lib.String>
-  metadata: lib.Map<lib.Name, lib.Json>
+  logo: lib.Option<IpfsPath>
+  metadata: Metadata
 }
 export const NewAssetDefinition: lib.CodecProvider<NewAssetDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<NewAssetDefinition>(['id', 'type', 'mintable', 'logo', 'metadata'], {
     id: lib.codecOf(lib.AssetDefinitionId),
     type: lib.codecOf(AssetType),
     mintable: lib.codecOf(Mintable),
-    logo: lib.codecOf(lib.Option.with(lib.codecOf(lib.String))),
-    metadata: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))),
+    logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
+    metadata: lib.codecOf(Metadata),
   }),
 }
 
@@ -7851,7 +7890,7 @@ export const TransferBox = {
     Numeric: <const T extends Transfer<lib.AssetId, Numeric, lib.AccountId>>(
       value: T,
     ): lib.Variant<'Asset', lib.Variant<'Numeric', T>> => ({ kind: 'Asset', value: AssetTransferBox.Numeric(value) }),
-    Store: <const T extends Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>(
+    Store: <const T extends Transfer<lib.AssetId, Metadata, lib.AccountId>>(
       value: T,
     ): lib.Variant<'Asset', lib.Variant<'Store', T>> => ({ kind: 'Asset', value: AssetTransferBox.Store(value) }),
   },
@@ -8023,6 +8062,9 @@ export const RevokeBox = {
     .discriminated(),
 }
 
+export type SetParameter = Parameter
+export const SetParameter = Parameter
+
 export interface Upgrade {
   executor: Executor
 }
@@ -8075,7 +8117,7 @@ export type InstructionBox =
   | lib.Variant<'Grant', GrantBox>
   | lib.Variant<'Revoke', RevokeBox>
   | lib.Variant<'ExecuteTrigger', ExecuteTrigger>
-  | lib.Variant<'SetParameter', Parameter>
+  | lib.Variant<'SetParameter', SetParameter>
   | lib.Variant<'Upgrade', Upgrade>
   | lib.Variant<'Log', Log>
   | lib.Variant<'Custom', CustomInstruction>
@@ -8185,7 +8227,7 @@ export const InstructionBox = {
         kind: 'Transfer',
         value: TransferBox.Asset.Numeric(value),
       }),
-      Store: <const T extends Transfer<lib.AssetId, lib.Map<lib.Name, lib.Json>, lib.AccountId>>(
+      Store: <const T extends Transfer<lib.AssetId, Metadata, lib.AccountId>>(
         value: T,
       ): lib.Variant<'Transfer', lib.Variant<'Asset', lib.Variant<'Store', T>>> => ({
         kind: 'Transfer',
@@ -8291,82 +8333,10 @@ export const InstructionBox = {
     kind: 'ExecuteTrigger',
     value,
   }),
-  SetParameter: {
-    Sumeragi: {
-      BlockTimeMs: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'BlockTimeMs', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Sumeragi.BlockTimeMs(value),
-      }),
-      CommitTimeMs: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'CommitTimeMs', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Sumeragi.CommitTimeMs(value),
-      }),
-      MaxClockDriftMs: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'MaxClockDriftMs', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Sumeragi.MaxClockDriftMs(value),
-      }),
-    },
-    Block: {
-      MaxTransactions: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Block', lib.Variant<'MaxTransactions', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Block.MaxTransactions(value),
-      }),
-    },
-    Transaction: {
-      MaxInstructions: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Transaction', lib.Variant<'MaxInstructions', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Transaction.MaxInstructions(value),
-      }),
-      SmartContractSize: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Transaction', lib.Variant<'SmartContractSize', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Transaction.SmartContractSize(value),
-      }),
-    },
-    SmartContract: {
-      Fuel: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'SmartContract', lib.Variant<'Fuel', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.SmartContract.Fuel(value),
-      }),
-      Memory: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'SmartContract', lib.Variant<'Memory', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.SmartContract.Memory(value),
-      }),
-    },
-    Executor: {
-      Fuel: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Executor', lib.Variant<'Fuel', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Executor.Fuel(value),
-      }),
-      Memory: <const T extends lib.U64>(
-        value: T,
-      ): lib.Variant<'SetParameter', lib.Variant<'Executor', lib.Variant<'Memory', T>>> => ({
-        kind: 'SetParameter',
-        value: Parameter.Executor.Memory(value),
-      }),
-    },
-    Custom: <const T extends CustomParameter>(value: T): lib.Variant<'SetParameter', lib.Variant<'Custom', T>> => ({
-      kind: 'SetParameter',
-      value: Parameter.Custom(value),
-    }),
-  },
+  SetParameter: <const T extends SetParameter>(value: T): lib.Variant<'SetParameter', T> => ({
+    kind: 'SetParameter',
+    value,
+  }),
   Upgrade: <const T extends Upgrade>(value: T): lib.Variant<'Upgrade', T> => ({ kind: 'Upgrade', value }),
   Log: <const T extends Log>(value: T): lib.Variant<'Log', T> => ({ kind: 'Log', value }),
   Custom: <const T extends CustomInstruction>(value: T): lib.Variant<'Custom', T> => ({ kind: 'Custom', value }),
@@ -8382,7 +8352,7 @@ export const InstructionBox = {
       Grant: [GrantBox]
       Revoke: [RevokeBox]
       ExecuteTrigger: [ExecuteTrigger]
-      SetParameter: [Parameter]
+      SetParameter: [SetParameter]
       Upgrade: [Upgrade]
       Log: [Log]
       Custom: [CustomInstruction]
@@ -8397,7 +8367,7 @@ export const InstructionBox = {
       [7, 'Grant', lib.codecOf(GrantBox)],
       [8, 'Revoke', lib.codecOf(RevokeBox)],
       [9, 'ExecuteTrigger', lib.codecOf(ExecuteTrigger)],
-      [10, 'SetParameter', lib.codecOf(Parameter)],
+      [10, 'SetParameter', lib.codecOf(SetParameter)],
       [11, 'Upgrade', lib.codecOf(Upgrade)],
       [12, 'Log', lib.codecOf(Log)],
       [13, 'Custom', lib.codecOf(CustomInstruction)],
@@ -8442,14 +8412,14 @@ export const MultisigApprove: lib.CodecProvider<MultisigApprove> = {
 
 export interface MultisigSpec {
   signatories: lib.Map<lib.AccountId, lib.U8>
-  quorum: lib.U16
-  transactionTtlMs: lib.U64
+  quorum: lib.NonZero<lib.U16>
+  transactionTtl: lib.NonZero<lib.Duration>
 }
 export const MultisigSpec: lib.CodecProvider<MultisigSpec> = {
-  [lib.CodecSymbol]: lib.structCodec<MultisigSpec>(['signatories', 'quorum', 'transactionTtlMs'], {
+  [lib.CodecSymbol]: lib.structCodec<MultisigSpec>(['signatories', 'quorum', 'transactionTtl'], {
     signatories: lib.codecOf(lib.Map.with(lib.codecOf(lib.AccountId), lib.codecOf(lib.U8))),
-    quorum: lib.codecOf(lib.U16),
-    transactionTtlMs: lib.codecOf(lib.U64),
+    quorum: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U16))),
+    transactionTtl: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.Duration))),
   }),
 }
 
@@ -8467,13 +8437,13 @@ export const MultisigRegister: lib.CodecProvider<MultisigRegister> = {
 export interface MultisigPropose {
   account: lib.AccountId
   instructions: lib.Vec<InstructionBox>
-  transactionTtlMs: lib.Option<lib.U64>
+  transactionTtl: lib.Option<lib.NonZero<lib.Duration>>
 }
 export const MultisigPropose: lib.CodecProvider<MultisigPropose> = {
-  [lib.CodecSymbol]: lib.structCodec<MultisigPropose>(['account', 'instructions', 'transactionTtlMs'], {
+  [lib.CodecSymbol]: lib.structCodec<MultisigPropose>(['account', 'instructions', 'transactionTtl'], {
     account: lib.codecOf(lib.AccountId),
     instructions: lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox)))),
-    transactionTtlMs: lib.codecOf(lib.Option.with(lib.codecOf(lib.U64))),
+    transactionTtl: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.Duration))))),
   }),
 }
 
@@ -8496,18 +8466,18 @@ export const MultisigInstructionBox = {
 
 export interface MultisigProposalValue {
   instructions: lib.Vec<InstructionBox>
-  proposedAtMs: lib.U64
-  expiresAtMs: lib.U64
+  proposedAt: lib.Timestamp
+  expiresAt: lib.Timestamp
   approvals: lib.Vec<lib.AccountId>
   isRelayed: lib.Option<lib.Bool>
 }
 export const MultisigProposalValue: lib.CodecProvider<MultisigProposalValue> = {
   [lib.CodecSymbol]: lib.structCodec<MultisigProposalValue>(
-    ['instructions', 'proposedAtMs', 'expiresAtMs', 'approvals', 'isRelayed'],
+    ['instructions', 'proposedAt', 'expiresAt', 'approvals', 'isRelayed'],
     {
       instructions: lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox)))),
-      proposedAtMs: lib.codecOf(lib.U64),
-      expiresAtMs: lib.codecOf(lib.U64),
+      proposedAt: lib.codecOf(lib.Timestamp),
+      expiresAt: lib.codecOf(lib.Timestamp),
       approvals: lib.codecOf(lib.Vec.with(lib.codecOf(lib.AccountId))),
       isRelayed: lib.codecOf(lib.Option.with(lib.codecOf(lib.Bool))),
     },
@@ -8515,48 +8485,48 @@ export const MultisigProposalValue: lib.CodecProvider<MultisigProposalValue> = {
 }
 
 export interface Pagination {
-  limit: lib.Option<lib.U64>
+  limit: lib.Option<lib.NonZero<lib.U64>>
   offset: lib.U64
 }
 export const Pagination: lib.CodecProvider<Pagination> = {
   [lib.CodecSymbol]: lib.structCodec<Pagination>(['limit', 'offset'], {
-    limit: lib.codecOf(lib.Option.with(lib.codecOf(lib.U64))),
+    limit: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
     offset: lib.codecOf(lib.U64),
   }),
 }
 
 export interface SumeragiParameters {
-  blockTimeMs: lib.U64
-  commitTimeMs: lib.U64
-  maxClockDriftMs: lib.U64
+  blockTime: lib.Duration
+  commitTime: lib.Duration
+  maxClockDrift: lib.Duration
 }
 export const SumeragiParameters: lib.CodecProvider<SumeragiParameters> = {
-  [lib.CodecSymbol]: lib.structCodec<SumeragiParameters>(['blockTimeMs', 'commitTimeMs', 'maxClockDriftMs'], {
-    blockTimeMs: lib.codecOf(lib.U64),
-    commitTimeMs: lib.codecOf(lib.U64),
-    maxClockDriftMs: lib.codecOf(lib.U64),
+  [lib.CodecSymbol]: lib.structCodec<SumeragiParameters>(['blockTime', 'commitTime', 'maxClockDrift'], {
+    blockTime: lib.codecOf(lib.Duration),
+    commitTime: lib.codecOf(lib.Duration),
+    maxClockDrift: lib.codecOf(lib.Duration),
   }),
 }
 
 export interface TransactionParameters {
-  maxInstructions: lib.U64
-  smartContractSize: lib.U64
+  maxInstructions: lib.NonZero<lib.U64>
+  smartContractSize: lib.NonZero<lib.U64>
 }
 export const TransactionParameters: lib.CodecProvider<TransactionParameters> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionParameters>(['maxInstructions', 'smartContractSize'], {
-    maxInstructions: lib.codecOf(lib.U64),
-    smartContractSize: lib.codecOf(lib.U64),
+    maxInstructions: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    smartContractSize: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
   }),
 }
 
 export interface SmartContractParameters {
-  fuel: lib.U64
-  memory: lib.U64
+  fuel: lib.NonZero<lib.U64>
+  memory: lib.NonZero<lib.U64>
 }
 export const SmartContractParameters: lib.CodecProvider<SmartContractParameters> = {
   [lib.CodecSymbol]: lib.structCodec<SmartContractParameters>(['fuel', 'memory'], {
-    fuel: lib.codecOf(lib.U64),
-    memory: lib.codecOf(lib.U64),
+    fuel: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    memory: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
   }),
 }
 
@@ -8566,7 +8536,7 @@ export interface Parameters {
   transaction: TransactionParameters
   executor: SmartContractParameters
   smartContract: SmartContractParameters
-  custom: lib.Map<lib.Name, CustomParameter>
+  custom: lib.Map<CustomParameterId, CustomParameter>
 }
 export const Parameters: lib.CodecProvider<Parameters> = {
   [lib.CodecSymbol]: lib.structCodec<Parameters>(
@@ -8577,7 +8547,7 @@ export const Parameters: lib.CodecProvider<Parameters> = {
       transaction: lib.codecOf(TransactionParameters),
       executor: lib.codecOf(SmartContractParameters),
       smartContract: lib.codecOf(SmartContractParameters),
-      custom: lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(CustomParameter))),
+      custom: lib.codecOf(lib.Map.with(lib.codecOf(CustomParameterId), lib.codecOf(CustomParameter))),
     },
   ),
 }
@@ -9583,7 +9553,7 @@ export const QueryBox = {
 export type QueryOutputBatchBox =
   | lib.Variant<'PublicKey', lib.Vec<lib.PublicKeyWrap>>
   | lib.Variant<'String', lib.Vec<lib.String>>
-  | lib.Variant<'Metadata', lib.Vec<lib.Map<lib.Name, lib.Json>>>
+  | lib.Variant<'Metadata', lib.Vec<Metadata>>
   | lib.Variant<'Json', lib.Vec<lib.Json>>
   | lib.Variant<'Numeric', lib.Vec<Numeric>>
   | lib.Variant<'Name', lib.Vec<lib.Name>>
@@ -9617,10 +9587,7 @@ export const QueryOutputBatchBox = {
     value,
   }),
   String: <const T extends lib.Vec<lib.String>>(value: T): lib.Variant<'String', T> => ({ kind: 'String', value }),
-  Metadata: <const T extends lib.Vec<lib.Map<lib.Name, lib.Json>>>(value: T): lib.Variant<'Metadata', T> => ({
-    kind: 'Metadata',
-    value,
-  }),
+  Metadata: <const T extends lib.Vec<Metadata>>(value: T): lib.Variant<'Metadata', T> => ({ kind: 'Metadata', value }),
   Json: <const T extends lib.Vec<lib.Json>>(value: T): lib.Variant<'Json', T> => ({ kind: 'Json', value }),
   Numeric: <const T extends lib.Vec<Numeric>>(value: T): lib.Variant<'Numeric', T> => ({ kind: 'Numeric', value }),
   Name: <const T extends lib.Vec<lib.Name>>(value: T): lib.Variant<'Name', T> => ({ kind: 'Name', value }),
@@ -9691,7 +9658,7 @@ export const QueryOutputBatchBox = {
     .enumCodec<{
       PublicKey: [lib.Vec<lib.PublicKeyWrap>]
       String: [lib.Vec<lib.String>]
-      Metadata: [lib.Vec<lib.Map<lib.Name, lib.Json>>]
+      Metadata: [lib.Vec<Metadata>]
       Json: [lib.Vec<lib.Json>]
       Numeric: [lib.Vec<Numeric>]
       Name: [lib.Vec<lib.Name>]
@@ -9722,11 +9689,7 @@ export const QueryOutputBatchBox = {
     }>([
       [0, 'PublicKey', lib.codecOf(lib.Vec.with(lib.codecOf(lib.PublicKeyWrap)))],
       [1, 'String', lib.codecOf(lib.Vec.with(lib.codecOf(lib.String)))],
-      [
-        2,
-        'Metadata',
-        lib.codecOf(lib.Vec.with(lib.codecOf(lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))))),
-      ],
+      [2, 'Metadata', lib.codecOf(lib.Vec.with(lib.codecOf(Metadata)))],
       [3, 'Json', lib.codecOf(lib.Vec.with(lib.codecOf(lib.Json)))],
       [4, 'Numeric', lib.codecOf(lib.Vec.with(lib.codecOf(Numeric)))],
       [5, 'Name', lib.codecOf(lib.Vec.with(lib.codecOf(lib.Name)))],
@@ -9796,13 +9759,13 @@ export const Sorting: lib.CodecProvider<Sorting> = {
 export interface QueryParams {
   pagination: Pagination
   sorting: Sorting
-  fetchSize: lib.Option<lib.U64>
+  fetchSize: lib.Option<lib.NonZero<lib.U64>>
 }
 export const QueryParams: lib.CodecProvider<QueryParams> = {
   [lib.CodecSymbol]: lib.structCodec<QueryParams>(['pagination', 'sorting', 'fetchSize'], {
     pagination: lib.codecOf(Pagination),
     sorting: lib.codecOf(Sorting),
-    fetchSize: lib.codecOf(lib.Option.with(lib.codecOf(lib.U64))),
+    fetchSize: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
   }),
 }
 
@@ -9907,7 +9870,7 @@ export const QueryResponse = {
 }
 
 export interface RawGenesisTransaction {
-  chain: lib.String
+  chain: ChainId
   executor: lib.String
   parameters: lib.Option<Parameters>
   instructions: lib.Vec<InstructionBox>
@@ -9919,7 +9882,7 @@ export const RawGenesisTransaction: lib.CodecProvider<RawGenesisTransaction> = {
   [lib.CodecSymbol]: lib.structCodec<RawGenesisTransaction>(
     ['chain', 'executor', 'parameters', 'instructions', 'wasmDir', 'wasmTriggers', 'topology'],
     {
-      chain: lib.codecOf(lib.String),
+      chain: lib.codecOf(ChainId),
       executor: lib.codecOf(lib.String),
       parameters: lib.codecOf(lib.Option.with(lib.codecOf(Parameters))),
       instructions: lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox)))),

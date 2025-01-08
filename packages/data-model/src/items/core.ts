@@ -53,16 +53,32 @@ export const Compact: CodecProvider<bigint> = {
   [CodecSymbol]: new Codec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
 }
 
-export type NonZero<T extends number | bigint> = T
+export interface ZeroCheckable {
+  isZero: () => boolean
+}
 
-export const NonZero = {
-  parse: <T extends number | bigint>(value: T): NonZero<T> => {
-    if (value === 0) throw new Error(`zero value passed to NonZero-integer`)
-    return value as NonZero<T>
-  },
-  with: <T extends number | bigint>(int: Codec<T>): CodecProvider<NonZero<T>> => ({
-    [CodecSymbol]: int as Codec<NonZero<T>>,
-  }),
+export class NonZero<T extends number | bigint | ZeroCheckable> {
+  public static with<T extends number | bigint | ZeroCheckable>(codec: Codec<T>): CodecProvider<NonZero<T>> {
+    return {
+      [CodecSymbol]: codec.wrap<NonZero<T>>({
+        toBase: (x) => x.value,
+        fromBase: (x) => new NonZero(x),
+      }),
+    }
+  }
+
+  private _value: T
+  private __brand!: 'non-zero something'
+
+  public constructor(value: T) {
+    const isZero = typeof value === 'number' || typeof value === 'bigint' ? value === 0 : value.isZero()
+    if (isZero) throw new TypeError(`Zero is passed to the NonZero constructor (${globalThis.String(value)})`)
+    this._value = value
+  }
+
+  public get value(): T {
+    return this._value
+  }
 }
 
 export type Option<T> = null | T
@@ -178,7 +194,7 @@ export class Timestamp {
 
 export { Timestamp as TimestampU128 }
 
-export class Duration {
+export class Duration implements ZeroCheckable {
   public static [CodecSymbol]: Codec<Duration> = U64[CodecSymbol].wrap({
     fromBase: (x) => Duration.fromMillis(x),
     toBase: (y) => y.asMillis(),
@@ -190,12 +206,17 @@ export class Duration {
 
   _ms: bigint
 
-  private constructor(ms: bigint) {
+  protected constructor(ms: bigint) {
+    if (ms < 0n) throw new TypeError(`Duration could not be negative, got: ${ms}`)
     this._ms = ms
   }
 
   public asMillis(): bigint {
     return this._ms
+  }
+
+  public isZero() {
+    return this._ms === 0n
   }
 }
 

@@ -27,8 +27,6 @@ export function generate(schema: Schema, libModule: string): string {
       return map
     }, new Map<string, EmitCode>())
 
-  postprocessEmits(emits)
-
   const arranged = arrangeEmits(emits)
 
   return [`import * as lib from '${libModule}'`, ...arranged.map((id) => renderEmit(id, emits))].join('\n\n')
@@ -409,6 +407,28 @@ export class Resolver {
           this.resolve(type),
         )
 
+        .with({ refStr: 'BlockSubscriptionRequest', schema: 'NonZero<u64>' }, ({ refStr, schema }) => ({
+          t: 'local',
+          id: refStr,
+          emit: (): EmitCode => ({
+            t: 'struct',
+            fields: [{ name: 'from_block_height', type: this.resolve(schema) }],
+          }),
+        }))
+        .with({ refStr: 'EventSubscriptionRequest', schema: P.string }, ({ refStr, schema }) => {
+          const filters = this.resolve(schema)
+          invariant(filters.t === 'lib' && filters.id === 'Vec')
+
+          return {
+            t: 'local',
+            id: refStr,
+            emit: (): EmitCode => ({
+              t: 'struct',
+              fields: [{ name: 'filters', type: filters }],
+            }),
+          }
+        })
+
         .with(
           { ref: { id: P.select('id'), items: [] }, schema: { Bitmap: { repr: 'u32', masks: P.select('masks') } } },
           ({ id, masks }) => ({
@@ -487,8 +507,27 @@ export class Resolver {
           }),
         )
 
-        // redundant aliases
-        .with({ schema: P.string.select() }, (target) => this.resolve(target))
+        .with(
+          { ref: { id: 'NonZero', items: [{ id: P.select('int'), items: [] }] }, schema: P.string.select('int2') },
+          ({ int, int2 }) => {
+            invariant(int === int2)
+            return {
+              t: 'lib',
+              id: 'NonZero',
+              params: [this.resolve(int)],
+            }
+          },
+        )
+
+        // lightweight aliases
+        .with({ ref: { id: P.select('id'), items: [] }, schema: P.string.select('target') }, ({ id, target }) => ({
+          t: 'local',
+          id,
+          emit: (): EmitCode => ({
+            t: 'alias',
+            to: this.resolve(target),
+          }),
+        }))
 
         // null types - useless?
         .with({ schema: null }, () => ({ t: 'null' }))
@@ -500,11 +539,66 @@ export class Resolver {
   }
 
   private mapFields(items: NamedStructDefinition['Struct']): EmitStructField[] {
-    return items.map((x) => ({ name: x.name, type: this.resolve(x.type) }))
+    return items.map((x) => {
+      if (x.name.endsWith('_ms')) {
+        const rewriteWith = match(x.name)
+          .returnType<LibType>()
+          .with(
+            P.union('start_ms', 'creation_time_ms', 'since_ms', 'proposed_at_ms', 'expires_at_ms'),
+            () => 'Timestamp',
+          )
+          .otherwise(() => 'Duration')
+
+        const type = match([rewriteWith, this.resolve(x.type)])
+          .returnType<TypeRef>()
+          .with([P._, { t: 'lib', id: 'U64' }], () => ({ t: 'lib', id: rewriteWith }))
+          .with(['Timestamp', { t: 'lib', id: 'NonZero', params: [{ t: 'lib', id: 'U64' }] }], () => {
+            // FIXME
+            console.warn(
+              `Field that seems to be a timestamp is declared as NonZero<u64>: "${x.name}".\n` +
+                `That is an issue in the schema. Rewriting it as just Timestamp.\n` +
+                `Remove this code when the schema fixed.`,
+            )
+            return {
+              t: 'lib',
+              id: rewriteWith,
+            }
+          })
+          .with(
+            [P._, { t: 'lib', id: P.union('Option', 'NonZero').select(), params: [{ t: 'lib', id: 'U64' }] }],
+            (base) => ({
+              t: 'lib',
+              id: base,
+              params: [{ t: 'lib', id: rewriteWith }],
+            }),
+          )
+          .with(
+            [
+              'Duration',
+              { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'NonZero', params: [{ t: 'lib', id: 'U64' }] }] },
+            ],
+            () => ({
+              t: 'lib',
+              id: 'Option',
+              params: [{ t: 'lib', id: 'NonZero', params: [{ t: 'lib', id: rewriteWith }] }],
+            }),
+          )
+          .otherwise(() => {
+            throw new Error(`Unexpected type of a field with _ms suffix: ${x.type}`)
+          })
+        return { name: x.name.slice(0, -3), type }
+      }
+      return { name: x.name, type: this.resolve(x.type) }
+    })
   }
 
   private mapVariants(items: EnumDefinition['Enum']): EmitEnumVariant[] {
     return items.map((x) => {
+      if (x.tag.endsWith('Ms')) {
+        invariant(x.type === 'u64')
+        return { ...x, tag: x.tag.slice(0, -2), type: { t: 'lib', id: 'Duration' } }
+      }
+
       const type = match(x)
         .returnType<TypeRef>()
         .with({ type: P.string }, ({ type }) => this.resolve(type))
@@ -595,77 +689,6 @@ export function enumShortcuts(variants: EmitEnumVariant[], types: EmitsMap): Enu
   })
 }
 
-function postprocessEmits(emits: EmitsMap) {
-  function replace(id: string, f: (emit: EmitCode) => EmitCode) {
-    invariant(emits.has(id))
-    emits.set(id, f(emits.get(id)!))
-  }
-
-  replace('TransactionPayload', (emit) => {
-    invariant(emit.t === 'struct')
-
-    const creationTime = emit.fields.find((x) =>
-      isMatching({ name: 'creation_time_ms', type: { t: 'lib', id: 'U64' } }, x),
-    )
-    invariant(creationTime)
-    creationTime.name = 'creation_time'
-    creationTime.type = { t: 'lib', id: 'Timestamp' }
-
-    const ttl = emit.fields.find((x) =>
-      isMatching({ name: 'time_to_live_ms', type: { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'U64' }] } }, x),
-    )
-    invariant(ttl)
-    ttl.name = 'time_to_live'
-    ttl.type = { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'Duration' }] }
-
-    return emit
-  })
-
-  replace('TimeInterval', (emit) => {
-    invariant(
-      isMatching(
-        {
-          fields: [
-            { name: 'since_ms', type: { t: 'lib', id: 'U64' } },
-            { name: 'length_ms', type: { t: 'lib', id: 'U64' } },
-          ],
-        },
-        emit,
-      ),
-    )
-    return {
-      ...emit,
-      fields: [
-        { name: 'since', type: { t: 'lib', id: 'Timestamp' } },
-        { name: 'length', type: { t: 'lib', id: 'Duration' } },
-      ],
-    }
-  })
-
-  replace('Schedule', (emit) => {
-    invariant(
-      isMatching(
-        {
-          fields: [
-            { name: 'start_ms', type: { t: 'lib', id: 'U64' } },
-            { name: 'period_ms', type: { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'U64' }] } },
-          ],
-        },
-        emit,
-      ),
-    )
-    return {
-      ...emit,
-      fields: [
-        { name: 'start', type: { t: 'lib', id: 'Timestamp' } },
-        { name: 'period', type: { t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'Duration' }] } },
-      ],
-    }
-  })
-}
-
-const CRYPTO_ALGORITHMS: Algorithm[] = ['ed25519', 'secp256k1', 'bls_normal', 'bls_small']
-
 /**
  * Yields each {@link TypeRef} inside a given one (and including it)
  */
@@ -753,15 +776,19 @@ interface RefRender {
   type: string
   /** expression of type `Codec<T>` */
   codec: string
+  /** runtime-layer ID (e.g. for direct aliasing) when possible */
+  valueId?: string
 }
 
 function renderRef(ref: TypeRef): RefRender {
   return match(ref)
     .returnType<RefRender>()
     .with({ t: 'local', params: P.array() }, ({ id, params }) => {
+      const valueId = `${id}.with(${params.map((x) => renderRef(x).codec).join(', ')})`
       return {
         type: id + `<${params.map((x) => renderRef(x).type).join(', ')}>`,
-        codec: `lib.codecOf(${id}.with(${params.map((x) => renderRef(x).codec).join(', ')}))`,
+        codec: `lib.codecOf(${valueId})`,
+        valueId,
       }
     })
     .with({ t: 'local' }, ({ id, lazy }) => {
@@ -769,26 +796,29 @@ function renderRef(ref: TypeRef): RefRender {
       return {
         type: id,
         codec: lazy ? `lib.lazyCodec(() => ${codec})` : codec,
+        valueId: lazy ? undefined : id,
       }
     })
     .with({ t: 'lib', params: P.array() }, ({ id, params }) => {
       const typeGenerics = `<${params.map((x) => renderRef(x).type).join(', ')}>`
+      const valueId = `lib.${id}.with(${params.map((x) => renderRef(x).codec).join(', ')})`
 
       return {
         type: `lib.${id}${typeGenerics}`,
-        codec: `lib.codecOf(lib.${id}.with(${params.map((x) => renderRef(x).codec).join(', ')}))`,
+        codec: `lib.codecOf(${valueId})`,
+        valueId,
       }
     })
     .with({ t: 'lib' }, ({ id }) => {
       return {
         type: `lib.${id}`,
         codec: `lib.codecOf(lib.${id})`,
+        valueId: `lib.${id}`,
       }
     })
-    .with({ t: 'lib-array' }, ({ len }) => ({
-      type: String(len),
-      codec: String(len),
-    }))
+    .with({ t: 'lib-array' }, () => {
+      throw new Error('This type of reference exists on pre-render stage only, really')
+    })
     .with({ t: 'param' }, ({ index }) => {
       return {
         type: `T${index}`,
@@ -981,10 +1011,9 @@ function renderEmit(id: string, map: EmitsMap): string {
       ]
     })
     .with({ t: 'alias' }, ({ to }) => {
-      return [
-        `export type ${id} = ${renderRef(to).type}`,
-        `export const ${id} = { ${CODEC_SYMBOL}: ${renderRef(to).codec} }`,
-      ]
+      const rendered = renderRef(to)
+      const value = rendered.valueId ?? `{ ${CODEC_SYMBOL}: ${rendered.codec} }`
+      return [`export type ${id} = ${rendered.type}`, `export const ${id} = ${value}`]
     })
     .exhaustive()
     .join('\n')
