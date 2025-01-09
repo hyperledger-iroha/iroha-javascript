@@ -1,7 +1,7 @@
 import * as lib from './generated-lib'
 
 export type Metadata = lib.Map<lib.Name, lib.Json>
-export const Metadata = lib.Map.with(lib.codecOf(lib.Name), lib.codecOf(lib.Json))
+export const Metadata = lib.Map.with(lib.Name[lib.CodecSymbol], lib.Json[lib.CodecSymbol])
 
 export interface Account {
   id: lib.AccountId
@@ -9,8 +9,8 @@ export interface Account {
 }
 export const Account: lib.CodecProvider<Account> = {
   [lib.CodecSymbol]: lib.structCodec<Account>(['id', 'metadata'], {
-    id: lib.codecOf(lib.AccountId),
-    metadata: lib.codecOf(Metadata),
+    id: lib.AccountId[lib.CodecSymbol],
+    metadata: Metadata[lib.CodecSymbol],
   }),
 }
 
@@ -20,8 +20,8 @@ export interface Numeric {
 }
 export const Numeric: lib.CodecProvider<Numeric> = {
   [lib.CodecSymbol]: lib.structCodec<Numeric>(['mantissa', 'scale'], {
-    mantissa: lib.codecOf(lib.Compact),
-    scale: lib.codecOf(lib.Compact),
+    mantissa: lib.Compact[lib.CodecSymbol],
+    scale: lib.Compact[lib.CodecSymbol],
   }),
 }
 
@@ -31,8 +31,8 @@ export const AssetValue = {
   Store: <const T extends Metadata>(value: T): lib.Variant<'Store', T> => ({ kind: 'Store', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Numeric: [Numeric]; Store: [Metadata] }>([
-      [0, 'Numeric', lib.codecOf(Numeric)],
-      [1, 'Store', lib.codecOf(Metadata)],
+      [0, 'Numeric', Numeric[lib.CodecSymbol]],
+      [1, 'Store', Metadata[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -43,8 +43,8 @@ export interface Asset {
 }
 export const Asset: lib.CodecProvider<Asset> = {
   [lib.CodecSymbol]: lib.structCodec<Asset>(['id', 'value'], {
-    id: lib.codecOf(lib.AssetId),
-    value: lib.codecOf(AssetValue),
+    id: lib.AssetId[lib.CodecSymbol],
+    value: AssetValue[lib.CodecSymbol],
   }),
 }
 
@@ -54,8 +54,8 @@ export interface AssetChanged {
 }
 export const AssetChanged: lib.CodecProvider<AssetChanged> = {
   [lib.CodecSymbol]: lib.structCodec<AssetChanged>(['asset', 'amount'], {
-    asset: lib.codecOf(lib.AssetId),
-    amount: lib.codecOf(AssetValue),
+    asset: lib.AssetId[lib.CodecSymbol],
+    amount: AssetValue[lib.CodecSymbol],
   }),
 }
 
@@ -65,11 +65,11 @@ export interface MetadataChanged<T0> {
   value: lib.Json
 }
 export const MetadataChanged = {
-  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<MetadataChanged<T0>> => ({
+  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<MetadataChanged<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<MetadataChanged<T0>>(['target', 'key', 'value'], {
       target: t0,
-      key: lib.codecOf(lib.Name),
-      value: lib.codecOf(lib.Json),
+      key: lib.Name[lib.CodecSymbol],
+      value: lib.Json[lib.CodecSymbol],
     }),
   }),
 }
@@ -103,12 +103,12 @@ export const AssetEvent = {
       MetadataInserted: [MetadataChanged<lib.AssetId>]
       MetadataRemoved: [MetadataChanged<lib.AssetId>]
     }>([
-      [0, 'Created', lib.codecOf(Asset)],
-      [1, 'Deleted', lib.codecOf(lib.AssetId)],
-      [2, 'Added', lib.codecOf(AssetChanged)],
-      [3, 'Removed', lib.codecOf(AssetChanged)],
-      [4, 'MetadataInserted', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.AssetId)))],
-      [5, 'MetadataRemoved', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.AssetId)))],
+      [0, 'Created', Asset[lib.CodecSymbol]],
+      [1, 'Deleted', lib.AssetId[lib.CodecSymbol]],
+      [2, 'Added', AssetChanged[lib.CodecSymbol]],
+      [3, 'Removed', AssetChanged[lib.CodecSymbol]],
+      [4, 'MetadataInserted', MetadataChanged.with(lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [5, 'MetadataRemoved', MetadataChanged.with(lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -119,8 +119,8 @@ export interface Permission {
 }
 export const Permission: lib.CodecProvider<Permission> = {
   [lib.CodecSymbol]: lib.structCodec<Permission>(['name', 'payload'], {
-    name: lib.codecOf(lib.String),
-    payload: lib.codecOf(lib.Json),
+    name: lib.String[lib.CodecSymbol],
+    payload: lib.Json[lib.CodecSymbol],
   }),
 }
 
@@ -130,8 +130,8 @@ export interface AccountPermissionChanged {
 }
 export const AccountPermissionChanged: lib.CodecProvider<AccountPermissionChanged> = {
   [lib.CodecSymbol]: lib.structCodec<AccountPermissionChanged>(['account', 'permission'], {
-    account: lib.codecOf(lib.AccountId),
-    permission: lib.codecOf(Permission),
+    account: lib.AccountId[lib.CodecSymbol],
+    permission: Permission[lib.CodecSymbol],
   }),
 }
 
@@ -139,7 +139,7 @@ export interface RoleId {
   name: lib.Name
 }
 export const RoleId: lib.CodecProvider<RoleId> = {
-  [lib.CodecSymbol]: lib.structCodec<RoleId>(['name'], { name: lib.codecOf(lib.Name) }),
+  [lib.CodecSymbol]: lib.structCodec<RoleId>(['name'], { name: lib.Name[lib.CodecSymbol] }),
 }
 
 export interface AccountRoleChanged {
@@ -148,8 +148,8 @@ export interface AccountRoleChanged {
 }
 export const AccountRoleChanged: lib.CodecProvider<AccountRoleChanged> = {
   [lib.CodecSymbol]: lib.structCodec<AccountRoleChanged>(['account', 'role'], {
-    account: lib.codecOf(lib.AccountId),
-    role: lib.codecOf(RoleId),
+    account: lib.AccountId[lib.CodecSymbol],
+    role: RoleId[lib.CodecSymbol],
   }),
 }
 
@@ -232,15 +232,15 @@ export const AccountEvent = {
       MetadataInserted: [MetadataChanged<lib.AccountId>]
       MetadataRemoved: [MetadataChanged<lib.AccountId>]
     }>([
-      [0, 'Created', lib.codecOf(Account)],
-      [1, 'Deleted', lib.codecOf(lib.AccountId)],
-      [2, 'Asset', lib.codecOf(AssetEvent)],
-      [3, 'PermissionAdded', lib.codecOf(AccountPermissionChanged)],
-      [4, 'PermissionRemoved', lib.codecOf(AccountPermissionChanged)],
-      [5, 'RoleGranted', lib.codecOf(AccountRoleChanged)],
-      [6, 'RoleRevoked', lib.codecOf(AccountRoleChanged)],
-      [7, 'MetadataInserted', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.AccountId)))],
-      [8, 'MetadataRemoved', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.AccountId)))],
+      [0, 'Created', Account[lib.CodecSymbol]],
+      [1, 'Deleted', lib.AccountId[lib.CodecSymbol]],
+      [2, 'Asset', AssetEvent[lib.CodecSymbol]],
+      [3, 'PermissionAdded', AccountPermissionChanged[lib.CodecSymbol]],
+      [4, 'PermissionRemoved', AccountPermissionChanged[lib.CodecSymbol]],
+      [5, 'RoleGranted', AccountRoleChanged[lib.CodecSymbol]],
+      [6, 'RoleRevoked', AccountRoleChanged[lib.CodecSymbol]],
+      [7, 'MetadataInserted', MetadataChanged.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [8, 'MetadataRemoved', MetadataChanged.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -276,8 +276,8 @@ export interface AccountEventFilter {
 }
 export const AccountEventFilter: lib.CodecProvider<AccountEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<AccountEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(lib.AccountId))),
-    eventSet: lib.codecOf(AccountEventSet),
+    idMatcher: lib.Option.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: AccountEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -285,7 +285,7 @@ export type AccountIdPredicateAtom = lib.Variant<'Equals', lib.AccountId>
 export const AccountIdPredicateAtom = {
   Equals: <const T extends lib.AccountId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.AccountId] }>([[0, 'Equals', lib.codecOf(lib.AccountId)]])
+    .enumCodec<{ Equals: [lib.AccountId] }>([[0, 'Equals', lib.AccountId[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -293,7 +293,7 @@ export type DomainIdPredicateAtom = lib.Variant<'Equals', lib.DomainId>
 export const DomainIdPredicateAtom = {
   Equals: <const T extends lib.DomainId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.DomainId] }>([[0, 'Equals', lib.codecOf(lib.DomainId)]])
+    .enumCodec<{ Equals: [lib.DomainId] }>([[0, 'Equals', lib.DomainId[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -309,10 +309,10 @@ export const StringPredicateAtom = {
   EndsWith: <const T extends lib.String>(value: T): lib.Variant<'EndsWith', T> => ({ kind: 'EndsWith', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Equals: [lib.String]; Contains: [lib.String]; StartsWith: [lib.String]; EndsWith: [lib.String] }>([
-      [0, 'Equals', lib.codecOf(lib.String)],
-      [1, 'Contains', lib.codecOf(lib.String)],
-      [2, 'StartsWith', lib.codecOf(lib.String)],
-      [3, 'EndsWith', lib.codecOf(lib.String)],
+      [0, 'Equals', lib.String[lib.CodecSymbol]],
+      [1, 'Contains', lib.String[lib.CodecSymbol]],
+      [2, 'StartsWith', lib.String[lib.CodecSymbol]],
+      [3, 'EndsWith', lib.String[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -338,7 +338,7 @@ export const NameProjectionPredicate = {
     }),
   },
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [StringPredicateAtom] }>([[0, 'Atom', lib.codecOf(StringPredicateAtom)]])
+    .enumCodec<{ Atom: [StringPredicateAtom] }>([[0, 'Atom', StringPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -382,8 +382,8 @@ export const DomainIdProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [DomainIdPredicateAtom]; Name: [NameProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(DomainIdPredicateAtom)],
-      [1, 'Name', lib.codecOf(NameProjectionPredicate)],
+      [0, 'Atom', DomainIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'Name', NameProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -392,7 +392,7 @@ export type PublicKeyPredicateAtom = lib.Variant<'Equals', lib.PublicKeyWrap>
 export const PublicKeyPredicateAtom = {
   Equals: <const T extends lib.PublicKeyWrap>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.PublicKeyWrap] }>([[0, 'Equals', lib.codecOf(lib.PublicKeyWrap)]])
+    .enumCodec<{ Equals: [lib.PublicKeyWrap] }>([[0, 'Equals', lib.PublicKeyWrap[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -405,7 +405,7 @@ export const PublicKeyProjectionPredicate = {
     }),
   },
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [PublicKeyPredicateAtom] }>([[0, 'Atom', lib.codecOf(PublicKeyPredicateAtom)]])
+    .enumCodec<{ Atom: [PublicKeyPredicateAtom] }>([[0, 'Atom', PublicKeyPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -474,9 +474,9 @@ export const AccountIdProjectionPredicate = {
       Domain: [DomainIdProjectionPredicate]
       Signatory: [PublicKeyProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AccountIdPredicateAtom)],
-      [1, 'Domain', lib.codecOf(DomainIdProjectionPredicate)],
-      [2, 'Signatory', lib.codecOf(PublicKeyProjectionPredicate)],
+      [0, 'Atom', AccountIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'Domain', DomainIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Signatory', PublicKeyProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -499,7 +499,7 @@ export const DomainIdProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Name', lib.codecOf(NameProjectionSelector)],
+      [1, 'Name', NameProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -537,8 +537,8 @@ export const AccountIdProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Domain: [DomainIdProjectionSelector]; Signatory: [PublicKeyProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Domain', lib.codecOf(DomainIdProjectionSelector)],
-      [2, 'Signatory', lib.codecOf(PublicKeyProjectionSelector)],
+      [1, 'Domain', DomainIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Signatory', PublicKeyProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -552,7 +552,7 @@ export const MetadataPredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 export type JsonPredicateAtom = lib.Variant<'Equals', lib.Json>
 export const JsonPredicateAtom = {
   Equals: <const T extends lib.Json>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
-  [lib.CodecSymbol]: lib.enumCodec<{ Equals: [lib.Json] }>([[0, 'Equals', lib.codecOf(lib.Json)]]).discriminated(),
+  [lib.CodecSymbol]: lib.enumCodec<{ Equals: [lib.Json] }>([[0, 'Equals', lib.Json[lib.CodecSymbol]]]).discriminated(),
 }
 
 export type JsonProjectionPredicate = lib.Variant<'Atom', JsonPredicateAtom>
@@ -564,7 +564,7 @@ export const JsonProjectionPredicate = {
     }),
   },
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [JsonPredicateAtom] }>([[0, 'Atom', lib.codecOf(JsonPredicateAtom)]])
+    .enumCodec<{ Atom: [JsonPredicateAtom] }>([[0, 'Atom', JsonPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -574,8 +574,8 @@ export interface MetadataKeyProjectionPredicate {
 }
 export const MetadataKeyProjectionPredicate: lib.CodecProvider<MetadataKeyProjectionPredicate> = {
   [lib.CodecSymbol]: lib.structCodec<MetadataKeyProjectionPredicate>(['key', 'projection'], {
-    key: lib.codecOf(lib.Name),
-    projection: lib.codecOf(JsonProjectionPredicate),
+    key: lib.Name[lib.CodecSymbol],
+    projection: JsonProjectionPredicate[lib.CodecSymbol],
   }),
 }
 
@@ -587,8 +587,8 @@ export const MetadataProjectionPredicate = {
   Key: <const T extends MetadataKeyProjectionPredicate>(value: T): lib.Variant<'Key', T> => ({ kind: 'Key', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [MetadataPredicateAtom]; Key: [MetadataKeyProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(MetadataPredicateAtom)],
-      [1, 'Key', lib.codecOf(MetadataKeyProjectionPredicate)],
+      [0, 'Atom', MetadataPredicateAtom[lib.CodecSymbol]],
+      [1, 'Key', MetadataKeyProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -672,9 +672,9 @@ export const AccountProjectionPredicate = {
       Id: [AccountIdProjectionPredicate]
       Metadata: [MetadataProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AccountPredicateAtom)],
-      [1, 'Id', lib.codecOf(AccountIdProjectionPredicate)],
-      [2, 'Metadata', lib.codecOf(MetadataProjectionPredicate)],
+      [0, 'Atom', AccountPredicateAtom[lib.CodecSymbol]],
+      [1, 'Id', AccountIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Metadata', MetadataProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -691,8 +691,8 @@ export interface MetadataKeyProjectionSelector {
 }
 export const MetadataKeyProjectionSelector: lib.CodecProvider<MetadataKeyProjectionSelector> = {
   [lib.CodecSymbol]: lib.structCodec<MetadataKeyProjectionSelector>(['key', 'projection'], {
-    key: lib.codecOf(lib.Name),
-    projection: lib.codecOf(JsonProjectionSelector),
+    key: lib.Name[lib.CodecSymbol],
+    projection: JsonProjectionSelector[lib.CodecSymbol],
   }),
 }
 
@@ -703,7 +703,7 @@ export const MetadataProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Key: [MetadataKeyProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Key', lib.codecOf(MetadataKeyProjectionSelector)],
+      [1, 'Key', MetadataKeyProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -751,14 +751,14 @@ export const AccountProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [AccountIdProjectionSelector]; Metadata: [MetadataProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Id', lib.codecOf(AccountIdProjectionSelector)],
-      [2, 'Metadata', lib.codecOf(MetadataProjectionSelector)],
+      [1, 'Id', AccountIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Metadata', MetadataProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
 
 export type WasmSmartContract = lib.Vec<lib.U8>
-export const WasmSmartContract = lib.Vec.with(lib.codecOf(lib.U8))
+export const WasmSmartContract = lib.Vec.with(lib.U8[lib.CodecSymbol])
 
 export type Executable = lib.Variant<'Instructions', lib.Vec<InstructionBox>> | lib.Variant<'Wasm', WasmSmartContract>
 export const Executable = {
@@ -769,8 +769,8 @@ export const Executable = {
   Wasm: <const T extends WasmSmartContract>(value: T): lib.Variant<'Wasm', T> => ({ kind: 'Wasm', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Instructions: [lib.Vec<InstructionBox>]; Wasm: [WasmSmartContract] }>([
-      [0, 'Instructions', lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox))))],
-      [1, 'Wasm', lib.codecOf(WasmSmartContract)],
+      [0, 'Instructions', lib.Vec.with(lib.lazyCodec(() => InstructionBox[lib.CodecSymbol]))[lib.CodecSymbol]],
+      [1, 'Wasm', WasmSmartContract[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -782,7 +782,7 @@ export const Repeats = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Indefinitely: []; Exactly: [lib.U32] }>([
       [0, 'Indefinitely'],
-      [1, 'Exactly', lib.codecOf(lib.U32)],
+      [1, 'Exactly', lib.U32[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -791,14 +791,14 @@ export interface PeerId {
   publicKey: lib.PublicKeyWrap
 }
 export const PeerId: lib.CodecProvider<PeerId> = {
-  [lib.CodecSymbol]: lib.structCodec<PeerId>(['publicKey'], { publicKey: lib.codecOf(lib.PublicKeyWrap) }),
+  [lib.CodecSymbol]: lib.structCodec<PeerId>(['publicKey'], { publicKey: lib.PublicKeyWrap[lib.CodecSymbol] }),
 }
 
 export interface TriggerId {
   name: lib.Name
 }
 export const TriggerId: lib.CodecProvider<TriggerId> = {
-  [lib.CodecSymbol]: lib.structCodec<TriggerId>(['name'], { name: lib.codecOf(lib.Name) }),
+  [lib.CodecSymbol]: lib.structCodec<TriggerId>(['name'], { name: lib.Name[lib.CodecSymbol] }),
 }
 
 export type FindError =
@@ -851,18 +851,18 @@ export const FindError = {
       Permission: [Permission]
       PublicKey: [lib.PublicKeyWrap]
     }>([
-      [0, 'Asset', lib.codecOf(lib.AssetId)],
-      [1, 'AssetDefinition', lib.codecOf(lib.AssetDefinitionId)],
-      [2, 'Account', lib.codecOf(lib.AccountId)],
-      [3, 'Domain', lib.codecOf(lib.DomainId)],
-      [4, 'MetadataKey', lib.codecOf(lib.Name)],
-      [5, 'Block', lib.codecOf(lib.HashWrap)],
-      [6, 'Transaction', lib.codecOf(lib.HashWrap)],
-      [7, 'Peer', lib.codecOf(PeerId)],
-      [8, 'Trigger', lib.codecOf(TriggerId)],
-      [9, 'Role', lib.codecOf(RoleId)],
-      [10, 'Permission', lib.codecOf(Permission)],
-      [11, 'PublicKey', lib.codecOf(lib.PublicKeyWrap)],
+      [0, 'Asset', lib.AssetId[lib.CodecSymbol]],
+      [1, 'AssetDefinition', lib.AssetDefinitionId[lib.CodecSymbol]],
+      [2, 'Account', lib.AccountId[lib.CodecSymbol]],
+      [3, 'Domain', lib.DomainId[lib.CodecSymbol]],
+      [4, 'MetadataKey', lib.Name[lib.CodecSymbol]],
+      [5, 'Block', lib.HashWrap[lib.CodecSymbol]],
+      [6, 'Transaction', lib.HashWrap[lib.CodecSymbol]],
+      [7, 'Peer', PeerId[lib.CodecSymbol]],
+      [8, 'Trigger', TriggerId[lib.CodecSymbol]],
+      [9, 'Role', RoleId[lib.CodecSymbol]],
+      [10, 'Permission', Permission[lib.CodecSymbol]],
+      [11, 'PublicKey', lib.PublicKeyWrap[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -871,7 +871,7 @@ export interface TransactionLimitError {
   reason: lib.String
 }
 export const TransactionLimitError: lib.CodecProvider<TransactionLimitError> = {
-  [lib.CodecSymbol]: lib.structCodec<TransactionLimitError>(['reason'], { reason: lib.codecOf(lib.String) }),
+  [lib.CodecSymbol]: lib.structCodec<TransactionLimitError>(['reason'], { reason: lib.String[lib.CodecSymbol] }),
 }
 
 export type InstructionType =
@@ -944,7 +944,7 @@ export interface Mismatch<T0> {
   actual: T0
 }
 export const Mismatch = {
-  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<Mismatch<T0>> => ({
+  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<Mismatch<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<Mismatch<T0>>(['expected', 'actual'], { expected: t0, actual: t0 }),
   }),
 }
@@ -954,7 +954,7 @@ export interface NumericSpec {
 }
 export const NumericSpec: lib.CodecProvider<NumericSpec> = {
   [lib.CodecSymbol]: lib.structCodec<NumericSpec>(['scale'], {
-    scale: lib.codecOf(lib.Option.with(lib.codecOf(lib.U32))),
+    scale: lib.Option.with(lib.U32[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -964,7 +964,7 @@ export const AssetType = {
   Store: Object.freeze<lib.VariantUnit<'Store'>>({ kind: 'Store' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Numeric: [NumericSpec]; Store: [] }>([
-      [0, 'Numeric', lib.codecOf(NumericSpec)],
+      [0, 'Numeric', NumericSpec[lib.CodecSymbol]],
       [1, 'Store'],
     ])
     .discriminated(),
@@ -992,8 +992,8 @@ export const TypeError = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ AssetType: [Mismatch<AssetType>]; NumericAssetTypeExpected: [AssetType] }>([
-      [0, 'AssetType', lib.codecOf(Mismatch.with(lib.codecOf(AssetType)))],
-      [1, 'NumericAssetTypeExpected', lib.codecOf(AssetType)],
+      [0, 'AssetType', Mismatch.with(AssetType[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'NumericAssetTypeExpected', AssetType[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -1085,9 +1085,9 @@ export const InstructionEvaluationError = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Unsupported: [InstructionType]; PermissionParameter: [lib.String]; Type: [TypeError] }>([
-      [0, 'Unsupported', lib.codecOf(InstructionType)],
-      [1, 'PermissionParameter', lib.codecOf(lib.String)],
-      [2, 'Type', lib.codecOf(TypeError)],
+      [0, 'Unsupported', InstructionType[lib.CodecSymbol]],
+      [1, 'PermissionParameter', lib.String[lib.CodecSymbol]],
+      [2, 'Type', TypeError[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -1174,8 +1174,8 @@ export const QueryExecutionFail = {
       InvalidSingularParameters: []
       CapacityLimit: []
     }>([
-      [0, 'Find', lib.codecOf(FindError)],
-      [1, 'Conversion', lib.codecOf(lib.String)],
+      [0, 'Find', FindError[lib.CodecSymbol]],
+      [1, 'Conversion', lib.String[lib.CodecSymbol]],
       [2, 'NotFound'],
       [3, 'CursorMismatch'],
       [4, 'CursorDone'],
@@ -1227,15 +1227,15 @@ export const IdBox = {
       Permission: [Permission]
       CustomParameterId: [CustomParameterId]
     }>([
-      [0, 'DomainId', lib.codecOf(lib.DomainId)],
-      [1, 'AccountId', lib.codecOf(lib.AccountId)],
-      [2, 'AssetDefinitionId', lib.codecOf(lib.AssetDefinitionId)],
-      [3, 'AssetId', lib.codecOf(lib.AssetId)],
-      [4, 'PeerId', lib.codecOf(PeerId)],
-      [5, 'TriggerId', lib.codecOf(TriggerId)],
-      [6, 'RoleId', lib.codecOf(RoleId)],
-      [7, 'Permission', lib.codecOf(Permission)],
-      [8, 'CustomParameterId', lib.codecOf(CustomParameterId)],
+      [0, 'DomainId', lib.DomainId[lib.CodecSymbol]],
+      [1, 'AccountId', lib.AccountId[lib.CodecSymbol]],
+      [2, 'AssetDefinitionId', lib.AssetDefinitionId[lib.CodecSymbol]],
+      [3, 'AssetId', lib.AssetId[lib.CodecSymbol]],
+      [4, 'PeerId', PeerId[lib.CodecSymbol]],
+      [5, 'TriggerId', TriggerId[lib.CodecSymbol]],
+      [6, 'RoleId', RoleId[lib.CodecSymbol]],
+      [7, 'Permission', Permission[lib.CodecSymbol]],
+      [8, 'CustomParameterId', CustomParameterId[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -1246,8 +1246,8 @@ export interface RepetitionError {
 }
 export const RepetitionError: lib.CodecProvider<RepetitionError> = {
   [lib.CodecSymbol]: lib.structCodec<RepetitionError>(['instruction', 'id'], {
-    instruction: lib.codecOf(InstructionType),
-    id: lib.codecOf(IdBox),
+    instruction: InstructionType[lib.CodecSymbol],
+    id: IdBox[lib.CodecSymbol],
   }),
 }
 
@@ -1298,7 +1298,7 @@ export const MathError = {
       [3, 'NegativeValue'],
       [4, 'DomainViolation'],
       [5, 'Unknown'],
-      [6, 'FixedPointConversion', lib.codecOf(lib.String)],
+      [6, 'FixedPointConversion', lib.String[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -1309,7 +1309,7 @@ export const InvalidParameterError = {
   TimeTriggerInThePast: Object.freeze<lib.VariantUnit<'TimeTriggerInThePast'>>({ kind: 'TimeTriggerInThePast' }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Wasm: [lib.String]; TimeTriggerInThePast: [] }>([
-      [0, 'Wasm', lib.codecOf(lib.String)],
+      [0, 'Wasm', lib.String[lib.CodecSymbol]],
       [1, 'TimeTriggerInThePast'],
     ])
     .discriminated(),
@@ -1633,15 +1633,15 @@ export const InstructionExecutionError = {
       InvalidParameter: [InvalidParameterError]
       InvariantViolation: [lib.String]
     }>([
-      [0, 'Evaluate', lib.codecOf(InstructionEvaluationError)],
-      [1, 'Query', lib.codecOf(QueryExecutionFail)],
-      [2, 'Conversion', lib.codecOf(lib.String)],
-      [3, 'Find', lib.codecOf(FindError)],
-      [4, 'Repetition', lib.codecOf(RepetitionError)],
-      [5, 'Mintability', lib.codecOf(MintabilityError)],
-      [6, 'Math', lib.codecOf(MathError)],
-      [7, 'InvalidParameter', lib.codecOf(InvalidParameterError)],
-      [8, 'InvariantViolation', lib.codecOf(lib.String)],
+      [0, 'Evaluate', InstructionEvaluationError[lib.CodecSymbol]],
+      [1, 'Query', QueryExecutionFail[lib.CodecSymbol]],
+      [2, 'Conversion', lib.String[lib.CodecSymbol]],
+      [3, 'Find', FindError[lib.CodecSymbol]],
+      [4, 'Repetition', RepetitionError[lib.CodecSymbol]],
+      [5, 'Mintability', MintabilityError[lib.CodecSymbol]],
+      [6, 'Math', MathError[lib.CodecSymbol]],
+      [7, 'InvalidParameter', InvalidParameterError[lib.CodecSymbol]],
+      [8, 'InvariantViolation', lib.String[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -2133,9 +2133,9 @@ export const ValidationFail = {
       TooComplex: []
       InternalError: []
     }>([
-      [0, 'NotPermitted', lib.codecOf(lib.String)],
-      [1, 'InstructionFailed', lib.codecOf(InstructionExecutionError)],
-      [2, 'QueryFailed', lib.codecOf(QueryExecutionFail)],
+      [0, 'NotPermitted', lib.String[lib.CodecSymbol]],
+      [1, 'InstructionFailed', InstructionExecutionError[lib.CodecSymbol]],
+      [2, 'QueryFailed', QueryExecutionFail[lib.CodecSymbol]],
       [3, 'TooComplex'],
       [4, 'InternalError'],
     ])
@@ -2148,8 +2148,8 @@ export interface InstructionExecutionFail {
 }
 export const InstructionExecutionFail: lib.CodecProvider<InstructionExecutionFail> = {
   [lib.CodecSymbol]: lib.structCodec<InstructionExecutionFail>(['instruction', 'reason'], {
-    instruction: lib.lazyCodec(() => lib.codecOf(InstructionBox)),
-    reason: lib.codecOf(lib.String),
+    instruction: lib.lazyCodec(() => InstructionBox[lib.CodecSymbol]),
+    reason: lib.String[lib.CodecSymbol],
   }),
 }
 
@@ -2157,7 +2157,7 @@ export interface WasmExecutionFail {
   reason: lib.String
 }
 export const WasmExecutionFail: lib.CodecProvider<WasmExecutionFail> = {
-  [lib.CodecSymbol]: lib.structCodec<WasmExecutionFail>(['reason'], { reason: lib.codecOf(lib.String) }),
+  [lib.CodecSymbol]: lib.structCodec<WasmExecutionFail>(['reason'], { reason: lib.String[lib.CodecSymbol] }),
 }
 
 export type TransactionRejectionReason =
@@ -2820,11 +2820,11 @@ export const TransactionRejectionReason = {
       InstructionExecution: [InstructionExecutionFail]
       WasmExecution: [WasmExecutionFail]
     }>([
-      [0, 'AccountDoesNotExist', lib.codecOf(FindError)],
-      [1, 'LimitCheck', lib.codecOf(TransactionLimitError)],
-      [2, 'Validation', lib.codecOf(ValidationFail)],
-      [3, 'InstructionExecution', lib.codecOf(InstructionExecutionFail)],
-      [4, 'WasmExecution', lib.codecOf(WasmExecutionFail)],
+      [0, 'AccountDoesNotExist', FindError[lib.CodecSymbol]],
+      [1, 'LimitCheck', TransactionLimitError[lib.CodecSymbol]],
+      [2, 'Validation', ValidationFail[lib.CodecSymbol]],
+      [3, 'InstructionExecution', InstructionExecutionFail[lib.CodecSymbol]],
+      [4, 'WasmExecution', WasmExecutionFail[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -3846,7 +3846,7 @@ export const TransactionStatus = {
       [0, 'Queued'],
       [1, 'Expired'],
       [2, 'Approved'],
-      [3, 'Rejected', lib.codecOf(TransactionRejectionReason)],
+      [3, 'Rejected', TransactionRejectionReason[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -3858,11 +3858,11 @@ export interface TransactionEventFilter {
 }
 export const TransactionEventFilter: lib.CodecProvider<TransactionEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionEventFilter>(['hash', 'blockHeight', 'status'], {
-    hash: lib.codecOf(lib.Option.with(lib.codecOf(lib.HashWrap))),
-    blockHeight: lib.codecOf(
-      lib.Option.with(lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))))),
-    ),
-    status: lib.codecOf(lib.Option.with(lib.codecOf(TransactionStatus))),
+    hash: lib.Option.with(lib.HashWrap[lib.CodecSymbol])[lib.CodecSymbol],
+    blockHeight: lib.Option.with(
+      lib.Option.with(lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
+    )[lib.CodecSymbol],
+    status: lib.Option.with(TransactionStatus[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -3895,7 +3895,7 @@ export const BlockStatus = {
     .enumCodec<{ Created: []; Approved: []; Rejected: [BlockRejectionReason]; Committed: []; Applied: [] }>([
       [0, 'Created'],
       [1, 'Approved'],
-      [2, 'Rejected', lib.codecOf(BlockRejectionReason)],
+      [2, 'Rejected', BlockRejectionReason[lib.CodecSymbol]],
       [3, 'Committed'],
       [4, 'Applied'],
     ])
@@ -3908,8 +3908,8 @@ export interface BlockEventFilter {
 }
 export const BlockEventFilter: lib.CodecProvider<BlockEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<BlockEventFilter>(['height', 'status'], {
-    height: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
-    status: lib.codecOf(lib.Option.with(lib.codecOf(BlockStatus))),
+    height: lib.Option.with(lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
+    status: lib.Option.with(BlockStatus[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -3924,8 +3924,8 @@ export const PipelineEventFilterBox = {
   Block: <const T extends BlockEventFilter>(value: T): lib.Variant<'Block', T> => ({ kind: 'Block', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Transaction: [TransactionEventFilter]; Block: [BlockEventFilter] }>([
-      [0, 'Transaction', lib.codecOf(TransactionEventFilter)],
-      [1, 'Block', lib.codecOf(BlockEventFilter)],
+      [0, 'Transaction', TransactionEventFilter[lib.CodecSymbol]],
+      [1, 'Block', BlockEventFilter[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -3944,8 +3944,8 @@ export interface PeerEventFilter {
 }
 export const PeerEventFilter: lib.CodecProvider<PeerEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<PeerEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(PeerId))),
-    eventSet: lib.codecOf(PeerEventSet),
+    idMatcher: lib.Option.with(PeerId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: PeerEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -3970,8 +3970,8 @@ export interface DomainEventFilter {
 }
 export const DomainEventFilter: lib.CodecProvider<DomainEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<DomainEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(lib.DomainId))),
-    eventSet: lib.codecOf(DomainEventSet),
+    idMatcher: lib.Option.with(lib.DomainId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: DomainEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -3993,8 +3993,8 @@ export interface AssetEventFilter {
 }
 export const AssetEventFilter: lib.CodecProvider<AssetEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<AssetEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(lib.AssetId))),
-    eventSet: lib.codecOf(AssetEventSet),
+    idMatcher: lib.Option.with(lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: AssetEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -4025,8 +4025,8 @@ export interface AssetDefinitionEventFilter {
 }
 export const AssetDefinitionEventFilter: lib.CodecProvider<AssetDefinitionEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<AssetDefinitionEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(lib.AssetDefinitionId))),
-    eventSet: lib.codecOf(AssetDefinitionEventSet),
+    idMatcher: lib.Option.with(lib.AssetDefinitionId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: AssetDefinitionEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -4050,8 +4050,8 @@ export interface TriggerEventFilter {
 }
 export const TriggerEventFilter: lib.CodecProvider<TriggerEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<TriggerEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(TriggerId))),
-    eventSet: lib.codecOf(TriggerEventSet),
+    idMatcher: lib.Option.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: TriggerEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -4071,8 +4071,8 @@ export interface RoleEventFilter {
 }
 export const RoleEventFilter: lib.CodecProvider<RoleEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<RoleEventFilter>(['idMatcher', 'eventSet'], {
-    idMatcher: lib.codecOf(lib.Option.with(lib.codecOf(RoleId))),
-    eventSet: lib.codecOf(RoleEventSet),
+    idMatcher: lib.Option.with(RoleId[lib.CodecSymbol])[lib.CodecSymbol],
+    eventSet: RoleEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -4088,7 +4088,7 @@ export interface ConfigurationEventFilter {
 }
 export const ConfigurationEventFilter: lib.CodecProvider<ConfigurationEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<ConfigurationEventFilter>(['eventSet'], {
-    eventSet: lib.codecOf(ConfigurationEventSet),
+    eventSet: ConfigurationEventSet[lib.CodecSymbol],
   }),
 }
 
@@ -4103,7 +4103,9 @@ export interface ExecutorEventFilter {
   eventSet: ExecutorEventSet
 }
 export const ExecutorEventFilter: lib.CodecProvider<ExecutorEventFilter> = {
-  [lib.CodecSymbol]: lib.structCodec<ExecutorEventFilter>(['eventSet'], { eventSet: lib.codecOf(ExecutorEventSet) }),
+  [lib.CodecSymbol]: lib.structCodec<ExecutorEventFilter>(['eventSet'], {
+    eventSet: ExecutorEventSet[lib.CodecSymbol],
+  }),
 }
 
 export type DataEventFilter =
@@ -4151,15 +4153,15 @@ export const DataEventFilter = {
       Executor: [ExecutorEventFilter]
     }>([
       [0, 'Any'],
-      [1, 'Peer', lib.codecOf(PeerEventFilter)],
-      [2, 'Domain', lib.codecOf(DomainEventFilter)],
-      [3, 'Account', lib.codecOf(AccountEventFilter)],
-      [4, 'Asset', lib.codecOf(AssetEventFilter)],
-      [5, 'AssetDefinition', lib.codecOf(AssetDefinitionEventFilter)],
-      [6, 'Trigger', lib.codecOf(TriggerEventFilter)],
-      [7, 'Role', lib.codecOf(RoleEventFilter)],
-      [8, 'Configuration', lib.codecOf(ConfigurationEventFilter)],
-      [9, 'Executor', lib.codecOf(ExecutorEventFilter)],
+      [1, 'Peer', PeerEventFilter[lib.CodecSymbol]],
+      [2, 'Domain', DomainEventFilter[lib.CodecSymbol]],
+      [3, 'Account', AccountEventFilter[lib.CodecSymbol]],
+      [4, 'Asset', AssetEventFilter[lib.CodecSymbol]],
+      [5, 'AssetDefinition', AssetDefinitionEventFilter[lib.CodecSymbol]],
+      [6, 'Trigger', TriggerEventFilter[lib.CodecSymbol]],
+      [7, 'Role', RoleEventFilter[lib.CodecSymbol]],
+      [8, 'Configuration', ConfigurationEventFilter[lib.CodecSymbol]],
+      [9, 'Executor', ExecutorEventFilter[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4170,8 +4172,8 @@ export interface Schedule {
 }
 export const Schedule: lib.CodecProvider<Schedule> = {
   [lib.CodecSymbol]: lib.structCodec<Schedule>(['start', 'period'], {
-    start: lib.codecOf(lib.Timestamp),
-    period: lib.codecOf(lib.Option.with(lib.codecOf(lib.Duration))),
+    start: lib.Timestamp[lib.CodecSymbol],
+    period: lib.Option.with(lib.Duration[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -4182,7 +4184,7 @@ export const ExecutionTime = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ PreCommit: []; Schedule: [Schedule] }>([
       [0, 'PreCommit'],
-      [1, 'Schedule', lib.codecOf(Schedule)],
+      [1, 'Schedule', Schedule[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4196,8 +4198,8 @@ export interface ExecuteTriggerEventFilter {
 }
 export const ExecuteTriggerEventFilter: lib.CodecProvider<ExecuteTriggerEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<ExecuteTriggerEventFilter>(['triggerId', 'authority'], {
-    triggerId: lib.codecOf(lib.Option.with(lib.codecOf(TriggerId))),
-    authority: lib.codecOf(lib.Option.with(lib.codecOf(lib.AccountId))),
+    triggerId: lib.Option.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol],
+    authority: lib.Option.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -4219,8 +4221,8 @@ export interface TriggerCompletedEventFilter {
 }
 export const TriggerCompletedEventFilter: lib.CodecProvider<TriggerCompletedEventFilter> = {
   [lib.CodecSymbol]: lib.structCodec<TriggerCompletedEventFilter>(['triggerId', 'outcomeType'], {
-    triggerId: lib.codecOf(lib.Option.with(lib.codecOf(TriggerId))),
-    outcomeType: lib.codecOf(lib.Option.with(lib.codecOf(TriggerCompletedOutcomeType))),
+    triggerId: lib.Option.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol],
+    outcomeType: lib.Option.with(TriggerCompletedOutcomeType[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -4303,11 +4305,11 @@ export const EventFilterBox = {
       ExecuteTrigger: [ExecuteTriggerEventFilter]
       TriggerCompleted: [TriggerCompletedEventFilter]
     }>([
-      [0, 'Pipeline', lib.codecOf(PipelineEventFilterBox)],
-      [1, 'Data', lib.codecOf(DataEventFilter)],
-      [2, 'Time', lib.codecOf(TimeEventFilter)],
-      [3, 'ExecuteTrigger', lib.codecOf(ExecuteTriggerEventFilter)],
-      [4, 'TriggerCompleted', lib.codecOf(TriggerCompletedEventFilter)],
+      [0, 'Pipeline', PipelineEventFilterBox[lib.CodecSymbol]],
+      [1, 'Data', DataEventFilter[lib.CodecSymbol]],
+      [2, 'Time', TimeEventFilter[lib.CodecSymbol]],
+      [3, 'ExecuteTrigger', ExecuteTriggerEventFilter[lib.CodecSymbol]],
+      [4, 'TriggerCompleted', TriggerCompletedEventFilter[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4321,11 +4323,11 @@ export interface Action {
 }
 export const Action: lib.CodecProvider<Action> = {
   [lib.CodecSymbol]: lib.structCodec<Action>(['executable', 'repeats', 'authority', 'filter', 'metadata'], {
-    executable: lib.codecOf(Executable),
-    repeats: lib.codecOf(Repeats),
-    authority: lib.codecOf(lib.AccountId),
-    filter: lib.codecOf(EventFilterBox),
-    metadata: lib.codecOf(Metadata),
+    executable: Executable[lib.CodecSymbol],
+    repeats: Repeats[lib.CodecSymbol],
+    authority: lib.AccountId[lib.CodecSymbol],
+    filter: EventFilterBox[lib.CodecSymbol],
+    metadata: Metadata[lib.CodecSymbol],
   }),
 }
 
@@ -4348,8 +4350,8 @@ export const ActionProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [ActionPredicateAtom]; Metadata: [MetadataProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(ActionPredicateAtom)],
-      [1, 'Metadata', lib.codecOf(MetadataProjectionPredicate)],
+      [0, 'Atom', ActionPredicateAtom[lib.CodecSymbol]],
+      [1, 'Metadata', MetadataProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4370,7 +4372,7 @@ export const ActionProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Metadata: [MetadataProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Metadata', lib.codecOf(MetadataProjectionSelector)],
+      [1, 'Metadata', MetadataProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4405,13 +4407,13 @@ export const AssetDefinition: lib.CodecProvider<AssetDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<AssetDefinition>(
     ['id', 'type', 'mintable', 'logo', 'metadata', 'ownedBy', 'totalQuantity'],
     {
-      id: lib.codecOf(lib.AssetDefinitionId),
-      type: lib.codecOf(AssetType),
-      mintable: lib.codecOf(Mintable),
-      logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
-      metadata: lib.codecOf(Metadata),
-      ownedBy: lib.codecOf(lib.AccountId),
-      totalQuantity: lib.codecOf(Numeric),
+      id: lib.AssetDefinitionId[lib.CodecSymbol],
+      type: AssetType[lib.CodecSymbol],
+      mintable: Mintable[lib.CodecSymbol],
+      logo: lib.Option.with(IpfsPath[lib.CodecSymbol])[lib.CodecSymbol],
+      metadata: Metadata[lib.CodecSymbol],
+      ownedBy: lib.AccountId[lib.CodecSymbol],
+      totalQuantity: Numeric[lib.CodecSymbol],
     },
   ),
 }
@@ -4422,8 +4424,8 @@ export interface AssetDefinitionTotalQuantityChanged {
 }
 export const AssetDefinitionTotalQuantityChanged: lib.CodecProvider<AssetDefinitionTotalQuantityChanged> = {
   [lib.CodecSymbol]: lib.structCodec<AssetDefinitionTotalQuantityChanged>(['assetDefinition', 'totalAmount'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
-    totalAmount: lib.codecOf(Numeric),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
+    totalAmount: Numeric[lib.CodecSymbol],
   }),
 }
 
@@ -4433,8 +4435,8 @@ export interface AssetDefinitionOwnerChanged {
 }
 export const AssetDefinitionOwnerChanged: lib.CodecProvider<AssetDefinitionOwnerChanged> = {
   [lib.CodecSymbol]: lib.structCodec<AssetDefinitionOwnerChanged>(['assetDefinition', 'newOwner'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
-    newOwner: lib.codecOf(lib.AccountId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
+    newOwner: lib.AccountId[lib.CodecSymbol],
   }),
 }
 
@@ -4476,13 +4478,13 @@ export const AssetDefinitionEvent = {
       TotalQuantityChanged: [AssetDefinitionTotalQuantityChanged]
       OwnerChanged: [AssetDefinitionOwnerChanged]
     }>([
-      [0, 'Created', lib.codecOf(AssetDefinition)],
-      [1, 'Deleted', lib.codecOf(lib.AssetDefinitionId)],
-      [2, 'MetadataInserted', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.AssetDefinitionId)))],
-      [3, 'MetadataRemoved', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.AssetDefinitionId)))],
-      [4, 'MintabilityChanged', lib.codecOf(lib.AssetDefinitionId)],
-      [5, 'TotalQuantityChanged', lib.codecOf(AssetDefinitionTotalQuantityChanged)],
-      [6, 'OwnerChanged', lib.codecOf(AssetDefinitionOwnerChanged)],
+      [0, 'Created', AssetDefinition[lib.CodecSymbol]],
+      [1, 'Deleted', lib.AssetDefinitionId[lib.CodecSymbol]],
+      [2, 'MetadataInserted', MetadataChanged.with(lib.AssetDefinitionId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [3, 'MetadataRemoved', MetadataChanged.with(lib.AssetDefinitionId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [4, 'MintabilityChanged', lib.AssetDefinitionId[lib.CodecSymbol]],
+      [5, 'TotalQuantityChanged', AssetDefinitionTotalQuantityChanged[lib.CodecSymbol]],
+      [6, 'OwnerChanged', AssetDefinitionOwnerChanged[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4491,7 +4493,7 @@ export type AssetDefinitionIdPredicateAtom = lib.Variant<'Equals', lib.AssetDefi
 export const AssetDefinitionIdPredicateAtom = {
   Equals: <const T extends lib.AssetDefinitionId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.AssetDefinitionId] }>([[0, 'Equals', lib.codecOf(lib.AssetDefinitionId)]])
+    .enumCodec<{ Equals: [lib.AssetDefinitionId] }>([[0, 'Equals', lib.AssetDefinitionId[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -4578,9 +4580,9 @@ export const AssetDefinitionIdProjectionPredicate = {
       Domain: [DomainIdProjectionPredicate]
       Name: [NameProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AssetDefinitionIdPredicateAtom)],
-      [1, 'Domain', lib.codecOf(DomainIdProjectionPredicate)],
-      [2, 'Name', lib.codecOf(NameProjectionPredicate)],
+      [0, 'Atom', AssetDefinitionIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'Domain', DomainIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Name', NameProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4612,8 +4614,8 @@ export const AssetDefinitionIdProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Domain: [DomainIdProjectionSelector]; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Domain', lib.codecOf(DomainIdProjectionSelector)],
-      [2, 'Name', lib.codecOf(NameProjectionSelector)],
+      [1, 'Domain', DomainIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Name', NameProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4718,9 +4720,9 @@ export const AssetDefinitionProjectionPredicate = {
       Id: [AssetDefinitionIdProjectionPredicate]
       Metadata: [MetadataProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AssetDefinitionPredicateAtom)],
-      [1, 'Id', lib.codecOf(AssetDefinitionIdProjectionPredicate)],
-      [2, 'Metadata', lib.codecOf(MetadataProjectionPredicate)],
+      [0, 'Atom', AssetDefinitionPredicateAtom[lib.CodecSymbol]],
+      [1, 'Id', AssetDefinitionIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Metadata', MetadataProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4768,8 +4770,8 @@ export const AssetDefinitionProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [AssetDefinitionIdProjectionSelector]; Metadata: [MetadataProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Id', lib.codecOf(AssetDefinitionIdProjectionSelector)],
-      [2, 'Metadata', lib.codecOf(MetadataProjectionSelector)],
+      [1, 'Id', AssetDefinitionIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Metadata', MetadataProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4778,7 +4780,7 @@ export type AssetIdPredicateAtom = lib.Variant<'Equals', lib.AssetId>
 export const AssetIdPredicateAtom = {
   Equals: <const T extends lib.AssetId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.AssetId] }>([[0, 'Equals', lib.codecOf(lib.AssetId)]])
+    .enumCodec<{ Equals: [lib.AssetId] }>([[0, 'Equals', lib.AssetId[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -4933,9 +4935,9 @@ export const AssetIdProjectionPredicate = {
       Account: [AccountIdProjectionPredicate]
       Definition: [AssetDefinitionIdProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AssetIdPredicateAtom)],
-      [1, 'Account', lib.codecOf(AccountIdProjectionPredicate)],
-      [2, 'Definition', lib.codecOf(AssetDefinitionIdProjectionPredicate)],
+      [0, 'Atom', AssetIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'Account', AccountIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Definition', AssetDefinitionIdProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -4996,8 +4998,8 @@ export const AssetIdProjectionSelector = {
     .enumCodec<{ Atom: []; Account: [AccountIdProjectionSelector]; Definition: [AssetDefinitionIdProjectionSelector] }>(
       [
         [0, 'Atom'],
-        [1, 'Account', lib.codecOf(AccountIdProjectionSelector)],
-        [2, 'Definition', lib.codecOf(AssetDefinitionIdProjectionSelector)],
+        [1, 'Account', AccountIdProjectionSelector[lib.CodecSymbol]],
+        [2, 'Definition', AssetDefinitionIdProjectionSelector[lib.CodecSymbol]],
       ],
     )
     .discriminated(),
@@ -5025,7 +5027,7 @@ export type NumericProjectionPredicate = lib.Variant<'Atom', NumericPredicateAto
 export const NumericProjectionPredicate = {
   Atom: {},
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [NumericPredicateAtom] }>([[0, 'Atom', lib.codecOf(NumericPredicateAtom)]])
+    .enumCodec<{ Atom: [NumericPredicateAtom] }>([[0, 'Atom', NumericPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -5058,9 +5060,9 @@ export const AssetValueProjectionPredicate = {
       Numeric: [NumericProjectionPredicate]
       Store: [MetadataProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AssetValuePredicateAtom)],
-      [1, 'Numeric', lib.codecOf(NumericProjectionPredicate)],
-      [2, 'Store', lib.codecOf(MetadataProjectionPredicate)],
+      [0, 'Atom', AssetValuePredicateAtom[lib.CodecSymbol]],
+      [1, 'Numeric', NumericProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Store', MetadataProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5267,9 +5269,9 @@ export const AssetProjectionPredicate = {
       Id: [AssetIdProjectionPredicate]
       Value: [AssetValueProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(AssetPredicateAtom)],
-      [1, 'Id', lib.codecOf(AssetIdProjectionPredicate)],
-      [2, 'Value', lib.codecOf(AssetValueProjectionPredicate)],
+      [0, 'Atom', AssetPredicateAtom[lib.CodecSymbol]],
+      [1, 'Id', AssetIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Value', AssetValueProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5305,8 +5307,8 @@ export const AssetValueProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Numeric: [NumericProjectionSelector]; Store: [MetadataProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Numeric', lib.codecOf(NumericProjectionSelector)],
-      [2, 'Store', lib.codecOf(MetadataProjectionSelector)],
+      [1, 'Numeric', NumericProjectionSelector[lib.CodecSymbol]],
+      [2, 'Store', MetadataProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5399,8 +5401,8 @@ export const AssetProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [AssetIdProjectionSelector]; Value: [AssetValueProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Id', lib.codecOf(AssetIdProjectionSelector)],
-      [2, 'Value', lib.codecOf(AssetValueProjectionSelector)],
+      [1, 'Id', AssetIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Value', AssetValueProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5444,12 +5446,16 @@ export const AssetTransferBox = {
       [
         0,
         'Numeric',
-        lib.codecOf(Transfer.with(lib.codecOf(lib.AssetId), lib.codecOf(Numeric), lib.codecOf(lib.AccountId))),
+        Transfer.with(lib.AssetId[lib.CodecSymbol], Numeric[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[
+          lib.CodecSymbol
+        ],
       ],
       [
         1,
         'Store',
-        lib.codecOf(Transfer.with(lib.codecOf(lib.AssetId), lib.codecOf(Metadata), lib.codecOf(lib.AccountId))),
+        Transfer.with(lib.AssetId[lib.CodecSymbol], Metadata[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[
+          lib.CodecSymbol
+        ],
       ],
     ])
     .discriminated(),
@@ -5466,11 +5472,11 @@ export const BlockHeader: lib.CodecProvider<BlockHeader> = {
   [lib.CodecSymbol]: lib.structCodec<BlockHeader>(
     ['height', 'prevBlockHash', 'transactionsHash', 'creationTime', 'viewChangeIndex'],
     {
-      height: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
-      prevBlockHash: lib.codecOf(lib.Option.with(lib.codecOf(lib.HashWrap))),
-      transactionsHash: lib.codecOf(lib.HashWrap),
-      creationTime: lib.codecOf(lib.Timestamp),
-      viewChangeIndex: lib.codecOf(lib.U32),
+      height: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
+      prevBlockHash: lib.Option.with(lib.HashWrap[lib.CodecSymbol])[lib.CodecSymbol],
+      transactionsHash: lib.HashWrap[lib.CodecSymbol],
+      creationTime: lib.Timestamp[lib.CodecSymbol],
+      viewChangeIndex: lib.U32[lib.CodecSymbol],
     },
   ),
 }
@@ -5481,8 +5487,8 @@ export interface BlockEvent {
 }
 export const BlockEvent: lib.CodecProvider<BlockEvent> = {
   [lib.CodecSymbol]: lib.structCodec<BlockEvent>(['header', 'status'], {
-    header: lib.codecOf(BlockHeader),
-    status: lib.codecOf(BlockStatus),
+    header: BlockHeader[lib.CodecSymbol],
+    status: BlockStatus[lib.CodecSymbol],
   }),
 }
 
@@ -5490,7 +5496,7 @@ export type BlockHeaderHashPredicateAtom = lib.Variant<'Equals', lib.HashWrap>
 export const BlockHeaderHashPredicateAtom = {
   Equals: <const T extends lib.HashWrap>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.HashWrap] }>([[0, 'Equals', lib.codecOf(lib.HashWrap)]])
+    .enumCodec<{ Equals: [lib.HashWrap] }>([[0, 'Equals', lib.HashWrap[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -5503,7 +5509,7 @@ export const BlockHeaderHashProjectionPredicate = {
     }),
   },
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [BlockHeaderHashPredicateAtom] }>([[0, 'Atom', lib.codecOf(BlockHeaderHashPredicateAtom)]])
+    .enumCodec<{ Atom: [BlockHeaderHashPredicateAtom] }>([[0, 'Atom', BlockHeaderHashPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -5533,8 +5539,8 @@ export const BlockHeaderProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [BlockHeaderPredicateAtom]; Hash: [BlockHeaderHashProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(BlockHeaderPredicateAtom)],
-      [1, 'Hash', lib.codecOf(BlockHeaderHashProjectionPredicate)],
+      [0, 'Atom', BlockHeaderPredicateAtom[lib.CodecSymbol]],
+      [1, 'Hash', BlockHeaderHashProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5553,7 +5559,7 @@ export const BlockHeaderProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Hash: [BlockHeaderHashProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Hash', lib.codecOf(BlockHeaderHashProjectionSelector)],
+      [1, 'Hash', BlockHeaderHashProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5564,8 +5570,8 @@ export interface BlockSignature {
 }
 export const BlockSignature: lib.CodecProvider<BlockSignature> = {
   [lib.CodecSymbol]: lib.structCodec<BlockSignature>(['peerTopologyIndex', 'signature'], {
-    peerTopologyIndex: lib.codecOf(lib.U64),
-    signature: lib.codecOf(lib.SignatureWrap),
+    peerTopologyIndex: lib.U64[lib.CodecSymbol],
+    signature: lib.SignatureWrap[lib.CodecSymbol],
   }),
 }
 
@@ -5585,13 +5591,13 @@ export const TransactionPayload: lib.CodecProvider<TransactionPayload> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionPayload>(
     ['chain', 'authority', 'creationTime', 'instructions', 'timeToLive', 'nonce', 'metadata'],
     {
-      chain: lib.codecOf(ChainId),
-      authority: lib.codecOf(lib.AccountId),
-      creationTime: lib.codecOf(lib.Timestamp),
-      instructions: lib.codecOf(Executable),
-      timeToLive: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.Duration))))),
-      nonce: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U32))))),
-      metadata: lib.codecOf(Metadata),
+      chain: ChainId[lib.CodecSymbol],
+      authority: lib.AccountId[lib.CodecSymbol],
+      creationTime: lib.Timestamp[lib.CodecSymbol],
+      instructions: Executable[lib.CodecSymbol],
+      timeToLive: lib.Option.with(lib.NonZero.with(lib.Duration[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
+      nonce: lib.Option.with(lib.NonZero.with(lib.U32[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
+      metadata: Metadata[lib.CodecSymbol],
     },
   ),
 }
@@ -5602,8 +5608,8 @@ export interface SignedTransactionV1 {
 }
 export const SignedTransactionV1: lib.CodecProvider<SignedTransactionV1> = {
   [lib.CodecSymbol]: lib.structCodec<SignedTransactionV1>(['signature', 'payload'], {
-    signature: lib.codecOf(lib.SignatureWrap),
-    payload: lib.codecOf(TransactionPayload),
+    signature: lib.SignatureWrap[lib.CodecSymbol],
+    payload: TransactionPayload[lib.CodecSymbol],
   }),
 }
 
@@ -5611,7 +5617,7 @@ export type SignedTransaction = lib.Variant<'V1', SignedTransactionV1>
 export const SignedTransaction = {
   V1: <const T extends SignedTransactionV1>(value: T): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ V1: [SignedTransactionV1] }>([[1, 'V1', lib.codecOf(SignedTransactionV1)]])
+    .enumCodec<{ V1: [SignedTransactionV1] }>([[1, 'V1', SignedTransactionV1[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -5621,8 +5627,8 @@ export interface BlockPayload {
 }
 export const BlockPayload: lib.CodecProvider<BlockPayload> = {
   [lib.CodecSymbol]: lib.structCodec<BlockPayload>(['header', 'transactions'], {
-    header: lib.codecOf(BlockHeader),
-    transactions: lib.codecOf(lib.Vec.with(lib.codecOf(SignedTransaction))),
+    header: BlockHeader[lib.CodecSymbol],
+    transactions: lib.Vec.with(SignedTransaction[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -5633,16 +5639,18 @@ export interface SignedBlockV1 {
 }
 export const SignedBlockV1: lib.CodecProvider<SignedBlockV1> = {
   [lib.CodecSymbol]: lib.structCodec<SignedBlockV1>(['signatures', 'payload', 'errors'], {
-    signatures: lib.codecOf(lib.Vec.with(lib.codecOf(BlockSignature))),
-    payload: lib.codecOf(BlockPayload),
-    errors: lib.codecOf(lib.Map.with(lib.codecOf(lib.U64), lib.codecOf(TransactionRejectionReason))),
+    signatures: lib.Vec.with(BlockSignature[lib.CodecSymbol])[lib.CodecSymbol],
+    payload: BlockPayload[lib.CodecSymbol],
+    errors: lib.Map.with(lib.U64[lib.CodecSymbol], TransactionRejectionReason[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
 export type SignedBlock = lib.Variant<'V1', SignedBlockV1>
 export const SignedBlock = {
   V1: <const T extends SignedBlockV1>(value: T): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
-  [lib.CodecSymbol]: lib.enumCodec<{ V1: [SignedBlockV1] }>([[1, 'V1', lib.codecOf(SignedBlockV1)]]).discriminated(),
+  [lib.CodecSymbol]: lib
+    .enumCodec<{ V1: [SignedBlockV1] }>([[1, 'V1', SignedBlockV1[lib.CodecSymbol]]])
+    .discriminated(),
 }
 
 export type BlockMessage = SignedBlock
@@ -5657,7 +5665,7 @@ export const BlockParameter = {
   [lib.CodecSymbol]: lib
     .enumCodec<{
       MaxTransactions: [lib.NonZero<lib.U64>]
-    }>([[0, 'MaxTransactions', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))]])
+    }>([[0, 'MaxTransactions', lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -5666,7 +5674,7 @@ export interface BlockParameters {
 }
 export const BlockParameters: lib.CodecProvider<BlockParameters> = {
   [lib.CodecSymbol]: lib.structCodec<BlockParameters>(['maxTransactions'], {
-    maxTransactions: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    maxTransactions: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -5675,7 +5683,7 @@ export interface BlockSubscriptionRequest {
 }
 export const BlockSubscriptionRequest: lib.CodecProvider<BlockSubscriptionRequest> = {
   [lib.CodecSymbol]: lib.structCodec<BlockSubscriptionRequest>(['fromBlockHeight'], {
-    fromBlockHeight: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    fromBlockHeight: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -5700,8 +5708,8 @@ export const BurnBox = {
   }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Asset: [Burn<Numeric, lib.AssetId>]; TriggerRepetitions: [Burn<lib.U32, TriggerId>] }>([
-      [0, 'Asset', lib.codecOf(Burn.with(lib.codecOf(Numeric), lib.codecOf(lib.AssetId)))],
-      [1, 'TriggerRepetitions', lib.codecOf(Burn.with(lib.codecOf(lib.U32), lib.codecOf(TriggerId)))],
+      [0, 'Asset', Burn.with(Numeric[lib.CodecSymbol], lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'TriggerRepetitions', Burn.with(lib.U32[lib.CodecSymbol], TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -5710,7 +5718,7 @@ export interface CanBurnAsset {
   asset: lib.AssetId
 }
 export const CanBurnAsset: lib.CodecProvider<CanBurnAsset> = {
-  [lib.CodecSymbol]: lib.structCodec<CanBurnAsset>(['asset'], { asset: lib.codecOf(lib.AssetId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanBurnAsset>(['asset'], { asset: lib.AssetId[lib.CodecSymbol] }),
 }
 
 export interface CanBurnAssetWithDefinition {
@@ -5718,7 +5726,7 @@ export interface CanBurnAssetWithDefinition {
 }
 export const CanBurnAssetWithDefinition: lib.CodecProvider<CanBurnAssetWithDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<CanBurnAssetWithDefinition>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5726,14 +5734,14 @@ export interface CanExecuteTrigger {
   trigger: TriggerId
 }
 export const CanExecuteTrigger: lib.CodecProvider<CanExecuteTrigger> = {
-  [lib.CodecSymbol]: lib.structCodec<CanExecuteTrigger>(['trigger'], { trigger: lib.codecOf(TriggerId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanExecuteTrigger>(['trigger'], { trigger: TriggerId[lib.CodecSymbol] }),
 }
 
 export interface CanMintAsset {
   asset: lib.AssetId
 }
 export const CanMintAsset: lib.CodecProvider<CanMintAsset> = {
-  [lib.CodecSymbol]: lib.structCodec<CanMintAsset>(['asset'], { asset: lib.codecOf(lib.AssetId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanMintAsset>(['asset'], { asset: lib.AssetId[lib.CodecSymbol] }),
 }
 
 export interface CanMintAssetWithDefinition {
@@ -5741,7 +5749,7 @@ export interface CanMintAssetWithDefinition {
 }
 export const CanMintAssetWithDefinition: lib.CodecProvider<CanMintAssetWithDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<CanMintAssetWithDefinition>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5749,7 +5757,9 @@ export interface CanModifyAccountMetadata {
   account: lib.AccountId
 }
 export const CanModifyAccountMetadata: lib.CodecProvider<CanModifyAccountMetadata> = {
-  [lib.CodecSymbol]: lib.structCodec<CanModifyAccountMetadata>(['account'], { account: lib.codecOf(lib.AccountId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanModifyAccountMetadata>(['account'], {
+    account: lib.AccountId[lib.CodecSymbol],
+  }),
 }
 
 export interface CanModifyAssetDefinitionMetadata {
@@ -5757,7 +5767,7 @@ export interface CanModifyAssetDefinitionMetadata {
 }
 export const CanModifyAssetDefinitionMetadata: lib.CodecProvider<CanModifyAssetDefinitionMetadata> = {
   [lib.CodecSymbol]: lib.structCodec<CanModifyAssetDefinitionMetadata>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5765,49 +5775,49 @@ export interface CanModifyAssetMetadata {
   asset: lib.AssetId
 }
 export const CanModifyAssetMetadata: lib.CodecProvider<CanModifyAssetMetadata> = {
-  [lib.CodecSymbol]: lib.structCodec<CanModifyAssetMetadata>(['asset'], { asset: lib.codecOf(lib.AssetId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanModifyAssetMetadata>(['asset'], { asset: lib.AssetId[lib.CodecSymbol] }),
 }
 
 export interface CanModifyDomainMetadata {
   domain: lib.DomainId
 }
 export const CanModifyDomainMetadata: lib.CodecProvider<CanModifyDomainMetadata> = {
-  [lib.CodecSymbol]: lib.structCodec<CanModifyDomainMetadata>(['domain'], { domain: lib.codecOf(lib.DomainId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanModifyDomainMetadata>(['domain'], { domain: lib.DomainId[lib.CodecSymbol] }),
 }
 
 export interface CanModifyTrigger {
   trigger: TriggerId
 }
 export const CanModifyTrigger: lib.CodecProvider<CanModifyTrigger> = {
-  [lib.CodecSymbol]: lib.structCodec<CanModifyTrigger>(['trigger'], { trigger: lib.codecOf(TriggerId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanModifyTrigger>(['trigger'], { trigger: TriggerId[lib.CodecSymbol] }),
 }
 
 export interface CanModifyTriggerMetadata {
   trigger: TriggerId
 }
 export const CanModifyTriggerMetadata: lib.CodecProvider<CanModifyTriggerMetadata> = {
-  [lib.CodecSymbol]: lib.structCodec<CanModifyTriggerMetadata>(['trigger'], { trigger: lib.codecOf(TriggerId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanModifyTriggerMetadata>(['trigger'], { trigger: TriggerId[lib.CodecSymbol] }),
 }
 
 export interface CanRegisterAccount {
   domain: lib.DomainId
 }
 export const CanRegisterAccount: lib.CodecProvider<CanRegisterAccount> = {
-  [lib.CodecSymbol]: lib.structCodec<CanRegisterAccount>(['domain'], { domain: lib.codecOf(lib.DomainId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanRegisterAccount>(['domain'], { domain: lib.DomainId[lib.CodecSymbol] }),
 }
 
 export interface CanRegisterAsset {
   owner: lib.AccountId
 }
 export const CanRegisterAsset: lib.CodecProvider<CanRegisterAsset> = {
-  [lib.CodecSymbol]: lib.structCodec<CanRegisterAsset>(['owner'], { owner: lib.codecOf(lib.AccountId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanRegisterAsset>(['owner'], { owner: lib.AccountId[lib.CodecSymbol] }),
 }
 
 export interface CanRegisterAssetDefinition {
   domain: lib.DomainId
 }
 export const CanRegisterAssetDefinition: lib.CodecProvider<CanRegisterAssetDefinition> = {
-  [lib.CodecSymbol]: lib.structCodec<CanRegisterAssetDefinition>(['domain'], { domain: lib.codecOf(lib.DomainId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanRegisterAssetDefinition>(['domain'], { domain: lib.DomainId[lib.CodecSymbol] }),
 }
 
 export interface CanRegisterAssetWithDefinition {
@@ -5815,7 +5825,7 @@ export interface CanRegisterAssetWithDefinition {
 }
 export const CanRegisterAssetWithDefinition: lib.CodecProvider<CanRegisterAssetWithDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<CanRegisterAssetWithDefinition>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5823,14 +5833,14 @@ export interface CanRegisterTrigger {
   authority: lib.AccountId
 }
 export const CanRegisterTrigger: lib.CodecProvider<CanRegisterTrigger> = {
-  [lib.CodecSymbol]: lib.structCodec<CanRegisterTrigger>(['authority'], { authority: lib.codecOf(lib.AccountId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanRegisterTrigger>(['authority'], { authority: lib.AccountId[lib.CodecSymbol] }),
 }
 
 export interface CanTransferAsset {
   asset: lib.AssetId
 }
 export const CanTransferAsset: lib.CodecProvider<CanTransferAsset> = {
-  [lib.CodecSymbol]: lib.structCodec<CanTransferAsset>(['asset'], { asset: lib.codecOf(lib.AssetId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanTransferAsset>(['asset'], { asset: lib.AssetId[lib.CodecSymbol] }),
 }
 
 export interface CanTransferAssetWithDefinition {
@@ -5838,7 +5848,7 @@ export interface CanTransferAssetWithDefinition {
 }
 export const CanTransferAssetWithDefinition: lib.CodecProvider<CanTransferAssetWithDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<CanTransferAssetWithDefinition>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5846,14 +5856,14 @@ export interface CanUnregisterAccount {
   account: lib.AccountId
 }
 export const CanUnregisterAccount: lib.CodecProvider<CanUnregisterAccount> = {
-  [lib.CodecSymbol]: lib.structCodec<CanUnregisterAccount>(['account'], { account: lib.codecOf(lib.AccountId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanUnregisterAccount>(['account'], { account: lib.AccountId[lib.CodecSymbol] }),
 }
 
 export interface CanUnregisterAsset {
   asset: lib.AssetId
 }
 export const CanUnregisterAsset: lib.CodecProvider<CanUnregisterAsset> = {
-  [lib.CodecSymbol]: lib.structCodec<CanUnregisterAsset>(['asset'], { asset: lib.codecOf(lib.AssetId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanUnregisterAsset>(['asset'], { asset: lib.AssetId[lib.CodecSymbol] }),
 }
 
 export interface CanUnregisterAssetDefinition {
@@ -5861,7 +5871,7 @@ export interface CanUnregisterAssetDefinition {
 }
 export const CanUnregisterAssetDefinition: lib.CodecProvider<CanUnregisterAssetDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<CanUnregisterAssetDefinition>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5870,7 +5880,7 @@ export interface CanUnregisterAssetWithDefinition {
 }
 export const CanUnregisterAssetWithDefinition: lib.CodecProvider<CanUnregisterAssetWithDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<CanUnregisterAssetWithDefinition>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -5878,14 +5888,14 @@ export interface CanUnregisterDomain {
   domain: lib.DomainId
 }
 export const CanUnregisterDomain: lib.CodecProvider<CanUnregisterDomain> = {
-  [lib.CodecSymbol]: lib.structCodec<CanUnregisterDomain>(['domain'], { domain: lib.codecOf(lib.DomainId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanUnregisterDomain>(['domain'], { domain: lib.DomainId[lib.CodecSymbol] }),
 }
 
 export interface CanUnregisterTrigger {
   trigger: TriggerId
 }
 export const CanUnregisterTrigger: lib.CodecProvider<CanUnregisterTrigger> = {
-  [lib.CodecSymbol]: lib.structCodec<CanUnregisterTrigger>(['trigger'], { trigger: lib.codecOf(TriggerId) }),
+  [lib.CodecSymbol]: lib.structCodec<CanUnregisterTrigger>(['trigger'], { trigger: TriggerId[lib.CodecSymbol] }),
 }
 
 export interface CommittedTransaction {
@@ -5895,9 +5905,9 @@ export interface CommittedTransaction {
 }
 export const CommittedTransaction: lib.CodecProvider<CommittedTransaction> = {
   [lib.CodecSymbol]: lib.structCodec<CommittedTransaction>(['blockHash', 'value', 'error'], {
-    blockHash: lib.codecOf(lib.HashWrap),
-    value: lib.codecOf(SignedTransaction),
-    error: lib.codecOf(lib.Option.with(lib.codecOf(TransactionRejectionReason))),
+    blockHash: lib.HashWrap[lib.CodecSymbol],
+    value: SignedTransaction[lib.CodecSymbol],
+    error: lib.Option.with(TransactionRejectionReason[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -5911,7 +5921,7 @@ export type TransactionHashPredicateAtom = lib.Variant<'Equals', lib.HashWrap>
 export const TransactionHashPredicateAtom = {
   Equals: <const T extends lib.HashWrap>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Equals: [lib.HashWrap] }>([[0, 'Equals', lib.codecOf(lib.HashWrap)]])
+    .enumCodec<{ Equals: [lib.HashWrap] }>([[0, 'Equals', lib.HashWrap[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -5924,7 +5934,7 @@ export const TransactionHashProjectionPredicate = {
     }),
   },
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [TransactionHashPredicateAtom] }>([[0, 'Atom', lib.codecOf(TransactionHashPredicateAtom)]])
+    .enumCodec<{ Atom: [TransactionHashPredicateAtom] }>([[0, 'Atom', TransactionHashPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -6008,9 +6018,9 @@ export const SignedTransactionProjectionPredicate = {
       Hash: [TransactionHashProjectionPredicate]
       Authority: [AccountIdProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(SignedTransactionPredicateAtom)],
-      [1, 'Hash', lib.codecOf(TransactionHashProjectionPredicate)],
-      [2, 'Authority', lib.codecOf(AccountIdProjectionPredicate)],
+      [0, 'Atom', SignedTransactionPredicateAtom[lib.CodecSymbol]],
+      [1, 'Hash', TransactionHashProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Authority', AccountIdProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6030,7 +6040,7 @@ export const TransactionErrorProjectionPredicate = {
     }),
   },
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [TransactionErrorPredicateAtom] }>([[0, 'Atom', lib.codecOf(TransactionErrorPredicateAtom)]])
+    .enumCodec<{ Atom: [TransactionErrorPredicateAtom] }>([[0, 'Atom', TransactionErrorPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -6161,10 +6171,10 @@ export const CommittedTransactionProjectionPredicate = {
       Value: [SignedTransactionProjectionPredicate]
       Error: [TransactionErrorProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(CommittedTransactionPredicateAtom)],
-      [1, 'BlockHash', lib.codecOf(BlockHeaderHashProjectionPredicate)],
-      [2, 'Value', lib.codecOf(SignedTransactionProjectionPredicate)],
-      [3, 'Error', lib.codecOf(TransactionErrorProjectionPredicate)],
+      [0, 'Atom', CommittedTransactionPredicateAtom[lib.CodecSymbol]],
+      [1, 'BlockHash', BlockHeaderHashProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Value', SignedTransactionProjectionPredicate[lib.CodecSymbol]],
+      [3, 'Error', TransactionErrorProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6213,8 +6223,8 @@ export const SignedTransactionProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Hash: [TransactionHashProjectionSelector]; Authority: [AccountIdProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Hash', lib.codecOf(TransactionHashProjectionSelector)],
-      [2, 'Authority', lib.codecOf(AccountIdProjectionSelector)],
+      [1, 'Hash', TransactionHashProjectionSelector[lib.CodecSymbol]],
+      [2, 'Authority', AccountIdProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6288,9 +6298,9 @@ export const CommittedTransactionProjectionSelector = {
       Error: [TransactionErrorProjectionSelector]
     }>([
       [0, 'Atom'],
-      [1, 'BlockHash', lib.codecOf(BlockHeaderHashProjectionSelector)],
-      [2, 'Value', lib.codecOf(SignedTransactionProjectionSelector)],
-      [3, 'Error', lib.codecOf(TransactionErrorProjectionSelector)],
+      [1, 'BlockHash', BlockHeaderHashProjectionSelector[lib.CodecSymbol]],
+      [2, 'Value', SignedTransactionProjectionSelector[lib.CodecSymbol]],
+      [3, 'Error', TransactionErrorProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6308,9 +6318,9 @@ export const SumeragiParameter = {
   }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ BlockTime: [lib.Duration]; CommitTime: [lib.Duration]; MaxClockDrift: [lib.Duration] }>([
-      [0, 'BlockTime', lib.codecOf(lib.Duration)],
-      [1, 'CommitTime', lib.codecOf(lib.Duration)],
-      [2, 'MaxClockDrift', lib.codecOf(lib.Duration)],
+      [0, 'BlockTime', lib.Duration[lib.CodecSymbol]],
+      [1, 'CommitTime', lib.Duration[lib.CodecSymbol]],
+      [2, 'MaxClockDrift', lib.Duration[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6329,8 +6339,8 @@ export const TransactionParameter = {
   }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ MaxInstructions: [lib.NonZero<lib.U64>]; SmartContractSize: [lib.NonZero<lib.U64>] }>([
-      [0, 'MaxInstructions', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
-      [1, 'SmartContractSize', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
+      [0, 'MaxInstructions', lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'SmartContractSize', lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6343,8 +6353,8 @@ export const SmartContractParameter = {
   Memory: <const T extends lib.NonZero<lib.U64>>(value: T): lib.Variant<'Memory', T> => ({ kind: 'Memory', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Fuel: [lib.NonZero<lib.U64>]; Memory: [lib.NonZero<lib.U64>] }>([
-      [0, 'Fuel', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
-      [1, 'Memory', lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64)))],
+      [0, 'Fuel', lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'Memory', lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6355,8 +6365,8 @@ export interface CustomParameter {
 }
 export const CustomParameter: lib.CodecProvider<CustomParameter> = {
   [lib.CodecSymbol]: lib.structCodec<CustomParameter>(['id', 'payload'], {
-    id: lib.codecOf(CustomParameterId),
-    payload: lib.codecOf(lib.Json),
+    id: CustomParameterId[lib.CodecSymbol],
+    payload: lib.Json[lib.CodecSymbol],
   }),
 }
 
@@ -6438,12 +6448,12 @@ export const Parameter = {
       Executor: [SmartContractParameter]
       Custom: [CustomParameter]
     }>([
-      [0, 'Sumeragi', lib.codecOf(SumeragiParameter)],
-      [1, 'Block', lib.codecOf(BlockParameter)],
-      [2, 'Transaction', lib.codecOf(TransactionParameter)],
-      [3, 'SmartContract', lib.codecOf(SmartContractParameter)],
-      [4, 'Executor', lib.codecOf(SmartContractParameter)],
-      [5, 'Custom', lib.codecOf(CustomParameter)],
+      [0, 'Sumeragi', SumeragiParameter[lib.CodecSymbol]],
+      [1, 'Block', BlockParameter[lib.CodecSymbol]],
+      [2, 'Transaction', TransactionParameter[lib.CodecSymbol]],
+      [3, 'SmartContract', SmartContractParameter[lib.CodecSymbol]],
+      [4, 'Executor', SmartContractParameter[lib.CodecSymbol]],
+      [5, 'Custom', CustomParameter[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6454,8 +6464,8 @@ export interface ParameterChanged {
 }
 export const ParameterChanged: lib.CodecProvider<ParameterChanged> = {
   [lib.CodecSymbol]: lib.structCodec<ParameterChanged>(['oldValue', 'newValue'], {
-    oldValue: lib.codecOf(Parameter),
-    newValue: lib.codecOf(Parameter),
+    oldValue: Parameter[lib.CodecSymbol],
+    newValue: Parameter[lib.CodecSymbol],
   }),
 }
 
@@ -6463,7 +6473,7 @@ export type ConfigurationEvent = lib.Variant<'Changed', ParameterChanged>
 export const ConfigurationEvent = {
   Changed: <const T extends ParameterChanged>(value: T): lib.Variant<'Changed', T> => ({ kind: 'Changed', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Changed: [ParameterChanged] }>([[0, 'Changed', lib.codecOf(ParameterChanged)]])
+    .enumCodec<{ Changed: [ParameterChanged] }>([[0, 'Changed', ParameterChanged[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -6471,7 +6481,7 @@ export interface CustomInstruction {
   payload: lib.Json
 }
 export const CustomInstruction: lib.CodecProvider<CustomInstruction> = {
-  [lib.CodecSymbol]: lib.structCodec<CustomInstruction>(['payload'], { payload: lib.codecOf(lib.Json) }),
+  [lib.CodecSymbol]: lib.structCodec<CustomInstruction>(['payload'], { payload: lib.Json[lib.CodecSymbol] }),
 }
 
 export type PeerEvent = lib.Variant<'Added', PeerId> | lib.Variant<'Removed', PeerId>
@@ -6480,8 +6490,8 @@ export const PeerEvent = {
   Removed: <const T extends PeerId>(value: T): lib.Variant<'Removed', T> => ({ kind: 'Removed', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Added: [PeerId]; Removed: [PeerId] }>([
-      [0, 'Added', lib.codecOf(PeerId)],
-      [1, 'Removed', lib.codecOf(PeerId)],
+      [0, 'Added', PeerId[lib.CodecSymbol]],
+      [1, 'Removed', PeerId[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6494,10 +6504,10 @@ export interface Domain {
 }
 export const Domain: lib.CodecProvider<Domain> = {
   [lib.CodecSymbol]: lib.structCodec<Domain>(['id', 'logo', 'metadata', 'ownedBy'], {
-    id: lib.codecOf(lib.DomainId),
-    logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
-    metadata: lib.codecOf(Metadata),
-    ownedBy: lib.codecOf(lib.AccountId),
+    id: lib.DomainId[lib.CodecSymbol],
+    logo: lib.Option.with(IpfsPath[lib.CodecSymbol])[lib.CodecSymbol],
+    metadata: Metadata[lib.CodecSymbol],
+    ownedBy: lib.AccountId[lib.CodecSymbol],
   }),
 }
 
@@ -6507,8 +6517,8 @@ export interface DomainOwnerChanged {
 }
 export const DomainOwnerChanged: lib.CodecProvider<DomainOwnerChanged> = {
   [lib.CodecSymbol]: lib.structCodec<DomainOwnerChanged>(['domain', 'newOwner'], {
-    domain: lib.codecOf(lib.DomainId),
-    newOwner: lib.codecOf(lib.AccountId),
+    domain: lib.DomainId[lib.CodecSymbol],
+    newOwner: lib.AccountId[lib.CodecSymbol],
   }),
 }
 
@@ -6673,13 +6683,13 @@ export const DomainEvent = {
       MetadataRemoved: [MetadataChanged<lib.DomainId>]
       OwnerChanged: [DomainOwnerChanged]
     }>([
-      [0, 'Created', lib.codecOf(Domain)],
-      [1, 'Deleted', lib.codecOf(lib.DomainId)],
-      [2, 'AssetDefinition', lib.codecOf(AssetDefinitionEvent)],
-      [3, 'Account', lib.codecOf(AccountEvent)],
-      [4, 'MetadataInserted', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.DomainId)))],
-      [5, 'MetadataRemoved', lib.codecOf(MetadataChanged.with(lib.codecOf(lib.DomainId)))],
-      [6, 'OwnerChanged', lib.codecOf(DomainOwnerChanged)],
+      [0, 'Created', Domain[lib.CodecSymbol]],
+      [1, 'Deleted', lib.DomainId[lib.CodecSymbol]],
+      [2, 'AssetDefinition', AssetDefinitionEvent[lib.CodecSymbol]],
+      [3, 'Account', AccountEvent[lib.CodecSymbol]],
+      [4, 'MetadataInserted', MetadataChanged.with(lib.DomainId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [5, 'MetadataRemoved', MetadataChanged.with(lib.DomainId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [6, 'OwnerChanged', DomainOwnerChanged[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6690,8 +6700,8 @@ export interface TriggerNumberOfExecutionsChanged {
 }
 export const TriggerNumberOfExecutionsChanged: lib.CodecProvider<TriggerNumberOfExecutionsChanged> = {
   [lib.CodecSymbol]: lib.structCodec<TriggerNumberOfExecutionsChanged>(['trigger', 'by'], {
-    trigger: lib.codecOf(TriggerId),
-    by: lib.codecOf(lib.U32),
+    trigger: TriggerId[lib.CodecSymbol],
+    by: lib.U32[lib.CodecSymbol],
   }),
 }
 
@@ -6730,12 +6740,12 @@ export const TriggerEvent = {
       MetadataInserted: [MetadataChanged<TriggerId>]
       MetadataRemoved: [MetadataChanged<TriggerId>]
     }>([
-      [0, 'Created', lib.codecOf(TriggerId)],
-      [1, 'Deleted', lib.codecOf(TriggerId)],
-      [2, 'Extended', lib.codecOf(TriggerNumberOfExecutionsChanged)],
-      [3, 'Shortened', lib.codecOf(TriggerNumberOfExecutionsChanged)],
-      [4, 'MetadataInserted', lib.codecOf(MetadataChanged.with(lib.codecOf(TriggerId)))],
-      [5, 'MetadataRemoved', lib.codecOf(MetadataChanged.with(lib.codecOf(TriggerId)))],
+      [0, 'Created', TriggerId[lib.CodecSymbol]],
+      [1, 'Deleted', TriggerId[lib.CodecSymbol]],
+      [2, 'Extended', TriggerNumberOfExecutionsChanged[lib.CodecSymbol]],
+      [3, 'Shortened', TriggerNumberOfExecutionsChanged[lib.CodecSymbol]],
+      [4, 'MetadataInserted', MetadataChanged.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [5, 'MetadataRemoved', MetadataChanged.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6746,8 +6756,8 @@ export interface Role {
 }
 export const Role: lib.CodecProvider<Role> = {
   [lib.CodecSymbol]: lib.structCodec<Role>(['id', 'permissions'], {
-    id: lib.codecOf(RoleId),
-    permissions: lib.codecOf(lib.Vec.with(lib.codecOf(Permission))),
+    id: RoleId[lib.CodecSymbol],
+    permissions: lib.Vec.with(Permission[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -6757,8 +6767,8 @@ export interface RolePermissionChanged {
 }
 export const RolePermissionChanged: lib.CodecProvider<RolePermissionChanged> = {
   [lib.CodecSymbol]: lib.structCodec<RolePermissionChanged>(['role', 'permission'], {
-    role: lib.codecOf(RoleId),
-    permission: lib.codecOf(Permission),
+    role: RoleId[lib.CodecSymbol],
+    permission: Permission[lib.CodecSymbol],
   }),
 }
 
@@ -6785,10 +6795,10 @@ export const RoleEvent = {
       PermissionAdded: [RolePermissionChanged]
       PermissionRemoved: [RolePermissionChanged]
     }>([
-      [0, 'Created', lib.codecOf(Role)],
-      [1, 'Deleted', lib.codecOf(RoleId)],
-      [2, 'PermissionAdded', lib.codecOf(RolePermissionChanged)],
-      [3, 'PermissionRemoved', lib.codecOf(RolePermissionChanged)],
+      [0, 'Created', Role[lib.CodecSymbol]],
+      [1, 'Deleted', RoleId[lib.CodecSymbol]],
+      [2, 'PermissionAdded', RolePermissionChanged[lib.CodecSymbol]],
+      [3, 'PermissionRemoved', RolePermissionChanged[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -6801,10 +6811,10 @@ export interface ExecutorDataModel {
 }
 export const ExecutorDataModel: lib.CodecProvider<ExecutorDataModel> = {
   [lib.CodecSymbol]: lib.structCodec<ExecutorDataModel>(['parameters', 'instructions', 'permissions', 'schema'], {
-    parameters: lib.codecOf(lib.Map.with(lib.codecOf(CustomParameterId), lib.codecOf(CustomParameter))),
-    instructions: lib.codecOf(lib.Vec.with(lib.codecOf(lib.String))),
-    permissions: lib.codecOf(lib.Vec.with(lib.codecOf(lib.String))),
-    schema: lib.codecOf(lib.Json),
+    parameters: lib.Map.with(CustomParameterId[lib.CodecSymbol], CustomParameter[lib.CodecSymbol])[lib.CodecSymbol],
+    instructions: lib.Vec.with(lib.String[lib.CodecSymbol])[lib.CodecSymbol],
+    permissions: lib.Vec.with(lib.String[lib.CodecSymbol])[lib.CodecSymbol],
+    schema: lib.Json[lib.CodecSymbol],
   }),
 }
 
@@ -6813,7 +6823,7 @@ export interface ExecutorUpgrade {
 }
 export const ExecutorUpgrade: lib.CodecProvider<ExecutorUpgrade> = {
   [lib.CodecSymbol]: lib.structCodec<ExecutorUpgrade>(['newDataModel'], {
-    newDataModel: lib.codecOf(ExecutorDataModel),
+    newDataModel: ExecutorDataModel[lib.CodecSymbol],
   }),
 }
 
@@ -6821,7 +6831,7 @@ export type ExecutorEvent = lib.Variant<'Upgraded', ExecutorUpgrade>
 export const ExecutorEvent = {
   Upgraded: <const T extends ExecutorUpgrade>(value: T): lib.Variant<'Upgraded', T> => ({ kind: 'Upgraded', value }),
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Upgraded: [ExecutorUpgrade] }>([[0, 'Upgraded', lib.codecOf(ExecutorUpgrade)]])
+    .enumCodec<{ Upgraded: [ExecutorUpgrade] }>([[0, 'Upgraded', ExecutorUpgrade[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -7077,12 +7087,12 @@ export const DataEvent = {
       Configuration: [ConfigurationEvent]
       Executor: [ExecutorEvent]
     }>([
-      [0, 'Peer', lib.codecOf(PeerEvent)],
-      [1, 'Domain', lib.codecOf(DomainEvent)],
-      [2, 'Trigger', lib.codecOf(TriggerEvent)],
-      [3, 'Role', lib.codecOf(RoleEvent)],
-      [4, 'Configuration', lib.codecOf(ConfigurationEvent)],
-      [5, 'Executor', lib.codecOf(ExecutorEvent)],
+      [0, 'Peer', PeerEvent[lib.CodecSymbol]],
+      [1, 'Domain', DomainEvent[lib.CodecSymbol]],
+      [2, 'Trigger', TriggerEvent[lib.CodecSymbol]],
+      [3, 'Role', RoleEvent[lib.CodecSymbol]],
+      [4, 'Configuration', ConfigurationEvent[lib.CodecSymbol]],
+      [5, 'Executor', ExecutorEvent[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7149,9 +7159,9 @@ export const DomainProjectionPredicate = {
       Id: [DomainIdProjectionPredicate]
       Metadata: [MetadataProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(DomainPredicateAtom)],
-      [1, 'Id', lib.codecOf(DomainIdProjectionPredicate)],
-      [2, 'Metadata', lib.codecOf(MetadataProjectionPredicate)],
+      [0, 'Atom', DomainPredicateAtom[lib.CodecSymbol]],
+      [1, 'Id', DomainIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Metadata', MetadataProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7187,8 +7197,8 @@ export const DomainProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [DomainIdProjectionSelector]; Metadata: [MetadataProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Id', lib.codecOf(DomainIdProjectionSelector)],
-      [2, 'Metadata', lib.codecOf(MetadataProjectionSelector)],
+      [1, 'Id', DomainIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Metadata', MetadataProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7200,9 +7210,9 @@ export interface TransactionEvent {
 }
 export const TransactionEvent: lib.CodecProvider<TransactionEvent> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionEvent>(['hash', 'blockHeight', 'status'], {
-    hash: lib.codecOf(lib.HashWrap),
-    blockHeight: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
-    status: lib.codecOf(TransactionStatus),
+    hash: lib.HashWrap[lib.CodecSymbol],
+    blockHeight: lib.Option.with(lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
+    status: TransactionStatus[lib.CodecSymbol],
   }),
 }
 
@@ -7215,8 +7225,8 @@ export const PipelineEventBox = {
   Block: <const T extends BlockEvent>(value: T): lib.Variant<'Block', T> => ({ kind: 'Block', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Transaction: [TransactionEvent]; Block: [BlockEvent] }>([
-      [0, 'Transaction', lib.codecOf(TransactionEvent)],
-      [1, 'Block', lib.codecOf(BlockEvent)],
+      [0, 'Transaction', TransactionEvent[lib.CodecSymbol]],
+      [1, 'Block', BlockEvent[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7227,8 +7237,8 @@ export interface TimeInterval {
 }
 export const TimeInterval: lib.CodecProvider<TimeInterval> = {
   [lib.CodecSymbol]: lib.structCodec<TimeInterval>(['since', 'length'], {
-    since: lib.codecOf(lib.Timestamp),
-    length: lib.codecOf(lib.Duration),
+    since: lib.Timestamp[lib.CodecSymbol],
+    length: lib.Duration[lib.CodecSymbol],
   }),
 }
 
@@ -7236,7 +7246,7 @@ export interface TimeEvent {
   interval: TimeInterval
 }
 export const TimeEvent: lib.CodecProvider<TimeEvent> = {
-  [lib.CodecSymbol]: lib.structCodec<TimeEvent>(['interval'], { interval: lib.codecOf(TimeInterval) }),
+  [lib.CodecSymbol]: lib.structCodec<TimeEvent>(['interval'], { interval: TimeInterval[lib.CodecSymbol] }),
 }
 
 export interface ExecuteTriggerEvent {
@@ -7246,9 +7256,9 @@ export interface ExecuteTriggerEvent {
 }
 export const ExecuteTriggerEvent: lib.CodecProvider<ExecuteTriggerEvent> = {
   [lib.CodecSymbol]: lib.structCodec<ExecuteTriggerEvent>(['triggerId', 'authority', 'args'], {
-    triggerId: lib.codecOf(TriggerId),
-    authority: lib.codecOf(lib.AccountId),
-    args: lib.codecOf(lib.Json),
+    triggerId: TriggerId[lib.CodecSymbol],
+    authority: lib.AccountId[lib.CodecSymbol],
+    args: lib.Json[lib.CodecSymbol],
   }),
 }
 
@@ -7259,7 +7269,7 @@ export const TriggerCompletedOutcome = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Success: []; Failure: [lib.String] }>([
       [0, 'Success'],
-      [1, 'Failure', lib.codecOf(lib.String)],
+      [1, 'Failure', lib.String[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7270,8 +7280,8 @@ export interface TriggerCompletedEvent {
 }
 export const TriggerCompletedEvent: lib.CodecProvider<TriggerCompletedEvent> = {
   [lib.CodecSymbol]: lib.structCodec<TriggerCompletedEvent>(['triggerId', 'outcome'], {
-    triggerId: lib.codecOf(TriggerId),
-    outcome: lib.codecOf(TriggerCompletedOutcome),
+    triggerId: TriggerId[lib.CodecSymbol],
+    outcome: TriggerCompletedOutcome[lib.CodecSymbol],
   }),
 }
 
@@ -7569,11 +7579,11 @@ export const EventBox = {
       ExecuteTrigger: [ExecuteTriggerEvent]
       TriggerCompleted: [TriggerCompletedEvent]
     }>([
-      [0, 'Pipeline', lib.codecOf(PipelineEventBox)],
-      [1, 'Data', lib.codecOf(DataEvent)],
-      [2, 'Time', lib.codecOf(TimeEvent)],
-      [3, 'ExecuteTrigger', lib.codecOf(ExecuteTriggerEvent)],
-      [4, 'TriggerCompleted', lib.codecOf(TriggerCompletedEvent)],
+      [0, 'Pipeline', PipelineEventBox[lib.CodecSymbol]],
+      [1, 'Data', DataEvent[lib.CodecSymbol]],
+      [2, 'Time', TimeEvent[lib.CodecSymbol]],
+      [3, 'ExecuteTrigger', ExecuteTriggerEvent[lib.CodecSymbol]],
+      [4, 'TriggerCompleted', TriggerCompletedEvent[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7586,7 +7596,7 @@ export interface EventSubscriptionRequest {
 }
 export const EventSubscriptionRequest: lib.CodecProvider<EventSubscriptionRequest> = {
   [lib.CodecSymbol]: lib.structCodec<EventSubscriptionRequest>(['filters'], {
-    filters: lib.codecOf(lib.Vec.with(lib.codecOf(EventFilterBox))),
+    filters: lib.Vec.with(EventFilterBox[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -7596,8 +7606,8 @@ export interface ExecuteTrigger {
 }
 export const ExecuteTrigger: lib.CodecProvider<ExecuteTrigger> = {
   [lib.CodecSymbol]: lib.structCodec<ExecuteTrigger>(['trigger', 'args'], {
-    trigger: lib.codecOf(TriggerId),
-    args: lib.codecOf(lib.Json),
+    trigger: TriggerId[lib.CodecSymbol],
+    args: lib.Json[lib.CodecSymbol],
   }),
 }
 
@@ -7605,7 +7615,7 @@ export interface Executor {
   wasm: WasmSmartContract
 }
 export const Executor: lib.CodecProvider<Executor> = {
-  [lib.CodecSymbol]: lib.structCodec<Executor>(['wasm'], { wasm: lib.codecOf(WasmSmartContract) }),
+  [lib.CodecSymbol]: lib.structCodec<Executor>(['wasm'], { wasm: WasmSmartContract[lib.CodecSymbol] }),
 }
 
 export interface FindAccountsWithAsset {
@@ -7613,7 +7623,7 @@ export interface FindAccountsWithAsset {
 }
 export const FindAccountsWithAsset: lib.CodecProvider<FindAccountsWithAsset> = {
   [lib.CodecSymbol]: lib.structCodec<FindAccountsWithAsset>(['assetDefinition'], {
-    assetDefinition: lib.codecOf(lib.AssetDefinitionId),
+    assetDefinition: lib.AssetDefinitionId[lib.CodecSymbol],
   }),
 }
 
@@ -7621,14 +7631,14 @@ export interface FindPermissionsByAccountId {
   id: lib.AccountId
 }
 export const FindPermissionsByAccountId: lib.CodecProvider<FindPermissionsByAccountId> = {
-  [lib.CodecSymbol]: lib.structCodec<FindPermissionsByAccountId>(['id'], { id: lib.codecOf(lib.AccountId) }),
+  [lib.CodecSymbol]: lib.structCodec<FindPermissionsByAccountId>(['id'], { id: lib.AccountId[lib.CodecSymbol] }),
 }
 
 export interface FindRolesByAccountId {
   id: lib.AccountId
 }
 export const FindRolesByAccountId: lib.CodecProvider<FindRolesByAccountId> = {
-  [lib.CodecSymbol]: lib.structCodec<FindRolesByAccountId>(['id'], { id: lib.codecOf(lib.AccountId) }),
+  [lib.CodecSymbol]: lib.structCodec<FindRolesByAccountId>(['id'], { id: lib.AccountId[lib.CodecSymbol] }),
 }
 
 export interface ForwardCursor {
@@ -7637,8 +7647,8 @@ export interface ForwardCursor {
 }
 export const ForwardCursor: lib.CodecProvider<ForwardCursor> = {
   [lib.CodecSymbol]: lib.structCodec<ForwardCursor>(['query', 'cursor'], {
-    query: lib.codecOf(lib.String),
-    cursor: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    query: lib.String[lib.CodecSymbol],
+    cursor: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -7650,10 +7660,10 @@ export interface GenesisWasmAction {
 }
 export const GenesisWasmAction: lib.CodecProvider<GenesisWasmAction> = {
   [lib.CodecSymbol]: lib.structCodec<GenesisWasmAction>(['executable', 'repeats', 'authority', 'filter'], {
-    executable: lib.codecOf(lib.String),
-    repeats: lib.codecOf(Repeats),
-    authority: lib.codecOf(lib.AccountId),
-    filter: lib.codecOf(EventFilterBox),
+    executable: lib.String[lib.CodecSymbol],
+    repeats: Repeats[lib.CodecSymbol],
+    authority: lib.AccountId[lib.CodecSymbol],
+    filter: EventFilterBox[lib.CodecSymbol],
   }),
 }
 
@@ -7663,8 +7673,8 @@ export interface GenesisWasmTrigger {
 }
 export const GenesisWasmTrigger: lib.CodecProvider<GenesisWasmTrigger> = {
   [lib.CodecSymbol]: lib.structCodec<GenesisWasmTrigger>(['id', 'action'], {
-    id: lib.codecOf(TriggerId),
-    action: lib.codecOf(GenesisWasmAction),
+    id: TriggerId[lib.CodecSymbol],
+    action: GenesisWasmAction[lib.CodecSymbol],
   }),
 }
 
@@ -7698,9 +7708,9 @@ export const GrantBox = {
       Role: [Grant<RoleId, lib.AccountId>]
       RolePermission: [Grant<Permission, RoleId>]
     }>([
-      [0, 'Permission', lib.codecOf(Grant.with(lib.codecOf(Permission), lib.codecOf(lib.AccountId)))],
-      [1, 'Role', lib.codecOf(Grant.with(lib.codecOf(RoleId), lib.codecOf(lib.AccountId)))],
-      [2, 'RolePermission', lib.codecOf(Grant.with(lib.codecOf(Permission), lib.codecOf(RoleId)))],
+      [0, 'Permission', Grant.with(Permission[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'Role', Grant.with(RoleId[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [2, 'RolePermission', Grant.with(Permission[lib.CodecSymbol], RoleId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7712,9 +7722,9 @@ export interface NewDomain {
 }
 export const NewDomain: lib.CodecProvider<NewDomain> = {
   [lib.CodecSymbol]: lib.structCodec<NewDomain>(['id', 'logo', 'metadata'], {
-    id: lib.codecOf(lib.DomainId),
-    logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
-    metadata: lib.codecOf(Metadata),
+    id: lib.DomainId[lib.CodecSymbol],
+    logo: lib.Option.with(IpfsPath[lib.CodecSymbol])[lib.CodecSymbol],
+    metadata: Metadata[lib.CodecSymbol],
   }),
 }
 
@@ -7724,8 +7734,8 @@ export interface NewAccount {
 }
 export const NewAccount: lib.CodecProvider<NewAccount> = {
   [lib.CodecSymbol]: lib.structCodec<NewAccount>(['id', 'metadata'], {
-    id: lib.codecOf(lib.AccountId),
-    metadata: lib.codecOf(Metadata),
+    id: lib.AccountId[lib.CodecSymbol],
+    metadata: Metadata[lib.CodecSymbol],
   }),
 }
 
@@ -7738,11 +7748,11 @@ export interface NewAssetDefinition {
 }
 export const NewAssetDefinition: lib.CodecProvider<NewAssetDefinition> = {
   [lib.CodecSymbol]: lib.structCodec<NewAssetDefinition>(['id', 'type', 'mintable', 'logo', 'metadata'], {
-    id: lib.codecOf(lib.AssetDefinitionId),
-    type: lib.codecOf(AssetType),
-    mintable: lib.codecOf(Mintable),
-    logo: lib.codecOf(lib.Option.with(lib.codecOf(IpfsPath))),
-    metadata: lib.codecOf(Metadata),
+    id: lib.AssetDefinitionId[lib.CodecSymbol],
+    type: AssetType[lib.CodecSymbol],
+    mintable: Mintable[lib.CodecSymbol],
+    logo: lib.Option.with(IpfsPath[lib.CodecSymbol])[lib.CodecSymbol],
+    metadata: Metadata[lib.CodecSymbol],
   }),
 }
 
@@ -7752,8 +7762,8 @@ export interface NewRole {
 }
 export const NewRole: lib.CodecProvider<NewRole> = {
   [lib.CodecSymbol]: lib.structCodec<NewRole>(['inner', 'grantTo'], {
-    inner: lib.codecOf(Role),
-    grantTo: lib.codecOf(lib.AccountId),
+    inner: Role[lib.CodecSymbol],
+    grantTo: lib.AccountId[lib.CodecSymbol],
   }),
 }
 
@@ -7763,8 +7773,8 @@ export interface Trigger {
 }
 export const Trigger: lib.CodecProvider<Trigger> = {
   [lib.CodecSymbol]: lib.structCodec<Trigger>(['id', 'action'], {
-    id: lib.codecOf(TriggerId),
-    action: lib.codecOf(Action),
+    id: TriggerId[lib.CodecSymbol],
+    action: Action[lib.CodecSymbol],
   }),
 }
 
@@ -7797,13 +7807,13 @@ export const RegisterBox = {
       Role: [NewRole]
       Trigger: [Trigger]
     }>([
-      [0, 'Peer', lib.codecOf(PeerId)],
-      [1, 'Domain', lib.codecOf(NewDomain)],
-      [2, 'Account', lib.codecOf(NewAccount)],
-      [3, 'AssetDefinition', lib.codecOf(NewAssetDefinition)],
-      [4, 'Asset', lib.codecOf(Asset)],
-      [5, 'Role', lib.codecOf(NewRole)],
-      [6, 'Trigger', lib.codecOf(Trigger)],
+      [0, 'Peer', PeerId[lib.CodecSymbol]],
+      [1, 'Domain', NewDomain[lib.CodecSymbol]],
+      [2, 'Account', NewAccount[lib.CodecSymbol]],
+      [3, 'AssetDefinition', NewAssetDefinition[lib.CodecSymbol]],
+      [4, 'Asset', Asset[lib.CodecSymbol]],
+      [5, 'Role', NewRole[lib.CodecSymbol]],
+      [6, 'Trigger', Trigger[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7837,13 +7847,13 @@ export const UnregisterBox = {
       Role: [RoleId]
       Trigger: [TriggerId]
     }>([
-      [0, 'Peer', lib.codecOf(PeerId)],
-      [1, 'Domain', lib.codecOf(lib.DomainId)],
-      [2, 'Account', lib.codecOf(lib.AccountId)],
-      [3, 'AssetDefinition', lib.codecOf(lib.AssetDefinitionId)],
-      [4, 'Asset', lib.codecOf(lib.AssetId)],
-      [5, 'Role', lib.codecOf(RoleId)],
-      [6, 'Trigger', lib.codecOf(TriggerId)],
+      [0, 'Peer', PeerId[lib.CodecSymbol]],
+      [1, 'Domain', lib.DomainId[lib.CodecSymbol]],
+      [2, 'Account', lib.AccountId[lib.CodecSymbol]],
+      [3, 'AssetDefinition', lib.AssetDefinitionId[lib.CodecSymbol]],
+      [4, 'Asset', lib.AssetId[lib.CodecSymbol]],
+      [5, 'Role', RoleId[lib.CodecSymbol]],
+      [6, 'Trigger', TriggerId[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7869,8 +7879,8 @@ export const MintBox = {
   }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Asset: [Mint<Numeric, lib.AssetId>]; TriggerRepetitions: [Mint<lib.U32, TriggerId>] }>([
-      [0, 'Asset', lib.codecOf(Mint.with(lib.codecOf(Numeric), lib.codecOf(lib.AssetId)))],
-      [1, 'TriggerRepetitions', lib.codecOf(Mint.with(lib.codecOf(lib.U32), lib.codecOf(TriggerId)))],
+      [0, 'Asset', Mint.with(Numeric[lib.CodecSymbol], lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'TriggerRepetitions', Mint.with(lib.U32[lib.CodecSymbol], TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7903,16 +7913,20 @@ export const TransferBox = {
       [
         0,
         'Domain',
-        lib.codecOf(Transfer.with(lib.codecOf(lib.AccountId), lib.codecOf(lib.DomainId), lib.codecOf(lib.AccountId))),
+        Transfer.with(lib.AccountId[lib.CodecSymbol], lib.DomainId[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[
+          lib.CodecSymbol
+        ],
       ],
       [
         1,
         'AssetDefinition',
-        lib.codecOf(
-          Transfer.with(lib.codecOf(lib.AccountId), lib.codecOf(lib.AssetDefinitionId), lib.codecOf(lib.AccountId)),
-        ),
+        Transfer.with(
+          lib.AccountId[lib.CodecSymbol],
+          lib.AssetDefinitionId[lib.CodecSymbol],
+          lib.AccountId[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
-      [2, 'Asset', lib.codecOf(AssetTransferBox)],
+      [2, 'Asset', AssetTransferBox[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7923,11 +7937,11 @@ export interface SetKeyValue<T0> {
   value: lib.Json
 }
 export const SetKeyValue = {
-  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<SetKeyValue<T0>> => ({
+  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<SetKeyValue<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<SetKeyValue<T0>>(['object', 'key', 'value'], {
       object: t0,
-      key: lib.codecOf(lib.Name),
-      value: lib.codecOf(lib.Json),
+      key: lib.Name[lib.CodecSymbol],
+      value: lib.Json[lib.CodecSymbol],
     }),
   }),
 }
@@ -7963,11 +7977,11 @@ export const SetKeyValueBox = {
       Asset: [SetKeyValue<lib.AssetId>]
       Trigger: [SetKeyValue<TriggerId>]
     }>([
-      [0, 'Domain', lib.codecOf(SetKeyValue.with(lib.codecOf(lib.DomainId)))],
-      [1, 'Account', lib.codecOf(SetKeyValue.with(lib.codecOf(lib.AccountId)))],
-      [2, 'AssetDefinition', lib.codecOf(SetKeyValue.with(lib.codecOf(lib.AssetDefinitionId)))],
-      [3, 'Asset', lib.codecOf(SetKeyValue.with(lib.codecOf(lib.AssetId)))],
-      [4, 'Trigger', lib.codecOf(SetKeyValue.with(lib.codecOf(TriggerId)))],
+      [0, 'Domain', SetKeyValue.with(lib.DomainId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'Account', SetKeyValue.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [2, 'AssetDefinition', SetKeyValue.with(lib.AssetDefinitionId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [3, 'Asset', SetKeyValue.with(lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [4, 'Trigger', SetKeyValue.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -7977,10 +7991,10 @@ export interface RemoveKeyValue<T0> {
   key: lib.Name
 }
 export const RemoveKeyValue = {
-  with: <T0>(t0: lib.Codec<T0>): lib.CodecProvider<RemoveKeyValue<T0>> => ({
+  with: <T0,>(t0: lib.Codec<T0>): lib.CodecProvider<RemoveKeyValue<T0>> => ({
     [lib.CodecSymbol]: lib.structCodec<RemoveKeyValue<T0>>(['object', 'key'], {
       object: t0,
-      key: lib.codecOf(lib.Name),
+      key: lib.Name[lib.CodecSymbol],
     }),
   }),
 }
@@ -8016,11 +8030,11 @@ export const RemoveKeyValueBox = {
       Asset: [RemoveKeyValue<lib.AssetId>]
       Trigger: [RemoveKeyValue<TriggerId>]
     }>([
-      [0, 'Domain', lib.codecOf(RemoveKeyValue.with(lib.codecOf(lib.DomainId)))],
-      [1, 'Account', lib.codecOf(RemoveKeyValue.with(lib.codecOf(lib.AccountId)))],
-      [2, 'AssetDefinition', lib.codecOf(RemoveKeyValue.with(lib.codecOf(lib.AssetDefinitionId)))],
-      [3, 'Asset', lib.codecOf(RemoveKeyValue.with(lib.codecOf(lib.AssetId)))],
-      [4, 'Trigger', lib.codecOf(RemoveKeyValue.with(lib.codecOf(TriggerId)))],
+      [0, 'Domain', RemoveKeyValue.with(lib.DomainId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'Account', RemoveKeyValue.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [2, 'AssetDefinition', RemoveKeyValue.with(lib.AssetDefinitionId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [3, 'Asset', RemoveKeyValue.with(lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [4, 'Trigger', RemoveKeyValue.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8055,9 +8069,9 @@ export const RevokeBox = {
       Role: [Revoke<RoleId, lib.AccountId>]
       RolePermission: [Revoke<Permission, RoleId>]
     }>([
-      [0, 'Permission', lib.codecOf(Revoke.with(lib.codecOf(Permission), lib.codecOf(lib.AccountId)))],
-      [1, 'Role', lib.codecOf(Revoke.with(lib.codecOf(RoleId), lib.codecOf(lib.AccountId)))],
-      [2, 'RolePermission', lib.codecOf(Revoke.with(lib.codecOf(Permission), lib.codecOf(RoleId)))],
+      [0, 'Permission', Revoke.with(Permission[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'Role', Revoke.with(RoleId[lib.CodecSymbol], lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [2, 'RolePermission', Revoke.with(Permission[lib.CodecSymbol], RoleId[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8069,7 +8083,7 @@ export interface Upgrade {
   executor: Executor
 }
 export const Upgrade: lib.CodecProvider<Upgrade> = {
-  [lib.CodecSymbol]: lib.structCodec<Upgrade>(['executor'], { executor: lib.codecOf(Executor) }),
+  [lib.CodecSymbol]: lib.structCodec<Upgrade>(['executor'], { executor: Executor[lib.CodecSymbol] }),
 }
 
 export type Level =
@@ -8101,8 +8115,8 @@ export interface Log {
 }
 export const Log: lib.CodecProvider<Log> = {
   [lib.CodecSymbol]: lib.structCodec<Log>(['level', 'msg'], {
-    level: lib.codecOf(Level),
-    msg: lib.codecOf(lib.String),
+    level: Level[lib.CodecSymbol],
+    msg: lib.String[lib.CodecSymbol],
   }),
 }
 
@@ -8357,20 +8371,20 @@ export const InstructionBox = {
       Log: [Log]
       Custom: [CustomInstruction]
     }>([
-      [0, 'Register', lib.codecOf(RegisterBox)],
-      [1, 'Unregister', lib.codecOf(UnregisterBox)],
-      [2, 'Mint', lib.codecOf(MintBox)],
-      [3, 'Burn', lib.codecOf(BurnBox)],
-      [4, 'Transfer', lib.codecOf(TransferBox)],
-      [5, 'SetKeyValue', lib.codecOf(SetKeyValueBox)],
-      [6, 'RemoveKeyValue', lib.codecOf(RemoveKeyValueBox)],
-      [7, 'Grant', lib.codecOf(GrantBox)],
-      [8, 'Revoke', lib.codecOf(RevokeBox)],
-      [9, 'ExecuteTrigger', lib.codecOf(ExecuteTrigger)],
-      [10, 'SetParameter', lib.codecOf(SetParameter)],
-      [11, 'Upgrade', lib.codecOf(Upgrade)],
-      [12, 'Log', lib.codecOf(Log)],
-      [13, 'Custom', lib.codecOf(CustomInstruction)],
+      [0, 'Register', RegisterBox[lib.CodecSymbol]],
+      [1, 'Unregister', UnregisterBox[lib.CodecSymbol]],
+      [2, 'Mint', MintBox[lib.CodecSymbol]],
+      [3, 'Burn', BurnBox[lib.CodecSymbol]],
+      [4, 'Transfer', TransferBox[lib.CodecSymbol]],
+      [5, 'SetKeyValue', SetKeyValueBox[lib.CodecSymbol]],
+      [6, 'RemoveKeyValue', RemoveKeyValueBox[lib.CodecSymbol]],
+      [7, 'Grant', GrantBox[lib.CodecSymbol]],
+      [8, 'Revoke', RevokeBox[lib.CodecSymbol]],
+      [9, 'ExecuteTrigger', ExecuteTrigger[lib.CodecSymbol]],
+      [10, 'SetParameter', SetParameter[lib.CodecSymbol]],
+      [11, 'Upgrade', Upgrade[lib.CodecSymbol]],
+      [12, 'Log', Log[lib.CodecSymbol]],
+      [13, 'Custom', CustomInstruction[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8378,24 +8392,24 @@ export const InstructionBox = {
 export type Ipv4Addr = [lib.U8, lib.U8, lib.U8, lib.U8]
 export const Ipv4Addr = {
   [lib.CodecSymbol]: lib.tupleCodec([
-    lib.codecOf(lib.U8),
-    lib.codecOf(lib.U8),
-    lib.codecOf(lib.U8),
-    lib.codecOf(lib.U8),
+    lib.U8[lib.CodecSymbol],
+    lib.U8[lib.CodecSymbol],
+    lib.U8[lib.CodecSymbol],
+    lib.U8[lib.CodecSymbol],
   ]) satisfies lib.Codec<Ipv4Addr>,
 }
 
 export type Ipv6Addr = [lib.U16, lib.U16, lib.U16, lib.U16, lib.U16, lib.U16, lib.U16, lib.U16]
 export const Ipv6Addr = {
   [lib.CodecSymbol]: lib.tupleCodec([
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
-    lib.codecOf(lib.U16),
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
+    lib.U16[lib.CodecSymbol],
   ]) satisfies lib.Codec<Ipv6Addr>,
 }
 
@@ -8405,8 +8419,8 @@ export interface MultisigApprove {
 }
 export const MultisigApprove: lib.CodecProvider<MultisigApprove> = {
   [lib.CodecSymbol]: lib.structCodec<MultisigApprove>(['account', 'instructionsHash'], {
-    account: lib.codecOf(lib.AccountId),
-    instructionsHash: lib.codecOf(lib.HashWrap),
+    account: lib.AccountId[lib.CodecSymbol],
+    instructionsHash: lib.HashWrap[lib.CodecSymbol],
   }),
 }
 
@@ -8417,9 +8431,9 @@ export interface MultisigSpec {
 }
 export const MultisigSpec: lib.CodecProvider<MultisigSpec> = {
   [lib.CodecSymbol]: lib.structCodec<MultisigSpec>(['signatories', 'quorum', 'transactionTtl'], {
-    signatories: lib.codecOf(lib.Map.with(lib.codecOf(lib.AccountId), lib.codecOf(lib.U8))),
-    quorum: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U16))),
-    transactionTtl: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.Duration))),
+    signatories: lib.Map.with(lib.AccountId[lib.CodecSymbol], lib.U8[lib.CodecSymbol])[lib.CodecSymbol],
+    quorum: lib.NonZero.with(lib.U16[lib.CodecSymbol])[lib.CodecSymbol],
+    transactionTtl: lib.NonZero.with(lib.Duration[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -8429,8 +8443,8 @@ export interface MultisigRegister {
 }
 export const MultisigRegister: lib.CodecProvider<MultisigRegister> = {
   [lib.CodecSymbol]: lib.structCodec<MultisigRegister>(['account', 'spec'], {
-    account: lib.codecOf(lib.AccountId),
-    spec: lib.codecOf(MultisigSpec),
+    account: lib.AccountId[lib.CodecSymbol],
+    spec: MultisigSpec[lib.CodecSymbol],
   }),
 }
 
@@ -8441,9 +8455,9 @@ export interface MultisigPropose {
 }
 export const MultisigPropose: lib.CodecProvider<MultisigPropose> = {
   [lib.CodecSymbol]: lib.structCodec<MultisigPropose>(['account', 'instructions', 'transactionTtl'], {
-    account: lib.codecOf(lib.AccountId),
-    instructions: lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox)))),
-    transactionTtl: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.Duration))))),
+    account: lib.AccountId[lib.CodecSymbol],
+    instructions: lib.Vec.with(lib.lazyCodec(() => InstructionBox[lib.CodecSymbol]))[lib.CodecSymbol],
+    transactionTtl: lib.Option.with(lib.NonZero.with(lib.Duration[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -8457,9 +8471,9 @@ export const MultisigInstructionBox = {
   Approve: <const T extends MultisigApprove>(value: T): lib.Variant<'Approve', T> => ({ kind: 'Approve', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Register: [MultisigRegister]; Propose: [MultisigPropose]; Approve: [MultisigApprove] }>([
-      [0, 'Register', lib.codecOf(MultisigRegister)],
-      [1, 'Propose', lib.codecOf(MultisigPropose)],
-      [2, 'Approve', lib.codecOf(MultisigApprove)],
+      [0, 'Register', MultisigRegister[lib.CodecSymbol]],
+      [1, 'Propose', MultisigPropose[lib.CodecSymbol]],
+      [2, 'Approve', MultisigApprove[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8475,11 +8489,11 @@ export const MultisigProposalValue: lib.CodecProvider<MultisigProposalValue> = {
   [lib.CodecSymbol]: lib.structCodec<MultisigProposalValue>(
     ['instructions', 'proposedAt', 'expiresAt', 'approvals', 'isRelayed'],
     {
-      instructions: lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox)))),
-      proposedAt: lib.codecOf(lib.Timestamp),
-      expiresAt: lib.codecOf(lib.Timestamp),
-      approvals: lib.codecOf(lib.Vec.with(lib.codecOf(lib.AccountId))),
-      isRelayed: lib.codecOf(lib.Option.with(lib.codecOf(lib.Bool))),
+      instructions: lib.Vec.with(lib.lazyCodec(() => InstructionBox[lib.CodecSymbol]))[lib.CodecSymbol],
+      proposedAt: lib.Timestamp[lib.CodecSymbol],
+      expiresAt: lib.Timestamp[lib.CodecSymbol],
+      approvals: lib.Vec.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol],
+      isRelayed: lib.Option.with(lib.Bool[lib.CodecSymbol])[lib.CodecSymbol],
     },
   ),
 }
@@ -8490,8 +8504,8 @@ export interface Pagination {
 }
 export const Pagination: lib.CodecProvider<Pagination> = {
   [lib.CodecSymbol]: lib.structCodec<Pagination>(['limit', 'offset'], {
-    limit: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
-    offset: lib.codecOf(lib.U64),
+    limit: lib.Option.with(lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
+    offset: lib.U64[lib.CodecSymbol],
   }),
 }
 
@@ -8502,9 +8516,9 @@ export interface SumeragiParameters {
 }
 export const SumeragiParameters: lib.CodecProvider<SumeragiParameters> = {
   [lib.CodecSymbol]: lib.structCodec<SumeragiParameters>(['blockTime', 'commitTime', 'maxClockDrift'], {
-    blockTime: lib.codecOf(lib.Duration),
-    commitTime: lib.codecOf(lib.Duration),
-    maxClockDrift: lib.codecOf(lib.Duration),
+    blockTime: lib.Duration[lib.CodecSymbol],
+    commitTime: lib.Duration[lib.CodecSymbol],
+    maxClockDrift: lib.Duration[lib.CodecSymbol],
   }),
 }
 
@@ -8514,8 +8528,8 @@ export interface TransactionParameters {
 }
 export const TransactionParameters: lib.CodecProvider<TransactionParameters> = {
   [lib.CodecSymbol]: lib.structCodec<TransactionParameters>(['maxInstructions', 'smartContractSize'], {
-    maxInstructions: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
-    smartContractSize: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    maxInstructions: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
+    smartContractSize: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -8525,8 +8539,8 @@ export interface SmartContractParameters {
 }
 export const SmartContractParameters: lib.CodecProvider<SmartContractParameters> = {
   [lib.CodecSymbol]: lib.structCodec<SmartContractParameters>(['fuel', 'memory'], {
-    fuel: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
-    memory: lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))),
+    fuel: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
+    memory: lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -8542,12 +8556,12 @@ export const Parameters: lib.CodecProvider<Parameters> = {
   [lib.CodecSymbol]: lib.structCodec<Parameters>(
     ['sumeragi', 'block', 'transaction', 'executor', 'smartContract', 'custom'],
     {
-      sumeragi: lib.codecOf(SumeragiParameters),
-      block: lib.codecOf(BlockParameters),
-      transaction: lib.codecOf(TransactionParameters),
-      executor: lib.codecOf(SmartContractParameters),
-      smartContract: lib.codecOf(SmartContractParameters),
-      custom: lib.codecOf(lib.Map.with(lib.codecOf(CustomParameterId), lib.codecOf(CustomParameter))),
+      sumeragi: SumeragiParameters[lib.CodecSymbol],
+      block: BlockParameters[lib.CodecSymbol],
+      transaction: TransactionParameters[lib.CodecSymbol],
+      executor: SmartContractParameters[lib.CodecSymbol],
+      smartContract: SmartContractParameters[lib.CodecSymbol],
+      custom: lib.Map.with(CustomParameterId[lib.CodecSymbol], CustomParameter[lib.CodecSymbol])[lib.CodecSymbol],
     },
   ),
 }
@@ -8558,8 +8572,8 @@ export interface SocketAddrV4 {
 }
 export const SocketAddrV4: lib.CodecProvider<SocketAddrV4> = {
   [lib.CodecSymbol]: lib.structCodec<SocketAddrV4>(['ip', 'port'], {
-    ip: lib.codecOf(Ipv4Addr),
-    port: lib.codecOf(lib.U16),
+    ip: Ipv4Addr[lib.CodecSymbol],
+    port: lib.U16[lib.CodecSymbol],
   }),
 }
 
@@ -8569,8 +8583,8 @@ export interface SocketAddrV6 {
 }
 export const SocketAddrV6: lib.CodecProvider<SocketAddrV6> = {
   [lib.CodecSymbol]: lib.structCodec<SocketAddrV6>(['ip', 'port'], {
-    ip: lib.codecOf(Ipv6Addr),
-    port: lib.codecOf(lib.U16),
+    ip: Ipv6Addr[lib.CodecSymbol],
+    port: lib.U16[lib.CodecSymbol],
   }),
 }
 
@@ -8580,8 +8594,8 @@ export interface SocketAddrHost {
 }
 export const SocketAddrHost: lib.CodecProvider<SocketAddrHost> = {
   [lib.CodecSymbol]: lib.structCodec<SocketAddrHost>(['host', 'port'], {
-    host: lib.codecOf(lib.String),
-    port: lib.codecOf(lib.U16),
+    host: lib.String[lib.CodecSymbol],
+    port: lib.U16[lib.CodecSymbol],
   }),
 }
 
@@ -8595,9 +8609,9 @@ export const SocketAddr = {
   Host: <const T extends SocketAddrHost>(value: T): lib.Variant<'Host', T> => ({ kind: 'Host', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Ipv4: [SocketAddrV4]; Ipv6: [SocketAddrV6]; Host: [SocketAddrHost] }>([
-      [0, 'Ipv4', lib.codecOf(SocketAddrV4)],
-      [1, 'Ipv6', lib.codecOf(SocketAddrV6)],
-      [2, 'Host', lib.codecOf(SocketAddrHost)],
+      [0, 'Ipv4', SocketAddrV4[lib.CodecSymbol]],
+      [1, 'Ipv6', SocketAddrV6[lib.CodecSymbol]],
+      [2, 'Host', SocketAddrHost[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8608,8 +8622,8 @@ export interface Peer {
 }
 export const Peer: lib.CodecProvider<Peer> = {
   [lib.CodecSymbol]: lib.structCodec<Peer>(['address', 'id'], {
-    address: lib.codecOf(SocketAddr),
-    id: lib.codecOf(PeerId),
+    address: SocketAddr[lib.CodecSymbol],
+    id: PeerId[lib.CodecSymbol],
   }),
 }
 
@@ -8633,8 +8647,8 @@ export const PeerIdProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [PeerIdPredicateAtom]; PublicKey: [PublicKeyProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(PeerIdPredicateAtom)],
-      [1, 'PublicKey', lib.codecOf(PublicKeyProjectionPredicate)],
+      [0, 'Atom', PeerIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'PublicKey', PublicKeyProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8651,7 +8665,7 @@ export const PeerIdProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; PublicKey: [PublicKeyProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'PublicKey', lib.codecOf(PublicKeyProjectionSelector)],
+      [1, 'PublicKey', PublicKeyProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8663,7 +8677,7 @@ export type PermissionProjectionPredicate = lib.Variant<'Atom', PermissionPredic
 export const PermissionProjectionPredicate = {
   Atom: {},
   [lib.CodecSymbol]: lib
-    .enumCodec<{ Atom: [PermissionPredicateAtom] }>([[0, 'Atom', lib.codecOf(PermissionPredicateAtom)]])
+    .enumCodec<{ Atom: [PermissionPredicateAtom] }>([[0, 'Atom', PermissionPredicateAtom[lib.CodecSymbol]]])
     .discriminated(),
 }
 
@@ -8698,7 +8712,7 @@ export const RolePredicateAtom = { [lib.CodecSymbol]: lib.neverCodec }
 export type RoleIdPredicateAtom = lib.Variant<'Equals', RoleId>
 export const RoleIdPredicateAtom = {
   Equals: <const T extends RoleId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
-  [lib.CodecSymbol]: lib.enumCodec<{ Equals: [RoleId] }>([[0, 'Equals', lib.codecOf(RoleId)]]).discriminated(),
+  [lib.CodecSymbol]: lib.enumCodec<{ Equals: [RoleId] }>([[0, 'Equals', RoleId[lib.CodecSymbol]]]).discriminated(),
 }
 
 export type RoleIdProjectionPredicate =
@@ -8741,8 +8755,8 @@ export const RoleIdProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [RoleIdPredicateAtom]; Name: [NameProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(RoleIdPredicateAtom)],
-      [1, 'Name', lib.codecOf(NameProjectionPredicate)],
+      [0, 'Atom', RoleIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'Name', NameProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8790,8 +8804,8 @@ export const RoleProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [RolePredicateAtom]; Id: [RoleIdProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(RolePredicateAtom)],
-      [1, 'Id', lib.codecOf(RoleIdProjectionPredicate)],
+      [0, 'Atom', RolePredicateAtom[lib.CodecSymbol]],
+      [1, 'Id', RoleIdProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8808,7 +8822,7 @@ export const RoleIdProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Name', lib.codecOf(NameProjectionSelector)],
+      [1, 'Name', NameProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8831,7 +8845,7 @@ export const RoleProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [RoleIdProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Id', lib.codecOf(RoleIdProjectionSelector)],
+      [1, 'Id', RoleIdProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8839,7 +8853,9 @@ export const RoleProjectionSelector = {
 export type TriggerIdPredicateAtom = lib.Variant<'Equals', TriggerId>
 export const TriggerIdPredicateAtom = {
   Equals: <const T extends TriggerId>(value: T): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
-  [lib.CodecSymbol]: lib.enumCodec<{ Equals: [TriggerId] }>([[0, 'Equals', lib.codecOf(TriggerId)]]).discriminated(),
+  [lib.CodecSymbol]: lib
+    .enumCodec<{ Equals: [TriggerId] }>([[0, 'Equals', TriggerId[lib.CodecSymbol]]])
+    .discriminated(),
 }
 
 export type TriggerIdProjectionPredicate =
@@ -8882,8 +8898,8 @@ export const TriggerIdProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [TriggerIdPredicateAtom]; Name: [NameProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(TriggerIdPredicateAtom)],
-      [1, 'Name', lib.codecOf(NameProjectionPredicate)],
+      [0, 'Atom', TriggerIdPredicateAtom[lib.CodecSymbol]],
+      [1, 'Name', NameProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8900,7 +8916,7 @@ export const TriggerIdProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Name', lib.codecOf(NameProjectionSelector)],
+      [1, 'Name', NameProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -8970,9 +8986,9 @@ export const TriggerProjectionPredicate = {
       Id: [TriggerIdProjectionPredicate]
       Action: [ActionProjectionPredicate]
     }>([
-      [0, 'Atom', lib.codecOf(TriggerPredicateAtom)],
-      [1, 'Id', lib.codecOf(TriggerIdProjectionPredicate)],
-      [2, 'Action', lib.codecOf(ActionProjectionPredicate)],
+      [0, 'Atom', TriggerPredicateAtom[lib.CodecSymbol]],
+      [1, 'Id', TriggerIdProjectionPredicate[lib.CodecSymbol]],
+      [2, 'Action', ActionProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9016,8 +9032,8 @@ export const TriggerProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Id: [TriggerIdProjectionSelector]; Action: [ActionProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Id', lib.codecOf(TriggerIdProjectionSelector)],
-      [2, 'Action', lib.codecOf(ActionProjectionSelector)],
+      [1, 'Id', TriggerIdProjectionSelector[lib.CodecSymbol]],
+      [2, 'Action', ActionProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9045,8 +9061,8 @@ export const SignedBlockProjectionPredicate = {
   },
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: [SignedBlockPredicateAtom]; Header: [BlockHeaderProjectionPredicate] }>([
-      [0, 'Atom', lib.codecOf(SignedBlockPredicateAtom)],
-      [1, 'Header', lib.codecOf(BlockHeaderProjectionPredicate)],
+      [0, 'Atom', SignedBlockPredicateAtom[lib.CodecSymbol]],
+      [1, 'Header', BlockHeaderProjectionPredicate[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9071,7 +9087,7 @@ export const SignedBlockProjectionSelector = {
   [lib.CodecSymbol]: lib
     .enumCodec<{ Atom: []; Header: [BlockHeaderProjectionSelector] }>([
       [0, 'Atom'],
-      [1, 'Header', lib.codecOf(BlockHeaderProjectionSelector)],
+      [1, 'Header', BlockHeaderProjectionSelector[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9384,167 +9400,137 @@ export const QueryBox = {
       [
         0,
         'FindDomains',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(DomainProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(DomainProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(DomainProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(DomainProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         1,
         'FindAccounts',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(AccountProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(AccountProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(AccountProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(AccountProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         2,
         'FindAssets',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(AssetProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(AssetProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(AssetProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(AssetProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         3,
         'FindAssetsDefinitions',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(AssetDefinitionProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(AssetDefinitionProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(AssetDefinitionProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(AssetDefinitionProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         4,
         'FindRoles',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(RoleProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(RoleProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(RoleProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(RoleProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         5,
         'FindRoleIds',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(RoleIdProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(RoleIdProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(RoleIdProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(RoleIdProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         6,
         'FindPermissionsByAccountId',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.codecOf(FindPermissionsByAccountId),
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(PermissionProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(PermissionProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          FindPermissionsByAccountId[lib.CodecSymbol],
+          lib.CompoundPredicate.with(PermissionProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(PermissionProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         7,
         'FindRolesByAccountId',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.codecOf(FindRolesByAccountId),
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(RoleIdProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(RoleIdProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          FindRolesByAccountId[lib.CodecSymbol],
+          lib.CompoundPredicate.with(RoleIdProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(RoleIdProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         8,
         'FindAccountsWithAsset',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.codecOf(FindAccountsWithAsset),
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(AccountProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(AccountProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          FindAccountsWithAsset[lib.CodecSymbol],
+          lib.CompoundPredicate.with(AccountProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(AccountProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         9,
         'FindPeers',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(PeerIdProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(PeerIdProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(PeerIdProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(PeerIdProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         10,
         'FindActiveTriggerIds',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(TriggerIdProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(TriggerIdProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(TriggerIdProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(TriggerIdProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         11,
         'FindTriggers',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(TriggerProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(TriggerProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(TriggerProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(TriggerProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         12,
         'FindTransactions',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(CommittedTransactionProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(CommittedTransactionProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(CommittedTransactionProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(CommittedTransactionProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         13,
         'FindBlocks',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(SignedBlockProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(SignedBlockProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(SignedBlockProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(SignedBlockProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
       [
         14,
         'FindBlockHeaders',
-        lib.codecOf(
-          QueryWithFilter.with(
-            lib.nullCodec,
-            lib.codecOf(lib.CompoundPredicate.with(lib.codecOf(BlockHeaderProjectionPredicate))),
-            lib.codecOf(lib.Vec.with(lib.codecOf(BlockHeaderProjectionSelector))),
-          ),
-        ),
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(BlockHeaderProjectionPredicate[lib.CodecSymbol])[lib.CodecSymbol],
+          lib.Vec.with(BlockHeaderProjectionSelector[lib.CodecSymbol])[lib.CodecSymbol],
+        )[lib.CodecSymbol],
       ],
     ])
     .discriminated(),
@@ -9687,40 +9673,40 @@ export const QueryOutputBatchBox = {
       BlockHeader: [lib.Vec<BlockHeader>]
       BlockHeaderHash: [lib.Vec<lib.HashWrap>]
     }>([
-      [0, 'PublicKey', lib.codecOf(lib.Vec.with(lib.codecOf(lib.PublicKeyWrap)))],
-      [1, 'String', lib.codecOf(lib.Vec.with(lib.codecOf(lib.String)))],
-      [2, 'Metadata', lib.codecOf(lib.Vec.with(lib.codecOf(Metadata)))],
-      [3, 'Json', lib.codecOf(lib.Vec.with(lib.codecOf(lib.Json)))],
-      [4, 'Numeric', lib.codecOf(lib.Vec.with(lib.codecOf(Numeric)))],
-      [5, 'Name', lib.codecOf(lib.Vec.with(lib.codecOf(lib.Name)))],
-      [6, 'DomainId', lib.codecOf(lib.Vec.with(lib.codecOf(lib.DomainId)))],
-      [7, 'Domain', lib.codecOf(lib.Vec.with(lib.codecOf(Domain)))],
-      [8, 'AccountId', lib.codecOf(lib.Vec.with(lib.codecOf(lib.AccountId)))],
-      [9, 'Account', lib.codecOf(lib.Vec.with(lib.codecOf(Account)))],
-      [10, 'AssetId', lib.codecOf(lib.Vec.with(lib.codecOf(lib.AssetId)))],
-      [11, 'Asset', lib.codecOf(lib.Vec.with(lib.codecOf(Asset)))],
-      [12, 'AssetValue', lib.codecOf(lib.Vec.with(lib.codecOf(AssetValue)))],
-      [13, 'AssetDefinitionId', lib.codecOf(lib.Vec.with(lib.codecOf(lib.AssetDefinitionId)))],
-      [14, 'AssetDefinition', lib.codecOf(lib.Vec.with(lib.codecOf(AssetDefinition)))],
-      [15, 'Role', lib.codecOf(lib.Vec.with(lib.codecOf(Role)))],
-      [16, 'Parameter', lib.codecOf(lib.Vec.with(lib.codecOf(Parameter)))],
-      [17, 'Permission', lib.codecOf(lib.Vec.with(lib.codecOf(Permission)))],
-      [18, 'CommittedTransaction', lib.codecOf(lib.Vec.with(lib.codecOf(CommittedTransaction)))],
-      [19, 'SignedTransaction', lib.codecOf(lib.Vec.with(lib.codecOf(SignedTransaction)))],
-      [20, 'TransactionHash', lib.codecOf(lib.Vec.with(lib.codecOf(lib.HashWrap)))],
+      [0, 'PublicKey', lib.Vec.with(lib.PublicKeyWrap[lib.CodecSymbol])[lib.CodecSymbol]],
+      [1, 'String', lib.Vec.with(lib.String[lib.CodecSymbol])[lib.CodecSymbol]],
+      [2, 'Metadata', lib.Vec.with(Metadata[lib.CodecSymbol])[lib.CodecSymbol]],
+      [3, 'Json', lib.Vec.with(lib.Json[lib.CodecSymbol])[lib.CodecSymbol]],
+      [4, 'Numeric', lib.Vec.with(Numeric[lib.CodecSymbol])[lib.CodecSymbol]],
+      [5, 'Name', lib.Vec.with(lib.Name[lib.CodecSymbol])[lib.CodecSymbol]],
+      [6, 'DomainId', lib.Vec.with(lib.DomainId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [7, 'Domain', lib.Vec.with(Domain[lib.CodecSymbol])[lib.CodecSymbol]],
+      [8, 'AccountId', lib.Vec.with(lib.AccountId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [9, 'Account', lib.Vec.with(Account[lib.CodecSymbol])[lib.CodecSymbol]],
+      [10, 'AssetId', lib.Vec.with(lib.AssetId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [11, 'Asset', lib.Vec.with(Asset[lib.CodecSymbol])[lib.CodecSymbol]],
+      [12, 'AssetValue', lib.Vec.with(AssetValue[lib.CodecSymbol])[lib.CodecSymbol]],
+      [13, 'AssetDefinitionId', lib.Vec.with(lib.AssetDefinitionId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [14, 'AssetDefinition', lib.Vec.with(AssetDefinition[lib.CodecSymbol])[lib.CodecSymbol]],
+      [15, 'Role', lib.Vec.with(Role[lib.CodecSymbol])[lib.CodecSymbol]],
+      [16, 'Parameter', lib.Vec.with(Parameter[lib.CodecSymbol])[lib.CodecSymbol]],
+      [17, 'Permission', lib.Vec.with(Permission[lib.CodecSymbol])[lib.CodecSymbol]],
+      [18, 'CommittedTransaction', lib.Vec.with(CommittedTransaction[lib.CodecSymbol])[lib.CodecSymbol]],
+      [19, 'SignedTransaction', lib.Vec.with(SignedTransaction[lib.CodecSymbol])[lib.CodecSymbol]],
+      [20, 'TransactionHash', lib.Vec.with(lib.HashWrap[lib.CodecSymbol])[lib.CodecSymbol]],
       [
         21,
         'TransactionRejectionReason',
-        lib.codecOf(lib.Vec.with(lib.codecOf(lib.Option.with(lib.codecOf(TransactionRejectionReason))))),
+        lib.Vec.with(lib.Option.with(TransactionRejectionReason[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
       ],
-      [22, 'Peer', lib.codecOf(lib.Vec.with(lib.codecOf(PeerId)))],
-      [23, 'RoleId', lib.codecOf(lib.Vec.with(lib.codecOf(RoleId)))],
-      [24, 'TriggerId', lib.codecOf(lib.Vec.with(lib.codecOf(TriggerId)))],
-      [25, 'Trigger', lib.codecOf(lib.Vec.with(lib.codecOf(Trigger)))],
-      [26, 'Action', lib.codecOf(lib.Vec.with(lib.codecOf(Action)))],
-      [27, 'Block', lib.codecOf(lib.Vec.with(lib.codecOf(SignedBlock)))],
-      [28, 'BlockHeader', lib.codecOf(lib.Vec.with(lib.codecOf(BlockHeader)))],
-      [29, 'BlockHeaderHash', lib.codecOf(lib.Vec.with(lib.codecOf(lib.HashWrap)))],
+      [22, 'Peer', lib.Vec.with(PeerId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [23, 'RoleId', lib.Vec.with(RoleId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [24, 'TriggerId', lib.Vec.with(TriggerId[lib.CodecSymbol])[lib.CodecSymbol]],
+      [25, 'Trigger', lib.Vec.with(Trigger[lib.CodecSymbol])[lib.CodecSymbol]],
+      [26, 'Action', lib.Vec.with(Action[lib.CodecSymbol])[lib.CodecSymbol]],
+      [27, 'Block', lib.Vec.with(SignedBlock[lib.CodecSymbol])[lib.CodecSymbol]],
+      [28, 'BlockHeader', lib.Vec.with(BlockHeader[lib.CodecSymbol])[lib.CodecSymbol]],
+      [29, 'BlockHeaderHash', lib.Vec.with(lib.HashWrap[lib.CodecSymbol])[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9730,7 +9716,7 @@ export interface QueryOutputBatchBoxTuple {
 }
 export const QueryOutputBatchBoxTuple: lib.CodecProvider<QueryOutputBatchBoxTuple> = {
   [lib.CodecSymbol]: lib.structCodec<QueryOutputBatchBoxTuple>(['tuple'], {
-    tuple: lib.codecOf(lib.Vec.with(lib.codecOf(QueryOutputBatchBox))),
+    tuple: lib.Vec.with(QueryOutputBatchBox[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -9741,9 +9727,9 @@ export interface QueryOutput {
 }
 export const QueryOutput: lib.CodecProvider<QueryOutput> = {
   [lib.CodecSymbol]: lib.structCodec<QueryOutput>(['batch', 'remainingItems', 'continueCursor'], {
-    batch: lib.codecOf(QueryOutputBatchBoxTuple),
-    remainingItems: lib.codecOf(lib.U64),
-    continueCursor: lib.codecOf(lib.Option.with(lib.codecOf(ForwardCursor))),
+    batch: QueryOutputBatchBoxTuple[lib.CodecSymbol],
+    remainingItems: lib.U64[lib.CodecSymbol],
+    continueCursor: lib.Option.with(ForwardCursor[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -9752,7 +9738,7 @@ export interface Sorting {
 }
 export const Sorting: lib.CodecProvider<Sorting> = {
   [lib.CodecSymbol]: lib.structCodec<Sorting>(['sortByMetadataKey'], {
-    sortByMetadataKey: lib.codecOf(lib.Option.with(lib.codecOf(lib.Name))),
+    sortByMetadataKey: lib.Option.with(lib.Name[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -9763,9 +9749,9 @@ export interface QueryParams {
 }
 export const QueryParams: lib.CodecProvider<QueryParams> = {
   [lib.CodecSymbol]: lib.structCodec<QueryParams>(['pagination', 'sorting', 'fetchSize'], {
-    pagination: lib.codecOf(Pagination),
-    sorting: lib.codecOf(Sorting),
-    fetchSize: lib.codecOf(lib.Option.with(lib.codecOf(lib.NonZero.with(lib.codecOf(lib.U64))))),
+    pagination: Pagination[lib.CodecSymbol],
+    sorting: Sorting[lib.CodecSymbol],
+    fetchSize: lib.Option.with(lib.NonZero.with(lib.U64[lib.CodecSymbol])[lib.CodecSymbol])[lib.CodecSymbol],
   }),
 }
 
@@ -9787,8 +9773,8 @@ export interface QueryWithParams {
 }
 export const QueryWithParams: lib.CodecProvider<QueryWithParams> = {
   [lib.CodecSymbol]: lib.structCodec<QueryWithParams>(['query', 'params'], {
-    query: lib.codecOf(QueryBox),
-    params: lib.codecOf(QueryParams),
+    query: QueryBox[lib.CodecSymbol],
+    params: QueryParams[lib.CodecSymbol],
   }),
 }
 
@@ -9811,9 +9797,9 @@ export const QueryRequest = {
   Continue: <const T extends ForwardCursor>(value: T): lib.Variant<'Continue', T> => ({ kind: 'Continue', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Singular: [SingularQueryBox]; Start: [QueryWithParams]; Continue: [ForwardCursor] }>([
-      [0, 'Singular', lib.codecOf(SingularQueryBox)],
-      [1, 'Start', lib.codecOf(QueryWithParams)],
-      [2, 'Continue', lib.codecOf(ForwardCursor)],
+      [0, 'Singular', SingularQueryBox[lib.CodecSymbol]],
+      [1, 'Start', QueryWithParams[lib.CodecSymbol]],
+      [2, 'Continue', ForwardCursor[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9824,8 +9810,8 @@ export interface QueryRequestWithAuthority {
 }
 export const QueryRequestWithAuthority: lib.CodecProvider<QueryRequestWithAuthority> = {
   [lib.CodecSymbol]: lib.structCodec<QueryRequestWithAuthority>(['authority', 'request'], {
-    authority: lib.codecOf(lib.AccountId),
-    request: lib.codecOf(QueryRequest),
+    authority: lib.AccountId[lib.CodecSymbol],
+    request: QueryRequest[lib.CodecSymbol],
   }),
 }
 
@@ -9840,8 +9826,8 @@ export const SingularQueryOutputBox = {
   Parameters: <const T extends Parameters>(value: T): lib.Variant<'Parameters', T> => ({ kind: 'Parameters', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ ExecutorDataModel: [ExecutorDataModel]; Parameters: [Parameters] }>([
-      [0, 'ExecutorDataModel', lib.codecOf(ExecutorDataModel)],
-      [1, 'Parameters', lib.codecOf(Parameters)],
+      [0, 'ExecutorDataModel', ExecutorDataModel[lib.CodecSymbol]],
+      [1, 'Parameters', Parameters[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9863,8 +9849,8 @@ export const QueryResponse = {
   Iterable: <const T extends QueryOutput>(value: T): lib.Variant<'Iterable', T> => ({ kind: 'Iterable', value }),
   [lib.CodecSymbol]: lib
     .enumCodec<{ Singular: [SingularQueryOutputBox]; Iterable: [QueryOutput] }>([
-      [0, 'Singular', lib.codecOf(SingularQueryOutputBox)],
-      [1, 'Iterable', lib.codecOf(QueryOutput)],
+      [0, 'Singular', SingularQueryOutputBox[lib.CodecSymbol]],
+      [1, 'Iterable', QueryOutput[lib.CodecSymbol]],
     ])
     .discriminated(),
 }
@@ -9882,13 +9868,13 @@ export const RawGenesisTransaction: lib.CodecProvider<RawGenesisTransaction> = {
   [lib.CodecSymbol]: lib.structCodec<RawGenesisTransaction>(
     ['chain', 'executor', 'parameters', 'instructions', 'wasmDir', 'wasmTriggers', 'topology'],
     {
-      chain: lib.codecOf(ChainId),
-      executor: lib.codecOf(lib.String),
-      parameters: lib.codecOf(lib.Option.with(lib.codecOf(Parameters))),
-      instructions: lib.codecOf(lib.Vec.with(lib.lazyCodec(() => lib.codecOf(InstructionBox)))),
-      wasmDir: lib.codecOf(lib.String),
-      wasmTriggers: lib.codecOf(lib.Vec.with(lib.codecOf(GenesisWasmTrigger))),
-      topology: lib.codecOf(lib.Vec.with(lib.codecOf(PeerId))),
+      chain: ChainId[lib.CodecSymbol],
+      executor: lib.String[lib.CodecSymbol],
+      parameters: lib.Option.with(Parameters[lib.CodecSymbol])[lib.CodecSymbol],
+      instructions: lib.Vec.with(lib.lazyCodec(() => InstructionBox[lib.CodecSymbol]))[lib.CodecSymbol],
+      wasmDir: lib.String[lib.CodecSymbol],
+      wasmTriggers: lib.Vec.with(GenesisWasmTrigger[lib.CodecSymbol])[lib.CodecSymbol],
+      topology: lib.Vec.with(PeerId[lib.CodecSymbol])[lib.CodecSymbol],
     },
   ),
 }
@@ -9899,15 +9885,17 @@ export interface SignedQueryV1 {
 }
 export const SignedQueryV1: lib.CodecProvider<SignedQueryV1> = {
   [lib.CodecSymbol]: lib.structCodec<SignedQueryV1>(['signature', 'payload'], {
-    signature: lib.codecOf(lib.SignatureWrap),
-    payload: lib.codecOf(QueryRequestWithAuthority),
+    signature: lib.SignatureWrap[lib.CodecSymbol],
+    payload: QueryRequestWithAuthority[lib.CodecSymbol],
   }),
 }
 
 export type SignedQuery = lib.Variant<'V1', SignedQueryV1>
 export const SignedQuery = {
   V1: <const T extends SignedQueryV1>(value: T): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
-  [lib.CodecSymbol]: lib.enumCodec<{ V1: [SignedQueryV1] }>([[1, 'V1', lib.codecOf(SignedQueryV1)]]).discriminated(),
+  [lib.CodecSymbol]: lib
+    .enumCodec<{ V1: [SignedQueryV1] }>([[1, 'V1', SignedQueryV1[lib.CodecSymbol]]])
+    .discriminated(),
 }
 
 export interface Uptime {
@@ -9916,8 +9904,8 @@ export interface Uptime {
 }
 export const Uptime: lib.CodecProvider<Uptime> = {
   [lib.CodecSymbol]: lib.structCodec<Uptime>(['secs', 'nanos'], {
-    secs: lib.codecOf(lib.Compact),
-    nanos: lib.codecOf(lib.U32),
+    secs: lib.Compact[lib.CodecSymbol],
+    nanos: lib.U32[lib.CodecSymbol],
   }),
 }
 
@@ -9934,13 +9922,13 @@ export const Status: lib.CodecProvider<Status> = {
   [lib.CodecSymbol]: lib.structCodec<Status>(
     ['peers', 'blocks', 'txsAccepted', 'txsRejected', 'uptime', 'viewChanges', 'queueSize'],
     {
-      peers: lib.codecOf(lib.Compact),
-      blocks: lib.codecOf(lib.Compact),
-      txsAccepted: lib.codecOf(lib.Compact),
-      txsRejected: lib.codecOf(lib.Compact),
-      uptime: lib.codecOf(Uptime),
-      viewChanges: lib.codecOf(lib.Compact),
-      queueSize: lib.codecOf(lib.Compact),
+      peers: lib.Compact[lib.CodecSymbol],
+      blocks: lib.Compact[lib.CodecSymbol],
+      txsAccepted: lib.Compact[lib.CodecSymbol],
+      txsRejected: lib.Compact[lib.CodecSymbol],
+      uptime: Uptime[lib.CodecSymbol],
+      viewChanges: lib.Compact[lib.CodecSymbol],
+      queueSize: lib.Compact[lib.CodecSymbol],
     },
   ),
 }

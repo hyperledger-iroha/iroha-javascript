@@ -780,6 +780,10 @@ interface RefRender {
   valueId?: string
 }
 
+function renderGetCodec(x: string) {
+  return x + CODEC_SYMBOL
+}
+
 function renderRef(ref: TypeRef): RefRender {
   return match(ref)
     .returnType<RefRender>()
@@ -787,12 +791,12 @@ function renderRef(ref: TypeRef): RefRender {
       const valueId = `${id}.with(${params.map((x) => renderRef(x).codec).join(', ')})`
       return {
         type: id + `<${params.map((x) => renderRef(x).type).join(', ')}>`,
-        codec: `lib.codecOf(${valueId})`,
+        codec: renderGetCodec(valueId),
         valueId,
       }
     })
     .with({ t: 'local' }, ({ id, lazy }) => {
-      const codec = `lib.codecOf(${id})`
+      const codec = renderGetCodec(id)
       return {
         type: id,
         codec: lazy ? `lib.lazyCodec(() => ${codec})` : codec,
@@ -805,14 +809,14 @@ function renderRef(ref: TypeRef): RefRender {
 
       return {
         type: `lib.${id}${typeGenerics}`,
-        codec: `lib.codecOf(${valueId})`,
+        codec: renderGetCodec(valueId),
         valueId,
       }
     })
     .with({ t: 'lib' }, ({ id }) => {
       return {
         type: `lib.${id}`,
-        codec: `lib.codecOf(lib.${id})`,
+        codec: renderGetCodec(`lib.${id}`),
         valueId: `lib.${id}`,
       }
     })
