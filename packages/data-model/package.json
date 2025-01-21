@@ -1,6 +1,6 @@
 {
   "name": "@iroha2/data-model",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "module": "dist/esm/lib.mjs",
   "main": "dist/cjs/lib.cjs",
   "types": "dist/types/lib.d.ts",

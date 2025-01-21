@@ -10,7 +10,7 @@
     "test:start": "start-server-and-test vite:preview http://localhost:3030 cy:run"
   },
   "devDependencies": {
-    "@iroha2/crypto-target-web": "workspace:^1.0.0",
+    "@iroha2/crypto-target-web": "workspace:^2.0.0",
     "cypress": "^12.5.1",
     "start-server-and-test": "^1.14.0",
     "vite": "^5.1.5"
