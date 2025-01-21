@@ -6,7 +6,7 @@
  */
 
 import { Bytes, cryptoTypes, freeScope } from '@iroha2/crypto-core'
-import { RustResult, datamodel, variant } from '@iroha2/data-model'
+import { Enumerate, RustResult, datamodel, variant } from '@iroha2/data-model'
 import { Except } from 'type-fest'
 import { SetupBlocksStreamParams, SetupBlocksStreamReturn, setupBlocksStream } from './blocks-stream'
 import {
@@ -80,12 +80,32 @@ export function makeTransactionPayload(params: MakeTransactionPayloadParams): da
   })
 }
 
-export function computeTransactionHash(payload: datamodel.TransactionPayload): Uint8Array {
+/**
+ * This hash is used for transaction signatures, as well as emitted in transaction pipeline events.
+ */
+export function computeTransactionPayloadHash(payload: datamodel.TransactionPayload): Uint8Array {
   return cryptoHash(Bytes.array(datamodel.TransactionPayload.toBuffer(payload)))
 }
 
+/**
+ * This is the primary transaction hash and is used by queries like `FindTransactionByHash`.
+ */
+export function computeSignedTransactionHash(payload: datamodel.SignedTransaction): Uint8Array {
+  return cryptoHash(Bytes.array(datamodel.SignedTransaction.toBuffer(payload)))
+}
+
+/**
+ * **Note:** this hash is used to create transaction signature (e.g. by {@link signTransaction})
+ * and **it is different from the hash used to query transactions** (e.g. by `FindTransactionByHash` query).
+ *
+ * @deprecated Deprecated due to being ambiguous. Use {@link computeSignedTransactionHash}
+ * (if e.g. you are querying a transaction by its hash) or {@link computeTransactionPayloadHash}
+ * (if e.g. you are computing transaction signature, or listening for pipeline events).
+ */
+export const computeTransactionHash = computeTransactionPayloadHash
+
 export function signTransaction(payload: datamodel.TransactionPayload, signer: Signer): datamodel.Signature {
-  const hash = computeTransactionHash(payload)
+  const hash = computeTransactionPayloadHash(payload)
   return signer.sign(Bytes.array(hash))
 }
 
@@ -169,6 +189,120 @@ export function queryBoxIntoSignedQuery(params: {
   )
 }
 
+export interface QueryParams {
+  start?: number
+  limit?: number
+  sortByMetadataKey?: string
+}
+
+function constructInitQueryParams(params?: QueryParams): URLSearchParams {
+  const baseParams: Record<string, string> = {}
+  if (params?.start) {
+    baseParams.start = String(params.start)
+  }
+  if (params?.limit) {
+    baseParams.limit = String(params.limit)
+  }
+  if (params?.sortByMetadataKey) {
+    baseParams.sort_by_metadata_key = params.sortByMetadataKey
+  }
+  return new URLSearchParams(baseParams)
+}
+
+export type QueryResponse = Enumerate<{
+  Value: [datamodel.Value]
+  Iter: [IterableQueryResponseHandle]
+  Failure: [datamodel.ValidationFail]
+}>
+
+export class IterableQueryResponseHandle {
+  public readonly first: datamodel.Value[]
+  public readonly next: AsyncGenerator<datamodel.Value[]>
+
+  public constructor(first: datamodel.Value[], next: AsyncGenerator<datamodel.Value[]>) {
+    this.first = first
+    this.next = next
+  }
+
+  public async all(): Promise<datamodel.Value[]> {
+    const items: datamodel.Value[] = [...this.first]
+    for await (const batch of this.next) {
+      items.push(...batch)
+    }
+    return items
+  }
+}
+
+// eslint-disable-next-line max-params
+async function* nextBatchesGen(
+  pre: ToriiRequirementsForApiHttp,
+  initUrlParams: URLSearchParams,
+  initCursor: datamodel.ForwardCursor,
+  initQueryBlob: Uint8Array,
+): AsyncGenerator<datamodel.Value[]> {
+  const urlParams = new URLSearchParams(initUrlParams)
+  urlParams.set('query_id', initCursor.query_id.enum.as('Some'))
+  let next = initCursor.cursor.enum
+  while (next.tag === 'Some') {
+    urlParams.set('cursor', String(next.content))
+
+    const response = await pre.fetch(`${pre.apiURL}/query?${urlParams}`, {
+      method: 'POST',
+      body: initQueryBlob,
+    })
+    if (response.status >= 400 && response.status < 500) {
+      throw new Error(`INTERNAL BUG: unexpected request error ${response.status}`, { cause: response })
+    }
+    if (response.status !== 200) {
+      throw new Error('Network error', { cause: response })
+    }
+    const buff = new Uint8Array(await response.arrayBuffer())
+
+    const {
+      batch,
+      cursor: { cursor },
+    } = datamodel.BatchedResponseValue.fromBuffer(buff).enum.as('V1')
+
+    if (batch.enum.tag !== 'Vec') throw new Error(`INTERNAL BUG: iterable query must always emit Vec batches`)
+    yield batch.enum.as('Vec')
+
+    next = cursor.enum
+  }
+}
+
+export async function doQuery(
+  pre: ToriiRequirementsForApiHttp,
+  query: datamodel.SignedQuery,
+  params?: QueryParams,
+): Promise<QueryResponse> {
+  const urlParams = constructInitQueryParams(params)
+  const body = datamodel.SignedQuery.toBuffer(query)
+
+  const response = await pre.fetch(`${pre.apiURL}/query?${urlParams}`, {
+    method: 'POST',
+    body,
+  })
+  const buff = new Uint8Array(await response.arrayBuffer())
+
+  if (response.status >= 400 && response.status < 500) {
+    return variant<QueryResponse>('Failure', datamodel.ValidationFail.fromBuffer(buff))
+  } else if (response.status !== 200) {
+    throw new Error(`HTTP request failed: ${response.status} ${response.statusText}`)
+  }
+
+  const { batch, cursor } = datamodel.BatchedResponseValue.fromBuffer(buff).enum.as('V1')
+
+  if (batch.enum.tag === 'Vec' && cursor.query_id.enum.tag === 'Some') {
+    // Iterable query
+    return variant<QueryResponse>(
+      'Iter',
+      new IterableQueryResponseHandle(batch.enum.as('Vec'), nextBatchesGen(pre, urlParams, cursor, body)),
+    )
+  }
+
+  return variant<QueryResponse>('Value', batch)
+}
+
 // #endregion
 
 // #region TORII
@@ -206,7 +340,18 @@ export type ToriiQueryResult = RustResult<datamodel.BatchedResponseV1Value, data
 
 export interface ToriiApiHttp {
   submit: (prerequisites: ToriiRequirementsForApiHttp, tx: datamodel.SignedTransaction) => Promise<void>
+  /**
+   * @deprecated This method provides an incomplete implementation of Query API. Specifically,
+   * it doesn't account for live queries (therefore, it is not able to return more items
+   * than specified in Iroha's `FETCH_SIZE` limit) and pagination parameters.
+   * Use {@link queryWithParams} for complete implementation instead.
+   */
   request: (prerequisites: ToriiRequirementsForApiHttp, query: datamodel.SignedQuery) => Promise<ToriiQueryResult>
+  queryWithParams: (
+    prerequisites: ToriiRequirementsForApiHttp,
+    query: datamodel.SignedQuery,
+    params?: QueryParams,
+  ) => Promise<QueryResponse>
   getHealth: (prerequisites: ToriiRequirementsForApiHttp) => Promise<RustResult<null, string>>
   setPeerConfig: (prerequisites: ToriiRequirementsForApiHttp, params: SetPeerConfigParams) => Promise<void>
   getStatus: (prerequisites: ToriiRequirementsForApiHttp) => Promise<PeerStatus>
@@ -258,6 +403,10 @@ export const Torii: ToriiOmnibus = {
       const error = datamodel.ValidationFail.fromBuffer(bytes)
       return variant('Err', error)
     }
+  },
+
+  async queryWithParams(pre, query, params) {
+    return doQuery(pre, query, params)
   },
 
   async getHealth(pre) {
@@ -344,8 +493,19 @@ export class Client {
     return Torii.submit(pre, executableIntoSignedTransaction({ executable, signer: this.signer }))
   }
 
+  /**
+   * @deprecated For the same reason as {@link Torii.request}. Use {@link Client.query:instance} instead.
+   */
   public async requestWithQueryBox(pre: ToriiRequirementsForApiHttp, query: datamodel.QueryBox) {
     return Torii.request(pre, queryBoxIntoSignedQuery({ query, signer: this.signer }))
+  }
+
+  public async query(
+    pre: ToriiRequirementsForApiHttp,
+    query: datamodel.QueryBox,
+    params?: QueryParams,
+  ): Promise<QueryResponse> {
+    return Torii.queryWithParams(pre, queryBoxIntoSignedQuery({ query, signer: this.signer }), params)
   }
 }
 
