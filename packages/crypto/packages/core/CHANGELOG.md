@@ -1,5 +1,25 @@
 # @iroha2/crypto-core
 
+## 2.0.0
+
+### Major Changes
+
+- 787a198: **Breaking:** Complete rewrite of crypto WASM, and major update of the surrounding API.
+
+  - Now WASM is made from the original `iroha_crypto` from Iroha 2 repo. As one of the outcomes, binary blob size is reduced from 2mb to 600kb.
+  - Remove `KeyGenConfiguration`. Use `KeyPair.deriveFromSeed`, `KeyPair.deriveFromPrivateKey`, and `KeyPair.random` instead.
+  - Normalise API across `PublicKey`, `PrivateKey`, `KeyPair`, and `Signature` classes (JSON methods, raw conversion methods etc.)
+  - Introduce `Bytes` utility to accept binary input either as `Bytes.array([1, 2, 3])` or `Bytes.hex('001122')`
+  - Export more types¡
+
+  See the [issue](https://github.com/hyperledger/iroha-javascript/issues/186) for related context.
+
+### Patch Changes
+
+- Updated dependencies [787a198]
+  - @iroha2/crypto-util@0.2.0
+  - @iroha2/data-model@7.1.0
+
 ## 1.1.1
 
 ### Patch Changes

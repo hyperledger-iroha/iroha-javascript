@@ -1,6 +1,6 @@
 {
   "name": "@iroha2/data-model-schema",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "description": "The schema of the data model",
   "main": "src/lib.ts",
   "files": [
