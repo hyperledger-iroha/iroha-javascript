@@ -1,10 +1,10 @@
-import { Torii } from '@iroha2/client'
+import { Torii, computeSignedTransactionHash, executableIntoSignedTransaction } from '@iroha2/client'
 import { type RustResult, datamodel, sugar, variant } from '@iroha2/data-model'
 import { CLIENT_CONFIG } from '@iroha2/test-configuration'
-import { Seq } from 'immutable'
-import { describe, expect, test } from 'vitest'
-import { clientFactory, setupPeerTestsLifecycle } from './util'
 import { pipe } from 'fp-ts/function'
+import { Seq } from 'immutable'
+import { beforeEach, describe, expect, test } from 'vitest'
+import { clientFactory, setupPeerTestsLifecycle } from './util'
 
 setupPeerTestsLifecycle()
 
@@ -291,4 +291,203 @@ test('status - peer uptime content check, not only type', async () => {
       view_changes: expect.any(Number),
     }),
   )
+})
+
+describe('Queries', () => {
+  const TRANSACTIONS = 40
+  const TXS_BEFORE = 2
+  const DEFAULT_FETCH_SIZE = 10
+
+  beforeEach(async () => {
+    const { pre, signer, client } = clientFactory()
+
+    function regDomainWithMetadata(name: string, metadata: Map<string, datamodel.Value>) {
+      return datamodel.InstructionExpr(
+        'Register',
+        datamodel.RegisterExpr({
+          object: datamodel.Expression(
+            'Raw',
+            datamodel.Value(
+              'Identifiable',
+              datamodel.IdentifiableBox(
+                'NewDomain',
+                datamodel.NewDomain({
+                  id: datamodel.DomainId({ name }),
+                  logo: datamodel.OptionIpfsPath('None'),
+                  metadata: datamodel.Metadata({
+                    map: datamodel.SortedMapNameValue(metadata),
+                  }),
+                }),
+              ),
+            ),
+          ),
+        }),
+      )
+    }
+
+    const stream = await Torii.listenForEvents(pre, {
+      filter: datamodel.FilterBox(
+        'Pipeline',
+        datamodel.PipelineEventFilter({
+          entity_kind: datamodel.OptionPipelineEntityKind('Some', datamodel.PipelineEntityKind('Transaction')),
+          status_kind: datamodel.OptionPipelineStatusKind('Some', datamodel.PipelineStatusKind('Committed')),
+          hash: datamodel.OptionHash('None'),
+        }),
+      ),
+    })
+    const allCommitted = new Promise((resolve) => {
+      let counter = 0
+      stream.ee.on('event', () => {
+        if (++counter >= TRANSACTIONS) resolve(null)
+      })
+    })
+
+    const date = new Date()
+    await Promise.all([
+      ...Array.from({ length: TRANSACTIONS - 1 }, async (_v, i) => {
+        await Torii.submit(
+          pre,
+          executableIntoSignedTransaction({
+            signer,
+            executable: datamodel.Executable(
+              'Instructions',
+              datamodel.VecInstructionExpr([
+                datamodel.InstructionExpr(
+                  'Log',
+                  datamodel.LogExpr({
+                    level: datamodel.Expression('Raw', datamodel.Value('LogLevel', datamodel.Level('DEBUG'))),
+                    msg: datamodel.Expression('Raw', datamodel.Value('String', 'Hey')),
+                  }),
+                ),
+              ]),
+            ),
+            payloadParams: {
+              creationTime: BigInt(date.getTime() + i),
+            },
+          }),
+        )
+      }),
+      client.submitExecutable(
+        pre,
+        datamodel.Executable(
+          'Instructions',
+          datamodel.VecInstructionExpr([
+            regDomainWithMetadata('dom-1', new Map([['test', datamodel.Value('String', 'foo')]])),
+            regDomainWithMetadata('dom-2', new Map([['test', datamodel.Value('String', 'bar')]])),
+            regDomainWithMetadata(
+              'dom-3',
+              new Map([['test', datamodel.Value('Numeric', datamodel.NumericValue('U32', 10))]]),
+            ),
+            regDomainWithMetadata(
+              'dom-4',
+              new Map([['test', datamodel.Value('Numeric', datamodel.NumericValue('U32', 5))]]),
+            ),
+            regDomainWithMetadata('dom-5', new Map([['test', datamodel.Value('Bool', true)]])),
+            regDomainWithMetadata('dom-6', new Map([['test', datamodel.Value('Bool', false)]])),
+          ]),
+        ),
+      ),
+    ])
+
+    await allCommitted
+  })
+
+  test('all transactions as batches', async () => {
+    const { pre, client } = clientFactory()
+
+    const items = []
+    for await (const batch of await client.query(pre, datamodel.QueryBox('FindAllTransactions')).then((resp) => {
+      const iter = resp.as('Iter')
+      expect(iter.first).toHaveLength(DEFAULT_FETCH_SIZE)
+      items.push(...iter.first)
+      return iter.next
+    })) {
+      expect(batch).toHaveLength(items.length < TRANSACTIONS ? DEFAULT_FETCH_SIZE : TXS_BEFORE)
+      items.push(...batch)
+    }
+
+    expect(items).toHaveLength(TRANSACTIONS + TXS_BEFORE)
+  })
+
+  test('setting start & limit reflects the subset of data properly', async () => {
+    const { pre, client } = clientFactory()
+
+    const all = await client.query(pre, datamodel.QueryBox('FindAllTransactions')).then((x) => x.as('Iter').all())
+
+    const limited = await client
+      .query(pre, datamodel.QueryBox('FindAllTransactions'), {
+        start: 5,
+        limit: 25,
+      })
+      .then((x) => x.as('Iter').all())
+
+    expect(limited).toHaveLength(25)
+    expect(all.slice(5, 5 + 25)).toEqual(limited)
+  })
+
+  test('sort by metadata key', async () => {
+    const { pre, client } = clientFactory()
+
+    const unsorted = await client
+      //
+      .query(pre, datamodel.QueryBox('FindAllDomains'))
+      .then((resp) => resp.as('Iter').all())
+
+    const sorted = await client
+      .query(pre, datamodel.QueryBox('FindAllDomains'), { sortByMetadataKey: 'test' })
+      .then((resp) => resp.as('Iter').all())
+
+    const map = (items: datamodel.Value[]) => items.map((x) => x.enum.as('Identifiable').enum.as('Domain').id.name)
+
+    expect(unsorted).toHaveLength(sorted.length)
+    expect(map(unsorted)).toMatchInlineSnapshot(`
+      [
+        "genesis",
+        "wonderland",
+        "garden_of_live_flowers",
+        "dom-1",
+        "dom-2",
+        "dom-3",
+        "dom-4",
+        "dom-5",
+        "dom-6",
+      ]
+    `)
+    expect(map(sorted)).toMatchInlineSnapshot(`
+      [
+        "dom-6",
+        "dom-5",
+        "dom-2",
+        "dom-1",
+        "dom-4",
+        "dom-3",
+        "genesis",
+        "wonderland",
+        "garden_of_live_flowers",
+      ]
+    `)
+  })
+
+  test('Find transaction by hash', async () => {
+    const { pre, client } = clientFactory()
+
+    const all = await client.query(pre, datamodel.QueryBox('FindAllTransactions')).then((resp) => resp.as('Iter').all())
+
+    const someTx = all.at(4)!.enum.as('TransactionQueryOutput').transaction.value
+    const hash = computeSignedTransactionHash(someTx)
+
+    const foundByHash = await client
+      .query(
+        pre,
+        datamodel.QueryBox(
+          'FindTransactionByHash',
+          datamodel.FindTransactionByHash({
+            hash: datamodel.Expression('Raw', datamodel.Value('Hash', datamodel.HashValue('Transaction', hash))),
+          }),
+        ),
+      )
+      .then((resp) => resp.as('Value').enum.as('TransactionQueryOutput').transaction)
+
+    expect(foundByHash.value).toEqual(someTx)
+  })
 })

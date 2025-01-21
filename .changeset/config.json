@@ -4,6 +4,6 @@
   "commit": false,
   "fixed": [["@iroha2/crypto-target-*"], ["@iroha2/client", "@iroha2/data-model", "@iroha2/data-model-schema"]],
   "access": "restricted",
-  "baseBranch": "iroha2",
+  "baseBranch": "main",
   "updateInternalDependencies": "patch"
 }
