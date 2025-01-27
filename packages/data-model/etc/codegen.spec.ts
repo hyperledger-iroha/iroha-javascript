@@ -1,7 +1,15 @@
 import { describe, expect, test } from 'vitest'
 import type { Schema } from '@iroha2/data-model-schema'
 import { SCHEMA } from '@iroha2/data-model-schema'
-import { type EmitCode, enumShortcuts, generate, renderShortcutsTree } from './codegen'
+import {
+  type EmitCode,
+  EmitsMap,
+  enumShortcuts,
+  generateClientFindAPI,
+  generateDataModel,
+  renderShortcutsTree,
+  Resolver,
+} from './codegen'
 import { format } from 'prettier'
 import PRETTIER_OPTIONS from '../../../.prettierrc.js'
 
@@ -37,14 +45,27 @@ const EXTENSION: Schema = {
 
 */
 
+function prettierFormat(code: string): Promise<string> {
+  return format(code, { parser: 'typescript', ...PRETTIER_OPTIONS })
+}
+
 // convenient for development in watch mode
 // works almost as if JavaScript supported comptime codegen
-test('codegen snapshot', async () => {
+test('codegen snapshots', async () => {
   expect(SCHEMA).not.contain.keys(Object.keys(EXTENSION))
-  const code = generate({ ...SCHEMA, ...EXTENSION }, './generated-lib')
-  const formatted = await format(code, { parser: 'typescript', ...PRETTIER_OPTIONS })
-  expect(formatted).toMatchFileSnapshot('../src/items/generated.ts')
+
+  const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
+
+  expect(await prettierFormat(generateDataModel(resolver, './generated-lib'))).toMatchFileSnapshot(
+    '../src/items/generated.ts',
+  )
+
+  expect(await prettierFormat(generateClientFindAPI(resolver, '../find-api-internal'))).toMatchFileSnapshot(
+    '../../client/src/generated/find-api.ts',
+  )
 })
+
+// test("codegen")
 
 describe('enum shortcuts', () => {
   const SAMPLE = {
@@ -122,6 +143,33 @@ describe('enum shortcuts', () => {
                     },
                   ],
                 },
+              },
+            ],
+          },
+        },
+      ]
+    `)
+  })
+
+  test('build: takes aliases into consideration', () => {
+    const map: EmitsMap = new Map<string, EmitCode>([
+      ['Foo', { t: 'alias', to: { t: 'local', id: 'Bar' } }],
+      ['Bar', { t: 'enum', variants: [{ discriminant: 0, tag: 'Baz', type: { t: 'null' } }] }],
+    ])
+
+    const tree = enumShortcuts([{ discriminant: 0, tag: 'Bar', type: { t: 'local', id: 'Foo' } }], map)
+
+    expect(tree).toMatchInlineSnapshot(`
+      [
+        {
+          "name": "Bar",
+          "t": "enum",
+          "tree": {
+            "id": "Foo",
+            "variants": [
+              {
+                "name": "Baz",
+                "t": "unit",
               },
             ],
           },

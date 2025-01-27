@@ -118,7 +118,7 @@ function casesCompoundPredicates() {
     ...base,
     json: { Atom: { Id: { Account: { Domain: { Name: { Atom: { Equals: 'wonderland' } } } } } } },
     value: dm.CompoundPredicate.Atom<dm.AssetProjectionPredicate>(
-      dm.AssetProjectionPredicate.Id.Account.Domain.Name.Atom.Equals(dm.DomainId.parse('wonderland')),
+      dm.AssetProjectionPredicate.Id.Account.Domain.Name.Atom.Equals('wonderland'),
     ),
   } as const)
   return [
@@ -168,7 +168,7 @@ test.each([
     dm.AccountId.parse('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
     new dm.AccountId(
       dm.PublicKeyWrap.fromHex('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'),
-      dm.DomainId.parse('badland'),
+      dm.Name.parse('badland'),
     ),
   ),
   ...defMultipleValues(
@@ -251,7 +251,7 @@ test.each([
         ),
         creationTime: dm.Timestamp.fromDate(new Date(1723592746838)),
         instructions: dm.Executable.Instructions([
-          dm.InstructionBox.Register.Domain({ id: dm.DomainId.parse('roses'), metadata: new Map(), logo: null }),
+          dm.InstructionBox.Register.Domain({ id: dm.Name.parse('roses'), metadata: new Map(), logo: null }),
         ]),
         timeToLive: null,
         nonce: null,
@@ -263,8 +263,13 @@ test.each([
     }),
   }),
   // TODO: add SignedBlock
+  // TODO: add SortedMap!
 ])(`Check encoding against iroha_codec of type $type: $value`, async <T>(data: Case<T>) => {
   const referenceEncoded = await encodeWithCLI(data.type, data.json)
   const actualEncoded = dm.codecOf(data.codec).encode(data.value)
   expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
 })
+
+// describe('SortedMap', () => {
+//   test.todo('define a few cases')
+// })

@@ -1,4 +1,4 @@
-export type SendData = string | ArrayBuffer
+export type SendData = string | ArrayBufferLike
 export type IncomingData = ArrayBufferView
 
 export interface IsomorphicWebSocket {

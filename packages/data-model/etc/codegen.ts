@@ -1,35 +1,104 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable max-nested-callbacks */
-import type { Algorithm } from '@iroha2/crypto-core'
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model-schema'
 import { camelCase } from 'change-case'
 import { deepEqual } from 'fast-equals'
 import invariant from 'tiny-invariant'
-import { P, isMatching, match } from 'ts-pattern'
+import { P, match } from 'ts-pattern'
 
-export function generate(schema: Schema, libModule: string): string {
-  const resolver = new Resolver(schema)
-  const emits = Object.keys(schema)
-    .map<[string, TypeRefWithEmit]>((key) => [key, resolver.resolve(key)])
-    .reduce((map, [originId, resolved]) => {
-      if (resolved.t === 'local' && resolved.emit) {
-        const prevEmit = map.get(resolved.id)
-        const newEmit = resolved.emit()
-        if (prevEmit) {
-          invariant(
-            deepEqual(newEmit, prevEmit),
-            () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
-          )
-        } else {
-          map.set(resolved.id, newEmit)
-        }
-      }
-      return map
-    }, new Map<string, EmitCode>())
+// TODO: return HashOf<..>
+
+// export class CodeGen {
+//   public constructor(schema: Schema, opts: {
+//     dataModelLibModule: string
+//     client
+//   })
+// }
+
+export function generateDataModel(resolver: Resolver, libModule: string): string {
+  const { emits } = resolver
 
   const arranged = arrangeEmits(emits)
 
-  return [`import * as lib from '${libModule}'`, ...arranged.map((id) => renderEmit(id, emits))].join('\n\n')
+  return [
+    `import * as lib from '${libModule}'`,
+    ...arranged.map((id) => renderEmit(id, emits)),
+    ...generateQueryMaps(emits),
+  ].join('\n\n')
+}
+
+function unreachable(message: string): never {
+  throw new Error(`unreachable invariant: ${message}`)
+}
+
+export function generateClientFindAPI(resolver: Resolver, libClient: string): string {
+  const queryBox = resolver.emits.get('QueryBox')
+  invariant(queryBox && queryBox.t === 'enum')
+
+  const iterableQueryMethods = queryBox.variants.map((x) => {
+    const { payload, predicate, selector } = match(x.type)
+      .with(
+        {
+          t: 'local',
+          id: 'QueryWithFilter',
+          params: [
+            P.select('payload'),
+            { t: 'lib', id: 'CompoundPredicate', params: [{ t: 'local', id: P.select('predicate') }] },
+            { t: 'lib', id: 'Vec', params: [{ t: 'local', id: P.select('selector') }] },
+          ],
+        },
+        (bindings) => ({
+          ...bindings,
+          payload: match(bindings.payload)
+            .with({ t: 'null' }, () => null)
+            .with({ t: P.union('lib', 'local'), id: P.select() }, (id) => id)
+            .otherwise(() => unreachable('unexpected payload type')),
+        }),
+      )
+      .otherwise(() => unreachable('unexpected query box variant'))
+
+    invariant(x.tag.startsWith('Find'))
+    const methodName = camelCase(x.tag.slice('Find'.length))
+
+    const payloadArg = payload ? `payload: dm.${payload}, ` : ''
+    const payloadArgValue = payload ? `payload` : `null`
+
+    return (
+      `/**\n* Convenience method for \`${x.tag}\` query, a variant of {@link dm.QueryBox} enum.\n` +
+      `* - Predicate type: {@link dm.${predicate}}\n` +
+      `* - Selector type: {@link dm.${selector}}\n */\n` +
+      `  public ${methodName}<const P extends dm.BuildQueryParams<'${x.tag}'>>(${payloadArg}params?: P): ` +
+      `client.QueryHandle<dm.GetQueryOutput<'${x.tag}', P>> {` +
+      `return client.buildQueryHandle(this._executor, '${x.tag}', ${payloadArgValue}, params) }\n`
+    )
+  })
+
+  const singularQueryBox = resolver.emits.get('SingularQueryBox')
+  invariant(singularQueryBox && singularQueryBox.t === 'enum')
+
+  const singularQueryMethods = singularQueryBox.variants.map((x) => {
+    invariant(x.tag.startsWith('Find'))
+    const methodName = camelCase(x.tag.slice('Find'.length))
+
+    // const predicateType =
+
+    return (
+      `\n/** Convenience method for \`${x.tag}\` query, a variant of {@link dm.SingularQueryBox} enum. */` +
+      `  public ${methodName}(): Promise<dm.GetSingularQueryOutput<'${x.tag}'>> {` +
+      `return client.executeSingularQuery(this._executor, '${x.tag}') }`
+    )
+  })
+
+  return [
+    `import * as client from '${libClient}'`,
+    `import * as dm from '@iroha2/data-model'`,
+    `export class FindApi {`,
+    `  private _executor: client.QueryExecutor`,
+    `  public constructor(executor: client.QueryExecutor) { this._executor = executor; }`,
+    ...iterableQueryMethods,
+    ...singularQueryMethods,
+    `}`,
+  ].join('\n')
 }
 
 export type Ident = string
@@ -103,9 +172,32 @@ export type LibType =
 export class Resolver {
   #schema: Schema
   #cache: Map<string, TypeRefWithEmit> = new Map()
+  #emits: EmitsMap
 
   constructor(schema: Schema) {
     this.#schema = schema
+
+    this.#emits = Object.keys(schema)
+      .map<[string, TypeRefWithEmit]>((key) => [key, this.resolve(key)])
+      .reduce((map, [originId, resolved]) => {
+        if (resolved.t === 'local' && resolved.emit) {
+          const prevEmit = map.get(resolved.id)
+          const newEmit = resolved.emit()
+          if (prevEmit) {
+            invariant(
+              deepEqual(newEmit, prevEmit),
+              () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
+            )
+          } else {
+            map.set(resolved.id, newEmit)
+          }
+        }
+        return map
+      }, new Map<string, EmitCode>())
+  }
+
+  public get emits() {
+    return this.#emits
   }
 
   resolve(refOrStr: string | SchemaId): TypeRefWithEmit {
@@ -428,6 +520,17 @@ export class Resolver {
             }),
           }
         })
+        .with(
+          {
+            refStr: P.select('id', 'QueryOutputBatchBoxTuple'),
+            schema: { Struct: [{ name: 'tuple', type: P.select('alias') }] },
+          },
+          ({ id, alias }) => ({
+            t: 'local',
+            id,
+            emit: (): EmitCode => ({ t: 'alias', to: this.resolve(alias) }),
+          }),
+        )
 
         .with(
           { ref: { id: P.select('id'), items: [] }, schema: { Bitmap: { repr: 'u32', masks: P.select('masks') } } },
@@ -671,17 +774,24 @@ export type EnumShortcutTreeVariant = { name: string } & (
   | { t: 'enum'; tree: EnumShortcutsTree }
 )
 
+function findEnum(map: EmitsMap, id: string): null | (EmitCode & { t: 'enum' }) {
+  const type = map.get(id)
+  invariant(type, 'must be in schema')
+  if (type.t === 'enum') return type
+  if (type.t === 'alias' && type.to.t === 'local') return findEnum(map, type.to.id)
+  return null
+}
+
 export function enumShortcuts(variants: EmitEnumVariant[], types: EmitsMap): EnumShortcutTreeVariant[] {
   return variants.map((variant): EnumShortcutTreeVariant & { name: string } => {
     if (variant.type.t === 'null') return { name: variant.tag, t: 'unit' }
     if (variant.type.t === 'local') {
-      const type = types.get(variant.type.id)
-      invariant(type, 'must be in schema')
-      if (type.t === 'enum') {
+      const found = findEnum(types, variant.type.id)
+      if (found) {
         return {
           t: 'enum',
           name: variant.tag,
-          tree: { id: variant.type.id, variants: enumShortcuts(type.variants, types) },
+          tree: { id: variant.type.id, variants: enumShortcuts(found.variants, types) },
         }
       }
     }
@@ -907,7 +1017,9 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
               )
               .otherwise(
                 ({ head, chain }) =>
-                  `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}', value: ${genChain(chain)} })`,
+                  `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}', value: ${genChain(
+                    chain,
+                  )} })`,
               ),
           )
           .with({ t: 'value' }, (variant) =>
@@ -915,11 +1027,17 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
               .with(
                 { chain: [] },
                 ({ head }) =>
-                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(state, variant)} => ({ kind: '${head.var0}', value })`,
+                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(
+                    state,
+                    variant,
+                  )} => ({ kind: '${head.var0}', value })`,
               )
               .otherwise(
                 ({ head, chain }) =>
-                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(state, variant)} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
+                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(
+                    state,
+                    variant,
+                  )} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
               ),
           )
           .with({ t: 'enum' }, ({ tree }) => {
@@ -1025,4 +1143,111 @@ function renderEmit(id: string, map: EmitsMap): string {
 
 function upcase<S extends string>(s: S): Uppercase<S> {
   return s.toUpperCase() as Uppercase<S>
+}
+
+function takeSelectorTypeName(selector: string): string | null {
+  const SELECTOR_SUFFIX = 'ProjectionSelector'
+  if (!selector.endsWith(SELECTOR_SUFFIX)) return null
+  return selector.slice(0, -SELECTOR_SUFFIX.length)
+}
+
+// function getQuery
+
+function buildQuerySelectorMapEntries(emits: EmitsMap): { query: string; selector: string }[] {
+  const schema = emits.get('QueryBox')
+  invariant(schema && schema.t === 'enum')
+  return schema.variants.map((variant) => {
+    const selector = match(variant.type)
+      .with(
+        {
+          t: 'local',
+          id: 'QueryWithFilter',
+          params: [P._, P._, { t: 'lib', id: 'Vec', params: [{ t: 'local', id: P.select() }] }],
+        },
+        (x) => takeSelectorTypeName(x),
+      )
+      .otherwise(() => {
+        throw new Error('unexpected query box value')
+      })
+
+    invariant(selector)
+
+    return {
+      query: variant.tag,
+      selector,
+    }
+  })
+}
+
+function expectNestedSelector(type: TypeRef) {
+  invariant(type.t === 'local')
+  const selector = takeSelectorTypeName(type.id)
+  invariant(selector)
+  if (selector === 'MetadataKey') return 'Json'
+  return selector
+}
+
+/**
+ * _Most_ of the selectors match directly with the variant in `QueryOutputBatchBox`.
+ * For example, `AccountProjectionSelector` (selector = `Account`) matches directly with
+ * `QueryOutputBatchBox::Account` (variant = `Account`).
+ *
+ * However, there are some mismatches, e.g. `PeerId` selector will in fact return `Peer`.
+ *
+ * This function resolves these exceptions
+ */
+function resolveSelectorAtomOutputBoxTag(selector: string) {
+  return match(selector)
+    .returnType<string>()
+    .with('PeerId', () => 'Peer')
+    .with('SignedBlock', () => 'Block')
+    .with('TransactionError', () => 'TransactionRejectionReason')
+    .otherwise(() => selector)
+}
+
+function buildSelectorOutputMapEntries(
+  emits: EmitsMap,
+): { selector: string; entries: { name: string; value: string }[] }[] {
+  return [...emits].reduce(
+    (acc, [key, value]) => {
+      const selector = takeSelectorTypeName(key)
+      if (selector && selector !== 'MetadataKey') {
+        invariant(value.t === 'enum', () => `not an enum: ${selector} (selector)`)
+        acc.push({
+          selector,
+          entries: value.variants.map((variant) => ({
+            name: variant.tag,
+            value:
+              variant.tag === 'Atom' ? resolveSelectorAtomOutputBoxTag(selector) : expectNestedSelector(variant.type),
+          })),
+        })
+      }
+      return acc
+    },
+    [] as ReturnType<typeof buildSelectorOutputMapEntries>,
+  )
+}
+
+/**
+ * Properties of the output to test:
+ * - all values in query output map point to some key in the selector output map
+ * - all `Atom` variants for each selector in selector output map point to some variant of
+ *   query output batch box
+ */
+function generateQueryMaps(emits: EmitsMap): string[] {
+  const querySelectorMap = buildQuerySelectorMapEntries(emits)
+    .map((x) => `${x.query}: '${x.selector}'`)
+    .join('; ')
+
+  const selectorOutputMap = buildSelectorOutputMapEntries(emits)
+    .map((x) => {
+      const inner = x.entries.map((y) => `${y.name}: '${y.value}'`).join(';')
+      return `${x.selector}: {\n${inner} }`
+    })
+    .join('; ')
+
+  return [
+    `export type QuerySelectorMap = { ${querySelectorMap} }`,
+    `export type SelectorOutputMap = { ${selectorOutputMap} }`,
+  ]
 }

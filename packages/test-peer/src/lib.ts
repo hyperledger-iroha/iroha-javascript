@@ -24,8 +24,8 @@ const debug = Debug('@iroha2/test-peer')
 const GENESIS_CHECK_TIMEOUT = 1_500
 const GENESIS_CHECK_INTERVAL = 200
 
-async function waitForGenesis(toriiURL: string, abort: AbortSignal) {
-  const toriiHttp = { toriiURL, http: fetch } satisfies ToriiHttpParams
+async function waitForGenesis(toriiBaseURL: string, abort: AbortSignal) {
+  const toriiHttp = { toriiBaseURL, fetch } satisfies ToriiHttpParams
 
   let now = Date.now()
   const endAt = now + GENESIS_CHECK_TIMEOUT
@@ -86,17 +86,18 @@ export interface IrohaConfiguration {
  *
  * **Note:** Iroha binary must be pre-built.
  */
-export async function startPeer(params?: { port?: number }): Promise<StartPeerReturn> {
-  const PORT = params?.port ?? 8080
+export async function startPeer(params?: { ports?: { api?: number; p2p?: number } }): Promise<StartPeerReturn> {
+  const PORT = params?.ports?.api ?? 8080
+  const PORT_P2P = params?.ports?.p2p ?? 1337
   const API_ADDRESS = `127.0.0.1:${PORT}`
   const API_URL = `http://${API_ADDRESS}`
-  const P2P_ADDRESS = '127.0.0.1:1337'
+  const P2P_ADDRESS = `127.0.0.1:${PORT_P2P}`
   const TMP_DIR = temporaryDirectory()
   const irohad = await resolveBinary('irohad')
   const kagami = await resolveBinary('iroha_kagami')
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
-  const alice = `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN}`
+  const alice = `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.value}`
 
   const RAW_GENESIS = {
     chain: CHAIN,

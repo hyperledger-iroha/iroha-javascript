@@ -5,25 +5,66 @@ import type { z } from 'zod'
 import { hexDecode } from '../src/util'
 import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util'
 
-describe('JSON serialisation', () => {
+describe('JSON/string serialisation', () => {
   test('AccountId', () => {
     const SIGNATORY = `ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E`
     const DOMAIN = 'badland'
     const ID = `${SIGNATORY}@${DOMAIN}`
 
     expect(dm.AccountId.parse(ID).toJSON()).toEqual(ID)
-    expect(new dm.AccountId(dm.PublicKeyWrap.fromHex(SIGNATORY), dm.DomainId.parse(DOMAIN)).toJSON()).toEqual(ID)
+    expect(new dm.AccountId(dm.PublicKeyWrap.fromHex(SIGNATORY), dm.Name.parse(DOMAIN)).toJSON()).toEqual(ID)
   })
 
   test('AccountId (after being decoded)', () => {
     const pk = KeyPair.random().publicKey()
     const decoded = dm
       .codecOf(dm.AccountId)
-      .decode(
-        dm.codecOf(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyWrap.fromCrypto(pk), dm.DomainId.parse('test'))),
-      )
+      .decode(dm.codecOf(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyWrap.fromCrypto(pk), dm.Name.parse('test'))))
 
     expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)
+  })
+
+  test('AssetId - different domains', () => {
+    const id = dm.AssetId.parse(`test#wonderland#${SAMPLE_ACCOUNT_ID.toString()}`)
+
+    expect(id).toMatchInlineSnapshot(
+      `"test#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland"`,
+    )
+  })
+
+  test('AssetId - same domains', () => {
+    const id = dm.AssetId.parse(`test#badland#${SAMPLE_ACCOUNT_ID.toString()}`)
+
+    expect(id).toMatchInlineSnapshot(
+      `"test##ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland"`,
+    )
+  })
+
+
+  test('NonZero serializes as its value', () => {
+    expect({ nonZero: new dm.NonZero(51)}).toMatchInlineSnapshot(`
+      {
+        "nonZero": 51,
+      }
+    `)
+  })
+
+  test('Duration serializes as { ms: <value> }', () => {
+    expect({ duration: dm.Duration.fromMillis(51123)}).toMatchInlineSnapshot(`
+      {
+        "duration": {
+          "ms": 51123n,
+        },
+      }
+    `)
+  })
+
+  test('Timestamp serialises as ISO string', () => {
+    expect({ timestamp: dm.Timestamp.fromDate(new Date(1022, 10, 10))}).toMatchInlineSnapshot(`
+      {
+        "timestamp": "1022-11-09T14:41:01.000Z",
+      }
+    `)
   })
 })
 
@@ -42,13 +83,13 @@ test('Parse AssetId with different domains', () => {
     'rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
   )
 
-  expect(parsed.definition.name).toEqual('rose')
-  expect(parsed.definition.domain).toEqual('wonderland')
+  expect(parsed.definition.name.value).toEqual('rose')
+  expect(parsed.definition.domain.value).toEqual('wonderland')
   expect(parsed.account.signatory.algorithm.kind).toEqual('ed25519')
   expect(toHex(parsed.account.signatory.payload)).toEqual(
     'b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e',
   )
-  expect(parsed.account.domain).toEqual('badland')
+  expect(parsed.account.domain.value).toEqual('badland')
 })
 
 test('Fails to parse invalid account id with bad signatory', () => {
@@ -129,3 +170,8 @@ describe('construct pub key wrap', () => {
     assertMatches(key2)
   })
 })
+
+
+// describe('SortedMap', () => {
+//   // test.todo('')
+// })

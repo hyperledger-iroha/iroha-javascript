@@ -1,137 +1,128 @@
 import type { PrivateKey } from '@iroha2/crypto-core'
-import { datamodel, extractQueryOutput, extractSingularQueryOutput, signQuery } from '@iroha2/data-model'
+import * as dm from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
-import type { SetOptional } from 'type-fest'
-import type { z } from 'zod'
 import { ENDPOINT_QUERY } from './const'
 
-export type QueryPayload<Q> = Q extends keyof datamodel.QueryOutputMap
-  ? SetOptional<(z.input<typeof datamodel.QueryBox$schema> & { t: Q })['value'], 'predicate'> &
-      z.input<typeof datamodel.QueryParams$schema>
-  : Q extends keyof datamodel.SingularQueryOutputMap
-    ? ValueToMaybeQuery<Q, z.input<typeof datamodel.SingularQueryBox$schema>>
-    : never
-
-type ValueToMaybeQuery<Q, T> = NeverToObject<T extends { value: any; t: Q } ? { query: T['value'] } : never>
-
-type NeverToObject<T> = T extends never ? {} : T
-
-export type QueryOutput<Q> = Q extends keyof datamodel.QueryOutputMap
-  ? AsyncGenerator<datamodel.QueryOutputMap[Q]>
-  : Q extends keyof datamodel.SingularQueryOutputMap
-    ? Promise<datamodel.SingularQueryOutputMap[Q]>
-    : never
-
-export interface RequestBaseParams {
-  authority: datamodel.AccountId
+export interface BaseParams {
+  fetch: typeof fetch
+  toriiBaseURL: string
+  authority: dm.AccountId
   authorityPrivateKey: () => PrivateKey
-  toriiURL: string
 }
 
-// TODO: split to `doSingularRequest`
-export function doRequest<
-  Q extends keyof datamodel.QueryOutputMap | keyof datamodel.SingularQueryOutputMap,
-  P extends QueryPayload<Q>,
->(query: Q, params: P & RequestBaseParams): QueryOutput<Q> {
-  const { authority, authorityPrivateKey, toriiURL, ...rest } = params
-  const baseParams = { authority, authorityPrivateKey, toriiURL }
-
-  if (query in datamodel.QueryOutputKindMap) {
-    type AnyWithFilter = z.ZodLazy<ReturnType<typeof datamodel.QueryWithFilter$schema<any, any>>>
-    type Option = z.ZodObject<
-      {
-        t: z.ZodLiteral<string>
-        value: AnyWithFilter
-      },
-      'strip',
-      z.ZodTypeAny,
-      { t: string; value: z.input<AnyWithFilter> }
-    >
-    type BoxSchema = z.ZodDiscriminatedUnion<'t', Option[]>
-
-    const option: Option = (datamodel.QueryBox$schema as unknown as BoxSchema).optionsMap.get(query) /* FIXME */ as any
-    const payloadSchema = datamodel.QueryParams$schema.removeDefault().extend({
-      query: option.shape.value.schema.shape.query,
-      predicate: option.shape.value.schema.shape.predicate.default(() => ({ t: 'And' as const, value: [] })),
-    })
-
-    const { pagination, sorting, fetchSize, predicate, query: payload } = payloadSchema.parse(rest)
-
-    return queryIterStream(
-      {
-        query: datamodel.QueryBox({ t: query /* FIXME */ as any, value: { predicate, query: payload } }),
-        params: { pagination, sorting, fetchSize },
-      },
-      baseParams,
-    ) as QueryOutput<Q>
-  } else if (query in datamodel.SingularQueryOutputKindMap) {
-    return querySingular(
-      datamodel.SingularQueryBox({ t: query, value: rest.query } /* FIXME */ as any),
-      baseParams,
-    ) as QueryOutput<Q>
-  } else {
-    throw new TypeError(`Unknown query: "${query}"`)
-  }
+function signQueryRequest(request: dm.QueryRequest, params: BaseParams) {
+  return dm.signQuery({ authority: params.authority, request }, params.authorityPrivateKey())
 }
 
-// export function doSingularRequest<Q extends keyof datamodel.SingularQueryOutputMap, P extends {}>(query: Q, params: P): Promise<datamodel.SingularQueryOutputMap[Q]> {
-//
-// }
-
-function signQueryRequest(request: datamodel.QueryRequest, params: RequestBaseParams) {
-  return signQuery({ authority: params.authority, request }, params.authorityPrivateKey())
-}
-
-async function* queryIterStream(
-  request: datamodel.QueryWithParams,
-  params: RequestBaseParams,
-): AsyncGenerator<datamodel.QueryOutputBatchBox['value']> {
-  let continueCursor: datamodel.ForwardCursor | null = null
+export async function* queryBatchStream(params: BaseParams, query: dm.QueryWithParams): AsyncGenerator<dm.QueryOutput> {
+  let continueCursor: dm.ForwardCursor | null = null
   do {
-    const response: datamodel.QueryResponse = await fetch(params.toriiURL + ENDPOINT_QUERY, {
-      method: 'POST',
-      body: datamodel.SignedQuery$codec.encode(
-        signQueryRequest(
-          continueCursor
-            ? datamodel.QueryRequest({ t: 'Continue', value: continueCursor })
-            : datamodel.QueryRequest({ t: 'Start', value: request }),
-          params,
-        ),
-      ),
-    }).then(handleQueryResponse)
+    const response: dm.QueryResponse = await params
+      .fetch(params.toriiBaseURL + ENDPOINT_QUERY, {
+        method: 'POST',
+        body: dm
+          .codecOf(dm.SignedQuery)
+          .encode(
+            signQueryRequest(
+              continueCursor ? dm.QueryRequest.Continue(continueCursor) : dm.QueryRequest.Start(query),
+              params,
+            ),
+          ),
+      })
+      .then(handleQueryResponse)
 
-    invariant(response.t === 'Iterable')
-    yield extractQueryOutput(request.query.t, response)
+    invariant(response.kind === 'Iterable')
+    yield response.value
 
-    continueCursor = response.value.continueCursor?.Some ?? null
+    continueCursor = response.value.continueCursor
   } while (continueCursor)
 }
 
-async function querySingular(
-  query: datamodel.SingularQueryBox,
-  params: RequestBaseParams,
-): Promise<datamodel.SingularQueryOutputBox['value']> {
-  const response = await fetch(params.toriiURL + ENDPOINT_QUERY, {
-    method: 'POST',
-    body: datamodel.SignedQuery$codec.encode(
-      signQueryRequest(datamodel.QueryRequest({ t: 'Singular', value: query }), params),
-    ),
-  }).then(handleQueryResponse)
+export async function querySingular(
+  params: BaseParams,
+  query: dm.SingularQueryBox,
+): Promise<dm.SingularQueryOutputBox> {
+  const response = await params
+    .fetch(params.toriiBaseURL + ENDPOINT_QUERY, {
+      method: 'POST',
+      body: dm.codecOf(dm.SignedQuery).encode(signQueryRequest({ kind: 'Singular', value: query }, params)),
+    })
+    .then(handleQueryResponse)
 
-  invariant(response.t === 'Singular')
-  return extractSingularQueryOutput(query.t, response)
+  invariant(response.kind === 'Singular')
+  return response.value
 }
 
-async function handleQueryResponse(resp: Response): Promise<datamodel.QueryResponse> {
+async function handleQueryResponse(resp: Response): Promise<dm.QueryResponse> {
   if (resp.status === 200) {
     const bytes = await resp.arrayBuffer()
-    return datamodel.QueryResponse$codec.decode(new Uint8Array(bytes))
+    return dm.codecOf(dm.QueryResponse).decode(new Uint8Array(bytes))
   } else if (resp.status >= 400 && resp.status < 500) {
     const bytes = await resp.arrayBuffer()
-    const error = datamodel.ValidationFail$codec.decode(new Uint8Array(bytes))
-    // TODO
+    const error = dm.codecOf(dm.ValidationFail).decode(new Uint8Array(bytes))
+    // TODO handle error properly
     console.error(error)
     throw new Error(`Query execution fail`)
   }
   throw new Error(`unexpected response from Iroha: ${resp.status} ${resp.statusText}`)
+}
+
+export class QueryHandle<Output> {
+  private readonly _query: dm.BuildQueryResult<Output>
+  private readonly _executor: QueryExecutor
+
+  public constructor(query: dm.BuildQueryResult<Output>, executor: QueryExecutor) {
+    this._query = query
+    this._executor = executor
+  }
+
+  public async executeAll(): Promise<Output[]> {
+    const items: Output[] = []
+    for await (const batch of this.batches()) {
+      items.push(...batch)
+    }
+    return items
+  }
+
+  public async executeSingle(): Promise<Output> {
+    const items = await this.executeAll()
+    if (items.length === 1) return items[0]
+    throw new TypeError(`Expected query to return exactly one element, got ${items.length}`)
+  }
+
+  public async executeSingleOpt(): Promise<null | Output> {
+    const items = await this.executeAll()
+    if (items.length <= 1) return items.at(0) ?? null
+    throw new TypeError(`Expected query to return one or non elements, got ${items.length}`)
+  }
+
+  public async *batches(): AsyncGenerator<Output[]> {
+    for await (const { batch } of this._executor.execute(this._query.query)) {
+      const items = [...this._query.parseResponse(batch)]
+      yield items
+    }
+  }
+}
+
+export interface QueryExecutor {
+  execute: (query: dm.QueryWithParams) => AsyncGenerator<dm.QueryOutput>
+  executeSingular: (query: dm.SingularQueryBox) => Promise<dm.SingularQueryOutputBox>
+}
+
+export function buildQueryHandle<K extends dm.QueryKind, O>(
+  executor: QueryExecutor,
+  kind: K,
+  payload: dm.GetQueryPayload<K>,
+  params?: dm.BuildQueryParams<K>,
+): QueryHandle<O> {
+  const query = dm.buildQuery(kind, payload, params)
+  return new QueryHandle<any>(query, executor)
+}
+
+export async function executeSingularQuery<K extends dm.SingularQueryKind>(
+  executor: QueryExecutor,
+  kind: K,
+): Promise<dm.GetSingularQueryOutput<K>> {
+  const result = await executor.executeSingular({ kind })
+  return result.value as dm.GetSingularQueryOutput<K>
 }

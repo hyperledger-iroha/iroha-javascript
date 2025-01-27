@@ -79,6 +79,14 @@ export class NonZero<T extends number | bigint | ZeroCheckable> {
   public get value(): T {
     return this._value
   }
+
+  public map<U extends number | bigint | ZeroCheckable>(fun: (value: T) => U): NonZero<U> {
+    return new NonZero(fun(this.value))
+  }
+
+  public toJSON(): T {
+    return this.value
+  }
 }
 
 export type Option<T> = null | T
@@ -176,6 +184,10 @@ export class Timestamp {
     return new Timestamp(BigInt(value))
   }
 
+  public static now(): Timestamp {
+    return new Timestamp(BigInt(Date.now()))
+  }
+
   private _ms: U64
 
   public constructor(milliseconds: U64) {
@@ -189,6 +201,10 @@ export class Timestamp {
 
   public asMillis(): U64 {
     return this._ms
+  }
+
+  public toJSON() {
+    return this.asDate().toISOString()
   }
 }
 
@@ -204,7 +220,7 @@ export class Duration implements ZeroCheckable {
     return new Duration(BigInt(ms))
   }
 
-  _ms: bigint
+  private readonly _ms: bigint
 
   protected constructor(ms: bigint) {
     if (ms < 0n) throw new TypeError(`Duration could not be negative, got: ${ms}`)
@@ -218,12 +234,121 @@ export class Duration implements ZeroCheckable {
   public isZero() {
     return this._ms === 0n
   }
+
+  public toJSON() {
+    return { ms: this._ms }
+  }
 }
 
 export type CompoundPredicate<Atom> =
   | Variant<'Atom', Atom>
   | Variant<'Not', CompoundPredicate<Atom>>
   | Variant<'And' | 'Or', CompoundPredicate<Atom>[]>
+
+//   & {
+//   and: (other: CompoundPredicate<Atom>) => CompoundPredicate<Atom>
+//   or: (other: CompoundPredicate<Atom>) => CompoundPredicate<Atom>
+//   not: () => CompoundPredicate<Atom>
+// }
+
+// class EnumClass<const E extends VariantUnit<any> | Variant<any, any>> {
+//   public readonly variant: E
+//
+//   public constructor(variant: E) {
+//     this.variant = variant
+//   }
+//
+//   public get kind(): E extends { kind: infer K } ? K : never {
+//     return this.variant.kind
+//   }
+//
+//   public get value(): E extends { value: infer V } ? V : never {
+//     if ('value' in this.variant) return this.variant.value
+//     throw new TypeError(`Tried to get a value from the empty Enum Variant: ${this.variant.kind}`)
+//   }
+//
+//   public as<K extends E['kind']>(kind: K): E extends { kind: K; value: infer V } ? V : never {
+//     // TODO
+//     throw new Error('unimpl')
+//   }
+//
+//   public is<K extends E['kind']>(kind: K): this is EnumClass<E & { kind: K }> {
+//     // TODO
+//     throw new Error('unimpl')
+//   }
+// }
+//
+// const test = new EnumClass<VariantUnit<'any'> | Variant<'not-any', 'foo bar baz'>>({ kind: 'any'})
+// if (test.is('any')) {
+//   const a = test
+//   const b = a.as('not-any')
+// } else if (test.is('not-any')) {
+//   const a = test
+//   const b = test.is('any')
+//   const c = test.as('not-any')
+// }
+//
+// if (test.variant.kind === 'any') {
+//   const value = test.value
+// }
+//
+// export type CompoundPredicateEnum<Atom> =
+//   | Variant<'Atom', Atom>
+//   | Variant<'Not', CompoundPredicateClass<Atom>>
+//   | Variant<'And' | 'Or', CompoundPredicateClass<Atom>[]>
+//
+// class CompoundPredicateClass<Atom> extends EnumClass<CompoundPredicateEnum<Atom>> {
+//   public static readonly PASS = new CompoundPredicateClass(Object.freeze({ kind: 'And', value: [] }))
+//
+//   public static readonly FAIL = new CompoundPredicateClass(Object.freeze({ kind: 'Or', value: [] }))
+//
+//   public static Atom<T>(value: T): CompoundPredicateClass<T> {
+//     return new CompoundPredicateClass<T>({ kind: 'Atom', value })
+//   }
+//
+//   public static Not<T>(predicate: CompoundPredicateClass<T>): CompoundPredicateClass<T> {
+//     return new CompoundPredicateClass<T>({ kind: 'Not', value: predicate })
+//   }
+//
+//   public static And<T>(...predicates: CompoundPredicateClass<T>[]): CompoundPredicateClass<T> {
+//     return new CompoundPredicateClass<T>({ kind: 'And', value: predicates })
+//   }
+//
+//   public static Or<T>(...predicates: CompoundPredicateClass<T>[]): CompoundPredicateClass<T> {
+//     return new CompoundPredicateClass<T>({ kind: 'Or', value: predicates })
+//   }
+//
+//   public static with<Atom>(atom: Codec<Atom>): CodecProvider<CompoundPredicateClass<Atom>> {
+//     const lazySelf = lazyCodec(() => codec)
+//
+//     const codec: Codec<CompoundPredicate<Atom>> = enumCodec<{
+//       Atom: [Atom]
+//       Not: [CompoundPredicate<Atom>]
+//       And: [CompoundPredicate<Atom>[]]
+//       Or: [CompoundPredicate<Atom>[]]
+//     }>([
+//       // magic discriminants from schema
+//       [0, 'Atom', atom],
+//       [1, 'Not', lazySelf],
+//       [2, 'And', codecOf(Vec.with(lazySelf))],
+//       [3, 'Or', codecOf(Vec.with(lazySelf))],
+//     ]).discriminated()
+//
+//     return { [CodecSymbol]: codec }
+//   }
+//
+//   public and(other: CompoundPredicateClass<Atom>): CompoundPredicateClass<Atom> {
+//     // return new CompoundPredicateClass({ kind: "And", value: []})
+//   }
+//
+//   public or(other: CompoundPredicateClass<Atom>): CompoundPredicateClass<Atom> {
+//     // return new CompoundPredicateClass({ kind: "And", value: []})
+//   }
+//
+//   public not(): CompoundPredicateClass<Atom> {
+//     // return new CompoundPredicateClass({ kind: "And", value: []})
+//   }
+// }
 
 export const CompoundPredicate = {
   // TODO: freeze `value: []` too?
@@ -236,7 +361,7 @@ export const CompoundPredicate = {
   /**
    * Predicate that always fails.
    *
-   * It is sipmly the `Or` variant with no predicates, which is always False (same logic as for {@link Array.prototype.some}).
+   * It is simply the `Or` variant with no predicates, which is always False (same logic as for {@link Array.prototype.some}).
    */
   FAIL: Object.freeze({ kind: 'Or', value: [] }),
 
@@ -373,14 +498,6 @@ export class PublicKeyWrap {
     this._crypto = crypto
   }
 
-  private getOrCreateObj(): PubKeyObj {
-    if (!this._obj) {
-      if (!this._crypto) this._crypto = crypto.PublicKey.fromMultihash(this._hex!)
-      this._obj = { algorithm: { kind: this._crypto.algorithm }, payload: this._crypto.payload() }
-    }
-    return this._obj
-  }
-
   public get algorithm(): Algorithm {
     return this.getOrCreateObj().algorithm
   }
@@ -409,6 +526,14 @@ export class PublicKeyWrap {
 
   public toJSON() {
     return this.asHex()
+  }
+
+  private getOrCreateObj(): PubKeyObj {
+    if (!this._obj) {
+      if (!this._crypto) this._crypto = crypto.PublicKey.fromMultihash(this._hex!)
+      this._obj = { algorithm: { kind: this._crypto.algorithm }, payload: this._crypto.payload() }
+    }
+    return this._obj
   }
 }
 
@@ -470,25 +595,59 @@ export class SignatureWrap {
   }
 }
 
-export type Name = string
+export class Name {
+  public static [CodecSymbol] = codecOf(String).wrap<Name>({ toBase: (x) => x.value, fromBase: (x) => new Name(x) })
 
-export const Name: CodecProvider<Name> & Parse<string, Name> = {
-  [CodecSymbol]: codecOf(String).wrap<Name>({ toBase: (x) => x, fromBase: (x) => x as Name }),
-  parse: (unchecked: string) => {
+  public static parse(unchecked: string): Name {
     if (!unchecked.length) throw new SyntaxError(`Name should not be empty`)
     if (/[\s#@]/.test(unchecked))
       throw new SyntaxError(
-        'Name should not contain whitespace characters, ' +
+        `Invalid name: "${unchecked}". Name should not contain whitespace characters, ` +
           `'@' (reserved for '⟨account⟩@⟨domain⟩' constructs, e.g. 'alice@wonderland'), ` +
-          `and '#' (reserved for '⟨asset⟩#⟨domain⟩' constructs, e.g. 'rose#wonderland')`,
+          `and '#' (reserved for '⟨asset⟩#⟨domain⟩' constructs, e.g. 'rose#wonderland') `,
       )
-    return unchecked as Name
-  },
+    return new Name(unchecked)
+  }
+
+  private _brand!: 'Name'
+  private _value: string
+
+  private constructor(checked: string) {
+    this._value = checked
+  }
+
+  public get value(): string {
+    return this._value
+  }
+
+  public toJSON() {
+    return this.value
+  }
 }
 
-export type DomainId = Name
+// export class DomainId {
+//   public static [CodecSymbol] = codecOf(Name).wrap<DomainId>({
+//     toBase: (x) => x.name,
+//     fromBase: (x) => new DomainId(x),
+//   })
 
-export const DomainId = Name as CodecProvider<DomainId> & Parse<string, DomainId>
+//   private _brand!: 'DomainId'
+//   public readonly name: Name
+
+//   public constructor(name: Name) {
+//     this.name = name
+//   }
+
+//   public toJSON() {
+//     return this.name.toJSON()
+//   }
+// }
+
+// const DomainId = createBrandedNameWrap<'DomainId'>()
+// type DomainId = InstanceType<typeof DomainId>
+
+export type DomainId = Name
+export const DomainId = Name
 
 export class AccountId {
   public static [CodecSymbol]: Codec<AccountId> = structCodec<{ signatory: PublicKeyWrap; domain: DomainId }>(
@@ -516,12 +675,12 @@ export class AccountId {
   }
 
   public toString(): string {
-    return `${this.signatory.asHex()}@${this.domain}`
+    return `${this.signatory.asHex() satisfies string}@${this.domain.value satisfies string}`
   }
 }
 
 function accountIdFromObj({ signatory, domain }: { signatory: string; domain: string }): AccountId {
-  return new AccountId(PublicKeyWrap.fromHex(signatory), DomainId.parse(domain))
+  return new AccountId(PublicKeyWrap.fromHex(signatory), Name.parse(domain))
 }
 
 function accountIdFromStr(str: string): AccountId {
@@ -558,7 +717,7 @@ export class AssetDefinitionId {
   }
 
   public toString(): string {
-    return `${this.name}#${this.domain}`
+    return `${this.name.value satisfies string}#${this.domain.value satisfies string}`
   }
 
   public toJSON(): string {
@@ -567,7 +726,7 @@ export class AssetDefinitionId {
 }
 
 function assetDefIdFromObj({ name, domain }: { name: string; domain: string }) {
-  return new AssetDefinitionId(Name.parse(name), DomainId.parse(domain))
+  return new AssetDefinitionId(Name.parse(name), Name.parse(domain))
 }
 
 function assetDefIdFromStr(input: string) {
@@ -609,9 +768,13 @@ export class AssetId {
    * Produce a stringified ID, see {@link parse}.
    */
   public toString(): string {
-    return this.account.domain === this.definition.domain
-      ? `${this.definition.name}##${this.account.toString()}`
+    return this.account.domain.value === this.definition.domain.value
+      ? `${this.definition.name.value satisfies string}##${this.account.toString()}`
       : `${this.definition.toString()}#${this.account.toString()}`
+  }
+
+  public toJSON() {
+    return this.toString()
   }
 }
 

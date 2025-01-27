@@ -2,9 +2,9 @@ import * as scale from '@scale-codec/core'
 import { hexDecode } from './util'
 import type { Variant, VariantUnit } from './util'
 
-export interface RawScaleCodec<T> {
-  encode: scale.Encode<T>
-  decode: scale.Decode<T>
+export interface RawScaleCodec<Output, Input = Output> {
+  encode: scale.Encode<Input>
+  decode: scale.Decode<Output>
 }
 
 /**
@@ -17,8 +17,8 @@ export const CodecSymbol = Symbol('codec')
  *
  * Use {@link codecOf} to get the codec from the provider.
  */
-export interface CodecProvider<T> {
-  [CodecSymbol]: Codec<T>
+export interface CodecProvider<O, I = O> {
+  [CodecSymbol]: Codec<O, I>
 }
 
 /**
@@ -33,13 +33,13 @@ export function codecOf<T>(provider: CodecProvider<T>): Codec<T> {
  *
  * Unlike {@link RawScaleCodec}, provides higher-level encode/decode functions, as well as some composition utilities.
  */
-export class Codec<T> {
+export class Codec<Output, Input = Output> {
   /**
    * Create a lazy codec, by only having a getter to the actual codec.
    *
    * The getter is called for each codec access and is not cached.
    */
-  public static lazy<T>(f: () => Codec<T>): Codec<T> {
+  public static lazy<T, U>(f: () => Codec<T, U>): Codec<T, U> {
     return new Codec({
       encode: scale.encodeFactory(
         (v, w) => f().raw.encode(v, w),
@@ -52,22 +52,28 @@ export class Codec<T> {
   /**
    * Access lower-level SCALE codec
    */
-  public readonly raw: RawScaleCodec<T>
+  public readonly raw: RawScaleCodec<Output, Input>
 
-  public constructor(raw: RawScaleCodec<T>) {
+  public constructor(raw: RawScaleCodec<Output, Input>) {
     this.raw = raw
   }
 
-  public encode(value: T): Uint8Array {
+  public encode(value: Input): Uint8Array {
     return scale.WalkerImpl.encode(value, this.raw.encode)
   }
 
-  public decode(data: string | ArrayBufferView): T {
+  public decode(data: string | ArrayBufferView): Output {
     const parsed = ArrayBuffer.isView(data) ? data : Uint8Array.from(hexDecode(data))
     return scale.WalkerImpl.decode(parsed, this.raw.decode)
   }
 
-  public wrap<U>({ toBase, fromBase }: { toBase: (value: U) => T; fromBase: (value: T) => U }): Codec<U> {
+  public wrap<Out2, In2 = Out2>({
+    toBase,
+    fromBase,
+  }: {
+    toBase: (value: In2) => Input
+    fromBase: (value: Output) => Out2
+  }): Codec<Out2, In2> {
     return new Codec({
       encode: scale.encodeFactory(
         (v, w) => this.raw.encode(toBase(v), w),

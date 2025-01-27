@@ -4288,7 +4288,16 @@ export const EventFilterBox = {
       value: DataEventFilter.Executor(value),
     }),
   },
-  Time: <const T extends TimeEventFilter>(value: T): lib.Variant<'Time', T> => ({ kind: 'Time', value }),
+  Time: {
+    PreCommit: Object.freeze<lib.Variant<'Time', lib.VariantUnit<'PreCommit'>>>({
+      kind: 'Time',
+      value: TimeEventFilter.PreCommit,
+    }),
+    Schedule: <const T extends Schedule>(value: T): lib.Variant<'Time', lib.Variant<'Schedule', T>> => ({
+      kind: 'Time',
+      value: TimeEventFilter.Schedule(value),
+    }),
+  },
   ExecuteTrigger: <const T extends ExecuteTriggerEventFilter>(value: T): lib.Variant<'ExecuteTrigger', T> => ({
     kind: 'ExecuteTrigger',
     value,
@@ -8347,10 +8356,82 @@ export const InstructionBox = {
     kind: 'ExecuteTrigger',
     value,
   }),
-  SetParameter: <const T extends SetParameter>(value: T): lib.Variant<'SetParameter', T> => ({
-    kind: 'SetParameter',
-    value,
-  }),
+  SetParameter: {
+    Sumeragi: {
+      BlockTime: <const T extends lib.Duration>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'BlockTime', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Sumeragi.BlockTime(value),
+      }),
+      CommitTime: <const T extends lib.Duration>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'CommitTime', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Sumeragi.CommitTime(value),
+      }),
+      MaxClockDrift: <const T extends lib.Duration>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Sumeragi', lib.Variant<'MaxClockDrift', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Sumeragi.MaxClockDrift(value),
+      }),
+    },
+    Block: {
+      MaxTransactions: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Block', lib.Variant<'MaxTransactions', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Block.MaxTransactions(value),
+      }),
+    },
+    Transaction: {
+      MaxInstructions: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Transaction', lib.Variant<'MaxInstructions', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Transaction.MaxInstructions(value),
+      }),
+      SmartContractSize: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Transaction', lib.Variant<'SmartContractSize', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Transaction.SmartContractSize(value),
+      }),
+    },
+    SmartContract: {
+      Fuel: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'SmartContract', lib.Variant<'Fuel', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.SmartContract.Fuel(value),
+      }),
+      Memory: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'SmartContract', lib.Variant<'Memory', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.SmartContract.Memory(value),
+      }),
+    },
+    Executor: {
+      Fuel: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Executor', lib.Variant<'Fuel', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Executor.Fuel(value),
+      }),
+      Memory: <const T extends lib.NonZero<lib.U64>>(
+        value: T,
+      ): lib.Variant<'SetParameter', lib.Variant<'Executor', lib.Variant<'Memory', T>>> => ({
+        kind: 'SetParameter',
+        value: SetParameter.Executor.Memory(value),
+      }),
+    },
+    Custom: <const T extends CustomParameter>(value: T): lib.Variant<'SetParameter', lib.Variant<'Custom', T>> => ({
+      kind: 'SetParameter',
+      value: SetParameter.Custom(value),
+    }),
+  },
   Upgrade: <const T extends Upgrade>(value: T): lib.Variant<'Upgrade', T> => ({ kind: 'Upgrade', value }),
   Log: <const T extends Log>(value: T): lib.Variant<'Log', T> => ({ kind: 'Log', value }),
   Custom: <const T extends CustomInstruction>(value: T): lib.Variant<'Custom', T> => ({ kind: 'Custom', value }),
@@ -9711,14 +9792,8 @@ export const QueryOutputBatchBox = {
     .discriminated(),
 }
 
-export interface QueryOutputBatchBoxTuple {
-  tuple: lib.Vec<QueryOutputBatchBox>
-}
-export const QueryOutputBatchBoxTuple: lib.CodecProvider<QueryOutputBatchBoxTuple> = {
-  [lib.CodecSymbol]: lib.structCodec<QueryOutputBatchBoxTuple>(['tuple'], {
-    tuple: lib.Vec.with(QueryOutputBatchBox[lib.CodecSymbol])[lib.CodecSymbol],
-  }),
-}
+export type QueryOutputBatchBoxTuple = lib.Vec<QueryOutputBatchBox>
+export const QueryOutputBatchBoxTuple = lib.Vec.with(QueryOutputBatchBox[lib.CodecSymbol])
 
 export interface QueryOutput {
   batch: QueryOutputBatchBoxTuple
@@ -9931,4 +10006,141 @@ export const Status: lib.CodecProvider<Status> = {
       queueSize: lib.Compact[lib.CodecSymbol],
     },
   ),
+}
+
+export type QuerySelectorMap = {
+  FindDomains: 'Domain'
+  FindAccounts: 'Account'
+  FindAssets: 'Asset'
+  FindAssetsDefinitions: 'AssetDefinition'
+  FindRoles: 'Role'
+  FindRoleIds: 'RoleId'
+  FindPermissionsByAccountId: 'Permission'
+  FindRolesByAccountId: 'RoleId'
+  FindAccountsWithAsset: 'Account'
+  FindPeers: 'PeerId'
+  FindActiveTriggerIds: 'TriggerId'
+  FindTriggers: 'Trigger'
+  FindTransactions: 'CommittedTransaction'
+  FindBlocks: 'SignedBlock'
+  FindBlockHeaders: 'BlockHeader'
+}
+
+export type SelectorOutputMap = {
+  AccountId: {
+    Atom: 'AccountId'
+    Domain: 'DomainId'
+    Signatory: 'PublicKey'
+  }
+  Account: {
+    Atom: 'Account'
+    Id: 'AccountId'
+    Metadata: 'Metadata'
+  }
+  Action: {
+    Atom: 'Action'
+    Metadata: 'Metadata'
+  }
+  AssetDefinitionId: {
+    Atom: 'AssetDefinitionId'
+    Domain: 'DomainId'
+    Name: 'Name'
+  }
+  AssetDefinition: {
+    Atom: 'AssetDefinition'
+    Id: 'AssetDefinitionId'
+    Metadata: 'Metadata'
+  }
+  AssetId: {
+    Atom: 'AssetId'
+    Account: 'AccountId'
+    Definition: 'AssetDefinitionId'
+  }
+  Asset: {
+    Atom: 'Asset'
+    Id: 'AssetId'
+    Value: 'AssetValue'
+  }
+  AssetValue: {
+    Atom: 'AssetValue'
+    Numeric: 'Numeric'
+    Store: 'Metadata'
+  }
+  BlockHeaderHash: {
+    Atom: 'BlockHeaderHash'
+  }
+  BlockHeader: {
+    Atom: 'BlockHeader'
+    Hash: 'BlockHeaderHash'
+  }
+  CommittedTransaction: {
+    Atom: 'CommittedTransaction'
+    BlockHash: 'BlockHeaderHash'
+    Value: 'SignedTransaction'
+    Error: 'TransactionError'
+  }
+  DomainId: {
+    Atom: 'DomainId'
+    Name: 'Name'
+  }
+  Domain: {
+    Atom: 'Domain'
+    Id: 'DomainId'
+    Metadata: 'Metadata'
+  }
+  Json: {
+    Atom: 'Json'
+  }
+  Metadata: {
+    Atom: 'Metadata'
+    Key: 'Json'
+  }
+  Name: {
+    Atom: 'Name'
+  }
+  Numeric: {
+    Atom: 'Numeric'
+  }
+  PeerId: {
+    Atom: 'Peer'
+    PublicKey: 'PublicKey'
+  }
+  Permission: {
+    Atom: 'Permission'
+  }
+  PublicKey: {
+    Atom: 'PublicKey'
+  }
+  RoleId: {
+    Atom: 'RoleId'
+    Name: 'Name'
+  }
+  Role: {
+    Atom: 'Role'
+    Id: 'RoleId'
+  }
+  SignedBlock: {
+    Atom: 'Block'
+    Header: 'BlockHeader'
+  }
+  SignedTransaction: {
+    Atom: 'SignedTransaction'
+    Hash: 'TransactionHash'
+    Authority: 'AccountId'
+  }
+  TransactionError: {
+    Atom: 'TransactionRejectionReason'
+  }
+  TransactionHash: {
+    Atom: 'TransactionHash'
+  }
+  TriggerId: {
+    Atom: 'TriggerId'
+    Name: 'Name'
+  }
+  Trigger: {
+    Atom: 'Trigger'
+    Id: 'TriggerId'
+    Action: 'Action'
+  }
 }

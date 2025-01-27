@@ -2,7 +2,7 @@
   "name": "@iroha2/monorepo",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.3.0",
+  "packageManager": "pnpm@9.15.1",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "format:fix": "prettier-eslint \"**/*.{ts,js,vue,json}\" --write",

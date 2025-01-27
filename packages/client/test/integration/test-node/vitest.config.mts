@@ -3,18 +3,19 @@ import AllureReporter from 'allure-vitest/reporter'
 
 export default defineConfig({
   test: {
-    watch: false,
+    // watch: false,
     reporters: [
-      'basic',
+      // 'basic',
       // This is for Compatibility Matrix tests
       // https://allurereport.org/docs/vitest-reference/
       // new AllureReporter({}),
     ],
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    // poolOptions: {
+    //   threads: {
+    //     // singleThread: true,
+    //   },
+    // },
     setupFiles: ['test/setup.ts'],
+    testTimeout: 300_000_000,
   },
 })

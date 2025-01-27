@@ -9,13 +9,12 @@
  * Events, Status & Health check.
  */
 
-import type { KeyPair } from '@iroha2/crypto-core'
-import { datamodel, signTransaction, transactionHash } from '@iroha2/data-model'
-import { type Schema as DataModelSchema } from '@iroha2/data-model-schema'
+import type { KeyPair, PrivateKey } from '@iroha2/crypto-core'
+import * as dm from '@iroha2/data-model'
+import type { Schema as DataModelSchema } from '@iroha2/data-model-schema'
 import defer from 'p-defer'
-import type { z } from 'zod'
 
-import type { Except, RequiredKeysOf } from 'type-fest'
+import type { Except } from 'type-fest'
 import type { SetupBlocksStreamParams } from './blocks-stream'
 import { setupBlocksStream } from './blocks-stream'
 import {
@@ -29,23 +28,25 @@ import {
 } from './const'
 import type { SetupEventsParams } from './events'
 import { setupEvents } from './events'
+import { queryBatchStream } from './query'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types'
-import { type QueryOutput, type QueryPayload, doRequest } from './query'
+import * as query from './query'
+import { FindApi } from './generated/find-api'
 
 type Fetch = typeof fetch
 
 export interface SetPeerConfigParams {
   logger: {
-    level: datamodel.LogLevel
+    level: dm.Level['kind']
   }
 }
 
 export interface CreateClientParams {
-  http: Fetch
+  fetch?: Fetch
   ws: IsomorphicWebSocketAdapter
-  toriiURL: string
-  chain: z.input<typeof datamodel.ChainId$schema>
-  accountDomain: z.input<typeof datamodel.DomainId$schema>
+  toriiBaseURL: string
+  chain: string
+  accountDomain: dm.DomainId
   accountKeyPair: KeyPair
 }
 
@@ -56,7 +57,14 @@ export interface SubmitParams {
    */
   verify?: boolean
   verifyAbort?: AbortSignal
-  payload?: Except<z.input<typeof datamodel.TransactionPayload$schema>, 'chain' | 'authority' | 'instructions'>
+}
+
+export interface TransactionPayloadParams {
+  payload?: Except<dm.TransactionPayload, 'chain' | 'authority' | 'instructions'>
+  creationTime?: dm.Timestamp
+  timeToLive?: dm.NonZero<dm.Duration>
+  nonce?: never
+  metadata?: dm.Metadata
 }
 
 export class ResponseError extends Error {
@@ -76,9 +84,9 @@ export class ResponseError extends Error {
 }
 
 export class TransactionRejectedError extends Error {
-  public reason: datamodel.TransactionRejectionReason
+  public reason: dm.TransactionRejectionReason
 
-  public constructor(reason: datamodel.TransactionRejectionReason) {
+  public constructor(reason: dm.TransactionRejectionReason) {
     // TODO: parse reason into a specific message
     super('Transaction rejected')
     this.reason = reason
@@ -92,55 +100,52 @@ export class TransactionExpiredError extends Error {
 }
 
 export class QueryValidationError extends Error {
-  public reason: datamodel.ValidationFail
+  public reason: dm.ValidationFail
 
-  public constructor(reason: datamodel.ValidationFail) {
+  public constructor(reason: dm.ValidationFail) {
     super('Query validation failed')
     this.reason = reason
   }
 }
 
-export class Client {
-  public params: CreateClientParams
-  // public readonly signer: Signer
+export class HttpTransport {
+  public readonly toriiBaseURL: string
+  public readonly fetch: Fetch
 
-  public constructor(params: CreateClientParams) {
-    this.params = params
+  public constructor(toriiBaseURL: string, fetch?: Fetch) {
+    this.toriiBaseURL = toriiBaseURL
+    this.fetch = fetch ?? globalThis.fetch
+  }
+}
+
+export class TransactionHandle {
+  private readonly client: Client
+  private readonly tx: dm.SignedTransaction
+  private readonly txHash: dm.HashWrap
+
+  public constructor(tx: dm.SignedTransaction, client: Client) {
+    this.client = client
+    this.tx = tx
+    this.txHash = dm.HashWrap.fromCrypto(dm.transactionHash(tx))
   }
 
-  public accountId(): datamodel.AccountId {
-    return datamodel.AccountId.parse({
-      domain: this.params.accountDomain,
-      signatory: this.params.accountKeyPair.publicKey(),
-    })
+  public get hash(): dm.HashWrap {
+    return this.txHash
   }
 
-  public async submit(instructions: z.input<typeof datamodel.Executable$schema>, params?: SubmitParams) {
-    const payload = datamodel.TransactionPayload({
-      chain: this.params.chain,
-      authority: this.accountId(),
-      instructions,
-      ...params?.payload,
-    })
-    const tx = signTransaction(payload, this.params.accountKeyPair.privateKey())
-
+  public async submit(params?: SubmitParams) {
     if (params?.verify) {
-      const hash = transactionHash(tx).payload()
-      const stream = await this.eventsStream({
+      // const hash = transactionHash(tx)
+      const stream = await this.client.eventsStream({
         filters: [
-          // TODO: include "status" when Iroha API is fixed about it
-          datamodel.EventFilterBox({
-            t: 'Pipeline',
-            value: {
-              t: 'Transaction',
-              value: {
-                // FIXME: fix data model, allow `null | Hash`
-                hash: { Some: hash },
-                // FIXME: Iroha design issue
-                //   If I want to filter by "rejected" status, I will also have to include a rejection reason into the
-                //   filter. I could imagine users wanting to just watch for rejections with all possible reasons.
-              },
-            },
+          dm.EventFilterBox.Pipeline.Transaction({
+            hash: this.txHash,
+            blockHeight: null,
+            // TODO: include "status" when Iroha API is fixed about it
+            // FIXME: Iroha design issue
+            //   If I want to filter by "rejected" status, I will also have to include a rejection reason into the
+            //   filter. I could imagine users wanting to just watch for rejections with all possible reasons.
+            status: null,
           }),
         ],
       })
@@ -148,11 +153,12 @@ export class Client {
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       const deferred = defer<void>()
       stream.ee.on('event', (event) => {
-        if (event.t === 'Pipeline' && event.value.t === 'Transaction') {
+        if (event.kind === 'Pipeline' && event.value.kind === 'Transaction') {
           const txEvent = event.value.value
-          if (txEvent.status.t === 'Approved') deferred.resolve()
-          else if (txEvent.status.t === 'Rejected') deferred.reject(new TransactionRejectedError(txEvent.status.value))
-          else if (txEvent.status.t === 'Expired') deferred.reject(new TransactionExpiredError())
+          if (txEvent.status.kind === 'Approved') deferred.resolve()
+          else if (txEvent.status.kind === 'Rejected')
+            deferred.reject(new TransactionRejectedError(txEvent.status.value))
+          else if (txEvent.status.kind === 'Expired') deferred.reject(new TransactionExpiredError())
         }
       })
       stream.ee.on('close', () => {
@@ -168,72 +174,93 @@ export class Client {
       })
 
       await Promise.all([
-        await submitTransaction(this.toriiRequestRequirements, tx),
+        await submitTransaction(this.client.httpTransport, this.tx),
         deferred.promise.finally(() => {
           stream.stop()
         }),
         abortPromise,
       ])
     } else {
-      await submitTransaction(this.toriiRequestRequirements, tx)
+      await submitTransaction(this.client.httpTransport, this.tx)
+    }
+  }
+}
+
+function* generateOutputTuples<Output>(response: dm.QueryOutputBatchBoxTuple): Generator<Output> {
+  // FIXME: this is redundant in runtime, just a safe guard
+  //   invariant(
+  //     response.length === tuple.length,
+  //     () => `Expected response to have exactly ${tuple.length} elements, got ${response.length}`,
+  //   )
+  //   for (let i = 0; i < tuple.length; i++) {
+  //     invariant(
+  //       response[i].kind === tuple[i],
+  //       () => `Expected response to have type ${tuple[i]} at element ${i}, got ${response[i].kind}`,
+  //     )
+  //   }
+  const len = response[0].value.length
+  const tupleLen = response.length
+  for (let i = 0; i < len; i++) {
+    if (tupleLen === 1) yield response[0].value[i] as Output
+    else yield Array.from({ length: tupleLen }, (_v, j) => response[j].value[i]) as Output
+  }
+}
+
+export class Client {
+  public params: CreateClientParams
+
+  public readonly find: FindApi = new FindApi({
+    execute: (x) => queryBatchStream(this.queryBaseParams(), x),
+    executeSingular: (x) => query.querySingular(this.queryBaseParams(), x),
+  })
+
+  public constructor(params: CreateClientParams) {
+    this.params = params
+  }
+
+  public authority(): dm.AccountId {
+    return new dm.AccountId(
+      dm.PublicKeyWrap.fromCrypto(this.params.accountKeyPair.publicKey()),
+      this.params.accountDomain,
+    )
+  }
+
+  public authorityPrivateKey(): PrivateKey {
+    return this.params.accountKeyPair.privateKey()
+  }
+
+  public transaction(executable: dm.Executable, params?: TransactionPayloadParams): TransactionHandle {
+    const payload: dm.TransactionPayload = {
+      chain: this.params.chain,
+      authority: this.authority(),
+      instructions: executable,
+      creationTime: params?.creationTime ?? dm.Timestamp.fromDate(new Date()),
+      timeToLive: params?.timeToLive ?? new dm.NonZero(dm.Duration.fromMillis(100_000)),
+      nonce: params?.nonce ?? null,
+      metadata: params?.metadata ?? new Map(),
+      ...params?.payload,
+    }
+    const tx = dm.signTransaction(payload, this.params.accountKeyPair.privateKey())
+
+    return new TransactionHandle(tx, this)
+  }
+
+  private queryBaseParams(): query.BaseParams {
+    return {
+      authority: this.authority(),
+      authorityPrivateKey: () => this.authorityPrivateKey(),
+      ...this.httpTransport,
     }
   }
 
-  // TODO: split to `query` and `querySingle`, make simpler types
-  /**
-   * Request data from Iroha using Query API.
-   *
-   * There are two kinds of queries Iroha supports:
-   *
-   * - **Iterable** queries: they allow iterating over some data (e.g. accounts or domains) with features like pagination,
-   *   filtering, and sorting. They also allow fetching batches of data lazily by specifying a certain `fetchSize`.
-   *   In JavaScript, iterable queries are wrapped into {@link AsyncGenerator}.
-   * - **Singular** queries: they are usually in the form of "find me this particular non-iterable item of data" and return a single
-   *   result.
-   *
-   * This function combines both and relies on conditional types. Depending on a specific query, it tells TypeScript
-   * what parameters are required/allowed, and what is the output of the query.
-   *
-   * Examples:
-   *
-   * ```ts
-   * declare const client: Client
-   *
-   * // async stream of batches of domains
-   * for await (const domains of client.request('FindDomains')) {
-   *   console.log('batch of domains:', domains)
-   * }
-   *
-   * // TODO: more examples
-   * ```
-   *
-   * To simplify work with async generators, consider using these utils:
-   * - {@link import('./query.ts').asyncIterAll}
-   * - {@link import('./query.ts').asyncIterOne}
-   * - {@link import('./query.ts').asyncIterOneOpt}
-   *
-   * This function is a shortcut to {@link doRequest} with an addition of data stored in the client, i.e. {@link import('./query.ts').RequestBaseParams}.
-   */
-  public request<
-    Q extends keyof datamodel.QueryOutputMap | keyof datamodel.SingularQueryOutputMap,
-    P extends QueryPayload<Q>,
-  >(...args: RequiredKeysOf<P> extends never ? [query: Q, params?: P] : [query: Q, params: P]): QueryOutput<Q> {
-    return doRequest(args[0], {
-      ...args[1],
-      authority: this.accountId(),
-      authorityPrivateKey: () => this.params.accountKeyPair.privateKey(),
-      toriiURL: this.params.toriiURL,
-    } /* FIXME */ as any)
-  }
-
-  public async getHealth(): Promise<HealthResult> {
-    return getHealth(this.toriiRequestRequirements)
+  public async health(): Promise<HealthResult> {
+    return getHealth(this.httpTransport)
   }
 
   public async eventsStream(params?: Except<SetupEventsParams, 'adapter' | 'toriiURL'>) {
     return setupEvents({
       filters: params?.filters,
-      toriiURL: this.params.toriiURL,
+      toriiURL: this.params.toriiBaseURL,
       adapter: this.params.ws,
     })
   }
@@ -241,77 +268,80 @@ export class Client {
   public async blocksStream(params?: Except<SetupBlocksStreamParams, 'adapter' | 'toriiURL'>) {
     return setupBlocksStream({
       fromBlockHeight: params?.fromBlockHeight,
-      toriiURL: this.params.toriiURL,
+      toriiURL: this.params.toriiBaseURL,
       adapter: this.params.ws,
     })
   }
 
-  public async getStatus(): Promise<datamodel.Status> {
-    return getStatus(this.toriiRequestRequirements)
+  public async status(): Promise<dm.Status> {
+    return getStatus(this.httpTransport)
   }
 
-  public async getMetrics() {
-    return getMetrics(this.toriiRequestRequirements)
+  public async metrics() {
+    return getMetrics(this.httpTransport)
   }
 
   /**
    * Only available if Iroha is compiled with certain feature flags (TODO document)
    */
-  public async getSchema(): Promise<DataModelSchema> {
-    // TODO: parse with zod?
-    return this.params.http(this.params.toriiURL + ENDPOINT_SCHEMA, { method: 'GET' }).then((x) => x.json())
+  public async schema(): Promise<DataModelSchema> {
+    const { fetch, toriiBaseURL } = this.httpTransport
+    return fetch(toriiBaseURL + ENDPOINT_SCHEMA, { method: 'GET' }).then((x) => x.json())
   }
 
   public async setPeerConfig(params: SetPeerConfigParams) {
-    return setPeerConfig(this.toriiRequestRequirements, params)
+    return setPeerConfig(this.httpTransport, params)
   }
 
-  private get toriiRequestRequirements() {
-    return { http: this.params.http, toriiURL: this.params.toriiURL }
+  /**
+   * @internal
+   */
+  public get httpTransport(): HttpTransport {
+    return new HttpTransport(this.params.toriiBaseURL, this.params.fetch)
   }
 }
 
 export interface ToriiHttpParams {
-  http: Fetch
-  toriiURL: string
+  fetch: Fetch
+  toriiBaseURL: string
 }
 
-export type HealthResult = { t: 'ok' } | { t: 'err'; err: unknown }
+export type HealthResult = dm.VariantUnit<'healthy'> | dm.Variant<'error', unknown>
 
-export async function getHealth({ http, toriiURL }: ToriiHttpParams): Promise<HealthResult> {
+export async function getHealth({ fetch, toriiBaseURL }: ToriiHttpParams): Promise<HealthResult> {
   let response: Response
   try {
-    response = await http(toriiURL + ENDPOINT_HEALTH)
+    response = await fetch(toriiBaseURL + ENDPOINT_HEALTH)
   } catch (err) {
-    return { t: 'err', err }
+    return { kind: 'error', value: err }
   }
 
   await ResponseError.assertStatus(response, 200)
 
   const text = await response.text()
   if (text !== HEALTHY_RESPONSE) {
-    return { t: 'err', err: new Error(`Expected '${HEALTHY_RESPONSE}' response; got: '${text}'`) }
+    return { kind: 'error', value: new Error(`Expected '${HEALTHY_RESPONSE}' response; got: '${text}'`) }
   }
 
-  return { t: 'ok' }
+  return { kind: 'healthy' }
 }
 
-export async function getStatus({ http, toriiURL }: ToriiHttpParams): Promise<datamodel.Status> {
-  const response = await http(toriiURL + ENDPOINT_STATUS, {
+export async function getStatus({ fetch, toriiBaseURL }: ToriiHttpParams): Promise<dm.Status> {
+  const response = await fetch(toriiBaseURL + ENDPOINT_STATUS, {
     headers: { accept: 'application/x-parity-scale' },
   })
   await ResponseError.assertStatus(response, 200)
-  return response.arrayBuffer().then((buffer) => datamodel.Status$codec.decode(new Uint8Array(buffer)))
+  return response.arrayBuffer().then((buffer) => dm.codecOf(dm.Status).decode(new Uint8Array(buffer)))
 }
 
-export async function getMetrics({ http, toriiURL }: ToriiHttpParams) {
-  const response = await http(toriiURL + ENDPOINT_METRICS)
+export async function getMetrics({ fetch, toriiBaseURL }: ToriiHttpParams) {
+  const response = await fetch(toriiBaseURL + ENDPOINT_METRICS)
   await ResponseError.assertStatus(response, 200)
   return response.text()
 }
 
-export async function setPeerConfig({ http, toriiURL }: ToriiHttpParams, params: SetPeerConfigParams) {
-  const response = await http(toriiURL + ENDPOINT_CONFIGURATION, {
+export async function setPeerConfig({ fetch, toriiBaseURL }: ToriiHttpParams, params: SetPeerConfigParams) {
+  const response = await fetch(toriiBaseURL + ENDPOINT_CONFIGURATION, {
     method: 'POST',
     body: JSON.stringify(params),
     headers: {
@@ -321,16 +351,15 @@ export async function setPeerConfig({ http, toriiURL }: ToriiHttpParams, params:
   await ResponseError.assertStatus(response, 202 /* ACCEPTED */)
 }
 
-export async function submitTransaction({ http, toriiURL }: ToriiHttpParams, tx: datamodel.SignedTransaction) {
-  const body = datamodel.SignedTransaction$codec.encode(tx)
-  const response = await http(toriiURL + ENDPOINT_TRANSACTION, { body, method: 'POST' })
+export async function submitTransaction(http: HttpTransport, tx: dm.SignedTransaction) {
+  const body = dm.codecOf(dm.SignedTransaction).encode(tx)
+  const response = await http.fetch(http.toriiBaseURL + ENDPOINT_TRANSACTION, { body, method: 'POST' })
   await ResponseError.assertStatus(response, 200)
 }
+
+// TODO: peers endpoint
 
 export * from './query'
 export * from './events'
 export * from './blocks-stream'
 export * from './web-socket/types'
-export { asyncIterOneOpt } from './util'
-export { asyncIterOne } from './util'
-export { asyncIterAll } from './util'
