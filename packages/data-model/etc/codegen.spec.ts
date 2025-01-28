@@ -10,8 +10,16 @@ import {
   renderShortcutsTree,
   Resolver,
 } from './codegen'
-import { format } from 'prettier'
-import PRETTIER_OPTIONS from '../../../.prettierrc.js'
+
+import * as dprint from 'dprint-node'
+
+async function formatTS(code: string): Promise<string> {
+    // return code
+  return dprint.format('whichever.ts', code, { semiColons: 'asi', quoteStyle: 'preferSingle'})
+}
+
+// import { format } from 'prettier'
+// import PRETTIER_OPTIONS from '../../../.prettierrc.js'
 
 /**
  * There are not included into the schema for some reason, but are useful to generate code for.
@@ -45,9 +53,9 @@ const EXTENSION: Schema = {
 
 */
 
-function prettierFormat(code: string): Promise<string> {
-  return format(code, { parser: 'typescript', ...PRETTIER_OPTIONS })
-}
+// function prettierFormat(code: string): Promise<string> {
+//   return format(code, { parser: 'typescript', ...PRETTIER_OPTIONS })
+// }
 
 // convenient for development in watch mode
 // works almost as if JavaScript supported comptime codegen
@@ -56,11 +64,11 @@ test('codegen snapshots', async () => {
 
   const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
 
-  expect(await prettierFormat(generateDataModel(resolver, './generated-lib'))).toMatchFileSnapshot(
+  await expect(await formatTS(generateDataModel(resolver, './generated-lib'))).toMatchFileSnapshot(
     '../src/items/generated.ts',
   )
 
-  expect(await prettierFormat(generateClientFindAPI(resolver, '../find-api-internal'))).toMatchFileSnapshot(
+  await expect(await formatTS(generateClientFindAPI(resolver, '../find-api-internal'))).toMatchFileSnapshot(
     '../../client/src/generated/find-api.ts',
   )
 })

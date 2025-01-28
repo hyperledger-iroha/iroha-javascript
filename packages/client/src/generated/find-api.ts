@@ -43,10 +43,17 @@ export class FindApi {
    * - Predicate type: {@link dm.AssetDefinitionProjectionPredicate}
    * - Selector type: {@link dm.AssetDefinitionProjectionSelector}
    */
-  public assetsDefinitions<const P extends dm.BuildQueryParams<'FindAssetsDefinitions'>>(
+  public assetsDefinitions<
+    const P extends dm.BuildQueryParams<'FindAssetsDefinitions'>,
+  >(
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindAssetsDefinitions', P>> {
-    return client.buildQueryHandle(this._executor, 'FindAssetsDefinitions', null, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindAssetsDefinitions',
+      null,
+      params,
+    )
   }
 
   /**
@@ -76,11 +83,18 @@ export class FindApi {
    * - Predicate type: {@link dm.PermissionProjectionPredicate}
    * - Selector type: {@link dm.PermissionProjectionSelector}
    */
-  public permissionsByAccountId<const P extends dm.BuildQueryParams<'FindPermissionsByAccountId'>>(
+  public permissionsByAccountId<
+    const P extends dm.BuildQueryParams<'FindPermissionsByAccountId'>,
+  >(
     payload: dm.FindPermissionsByAccountId,
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindPermissionsByAccountId', P>> {
-    return client.buildQueryHandle(this._executor, 'FindPermissionsByAccountId', payload, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindPermissionsByAccountId',
+      payload,
+      params,
+    )
   }
 
   /**
@@ -88,11 +102,18 @@ export class FindApi {
    * - Predicate type: {@link dm.RoleIdProjectionPredicate}
    * - Selector type: {@link dm.RoleIdProjectionSelector}
    */
-  public rolesByAccountId<const P extends dm.BuildQueryParams<'FindRolesByAccountId'>>(
+  public rolesByAccountId<
+    const P extends dm.BuildQueryParams<'FindRolesByAccountId'>,
+  >(
     payload: dm.FindRolesByAccountId,
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindRolesByAccountId', P>> {
-    return client.buildQueryHandle(this._executor, 'FindRolesByAccountId', payload, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindRolesByAccountId',
+      payload,
+      params,
+    )
   }
 
   /**
@@ -100,11 +121,18 @@ export class FindApi {
    * - Predicate type: {@link dm.AccountProjectionPredicate}
    * - Selector type: {@link dm.AccountProjectionSelector}
    */
-  public accountsWithAsset<const P extends dm.BuildQueryParams<'FindAccountsWithAsset'>>(
+  public accountsWithAsset<
+    const P extends dm.BuildQueryParams<'FindAccountsWithAsset'>,
+  >(
     payload: dm.FindAccountsWithAsset,
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindAccountsWithAsset', P>> {
-    return client.buildQueryHandle(this._executor, 'FindAccountsWithAsset', payload, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindAccountsWithAsset',
+      payload,
+      params,
+    )
   }
 
   /**
@@ -123,10 +151,17 @@ export class FindApi {
    * - Predicate type: {@link dm.TriggerIdProjectionPredicate}
    * - Selector type: {@link dm.TriggerIdProjectionSelector}
    */
-  public activeTriggerIds<const P extends dm.BuildQueryParams<'FindActiveTriggerIds'>>(
+  public activeTriggerIds<
+    const P extends dm.BuildQueryParams<'FindActiveTriggerIds'>,
+  >(
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindActiveTriggerIds', P>> {
-    return client.buildQueryHandle(this._executor, 'FindActiveTriggerIds', null, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindActiveTriggerIds',
+      null,
+      params,
+    )
   }
 
   /**
@@ -148,7 +183,12 @@ export class FindApi {
   public transactions<const P extends dm.BuildQueryParams<'FindTransactions'>>(
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindTransactions', P>> {
-    return client.buildQueryHandle(this._executor, 'FindTransactions', null, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindTransactions',
+      null,
+      params,
+    )
   }
 
   /**
@@ -170,7 +210,12 @@ export class FindApi {
   public blockHeaders<const P extends dm.BuildQueryParams<'FindBlockHeaders'>>(
     params?: P,
   ): client.QueryHandle<dm.GetQueryOutput<'FindBlockHeaders', P>> {
-    return client.buildQueryHandle(this._executor, 'FindBlockHeaders', null, params)
+    return client.buildQueryHandle(
+      this._executor,
+      'FindBlockHeaders',
+      null,
+      params,
+    )
   }
 
   /** Convenience method for `FindExecutorDataModel` query, a variant of {@link dm.SingularQueryBox} enum. */ public executorDataModel(): Promise<

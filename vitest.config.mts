@@ -16,7 +16,7 @@ export default defineConfig({
   },
   test: {
     include: ['**/*.spec.ts'],
-    exclude: ['**/test/integration', '**/node_modules', '**/dist', '**/dist-tsc'],
+    exclude: ['**/test/integration', '**/node_modules', '**/dist', '**/dist-tsc', "packages/iroha-source/.iroha/**"],
     includeSource: ['packages/i64-fixnum/src/**/*.ts', 'packages/client/src/**/*.ts'],
     setupFiles: [resolve('etc/vitest-setup-crypto-node.ts')],
   },
