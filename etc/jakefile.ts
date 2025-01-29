@@ -134,5 +134,5 @@ task('publish-all', ['run-all-checks', 'build:all'], async () => {
     .flatMap((x) => [`--filter`, x])
     .toArray()
 
-  await $`pnpm ${filters} publish`
+  await $`pnpm ${filters} publish --no-git-checks`
 })
