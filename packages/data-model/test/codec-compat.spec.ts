@@ -169,7 +169,7 @@ test.each([
     dm.AccountId.parse('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland'),
     new dm.AccountId(
       dm.PublicKeyWrap.fromHex('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'),
-      dm.Name.parse('badland'),
+      new dm.Name('badland'),
     ),
   ),
   ...defMultipleValues(
@@ -252,7 +252,7 @@ test.each([
         ),
         creationTime: dm.Timestamp.fromDate(new Date(1723592746838)),
         instructions: dm.Executable.Instructions([
-          dm.InstructionBox.Register.Domain({ id: dm.Name.parse('roses'), metadata: [], logo: null }),
+          dm.InstructionBox.Register.Domain({ id: new dm.Name('roses'), metadata: [], logo: null }),
         ]),
         timeToLive: null,
         nonce: null,

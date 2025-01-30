@@ -160,12 +160,8 @@ export const AccountPermissionChanged: lib.CodecContainer<
   }),
 )
 
-export interface RoleId {
-  name: lib.Name
-}
-export const RoleId: lib.CodecContainer<RoleId> = lib.defineCodec(
-  lib.structCodec<RoleId>(['name'], { name: lib.getCodec(lib.Name) }),
-)
+export type RoleId = lib.Name
+export const RoleId = lib.Name
 
 export interface AccountRoleChanged {
   account: lib.AccountId
@@ -1051,12 +1047,8 @@ export const PeerId: lib.CodecContainer<PeerId> = lib.defineCodec(
   }),
 )
 
-export interface TriggerId {
-  name: lib.Name
-}
-export const TriggerId: lib.CodecContainer<TriggerId> = lib.defineCodec(
-  lib.structCodec<TriggerId>(['name'], { name: lib.getCodec(lib.Name) }),
-)
+export type TriggerId = lib.Name
+export const TriggerId = lib.Name
 
 export type FindError =
   | lib.Variant<'Asset', lib.AssetId>

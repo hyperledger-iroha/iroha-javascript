@@ -527,6 +527,13 @@ export class Resolver {
             emit: (): EmitCode => ({ t: 'alias', to: this.resolve(alias) }),
           }),
         )
+        .with(
+          {
+            ref: { id: P.select('id'), items: [] },
+            schema: { Struct: [{ name: 'name', type: 'Name' }] },
+          },
+          ({ id }) => ({ t: 'local', id, emit: () => ({ t: 'alias', to: { t: 'lib', id: 'Name' } }) }),
+        )
 
         .with(
           { ref: { id: P.select('id'), items: [] }, schema: { Bitmap: { repr: 'u32', masks: P.select('masks') } } },

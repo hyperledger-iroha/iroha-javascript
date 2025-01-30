@@ -12,14 +12,14 @@ describe('JSON/string serialisation', () => {
     const ID = `${SIGNATORY}@${DOMAIN}`
 
     expect(dm.AccountId.parse(ID).toJSON()).toEqual(ID)
-    expect(new dm.AccountId(dm.PublicKeyWrap.fromHex(SIGNATORY), dm.Name.parse(DOMAIN)).toJSON()).toEqual(ID)
+    expect(new dm.AccountId(dm.PublicKeyWrap.fromHex(SIGNATORY), new dm.Name(DOMAIN)).toJSON()).toEqual(ID)
   })
 
   test('AccountId (after being decoded)', () => {
     const pk = KeyPair.random().publicKey()
     const decoded = dm
       .codecOf(dm.AccountId)
-      .decode(dm.codecOf(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyWrap.fromCrypto(pk), dm.Name.parse('test'))))
+      .decode(dm.codecOf(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyWrap.fromCrypto(pk), new dm.Name('test'))))
 
     expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)
   })
@@ -74,7 +74,7 @@ describe('Validation', () => {
   })
 
   test.each(['  alice  ', 'ali ce', 'ali@ce', '', 'ali#ce'])('Name validation fails for %o', (sample) => {
-    expect(() => dm.Name.parse(sample)).toThrowError()
+    expect(() => new dm.Name(sample)).toThrowError()
   })
 })
 

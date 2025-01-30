@@ -525,13 +525,6 @@ export class Name implements traits.Ord {
     .getCodec(String)
     .wrap<Name>({ toBase: (x) => x.value, fromBase: (x) => new Name(x) })
 
-  /**
-   * @deprecated
-   */
-  public static parse(unchecked: string): Name {
-    return new Name(unchecked)
-  }
-
   private _brand!: 'Name'
   private _value: string
 
@@ -600,7 +593,7 @@ export class AccountId implements traits.Ord {
 }
 
 function accountIdFromObj({ signatory, domain }: { signatory: string; domain: string }): AccountId {
-  return new AccountId(PublicKeyWrap.fromHex(signatory), Name.parse(domain))
+  return new AccountId(PublicKeyWrap.fromHex(signatory), new Name(domain))
 }
 
 function accountIdFromStr(str: string): AccountId {
@@ -646,7 +639,7 @@ export class AssetDefinitionId {
 }
 
 function assetDefIdFromObj({ name, domain }: { name: string; domain: string }) {
-  return new AssetDefinitionId(Name.parse(name), Name.parse(domain))
+  return new AssetDefinitionId(new Name(name), new Name(domain))
 }
 
 function assetDefIdFromStr(input: string) {

@@ -8,7 +8,7 @@ import { match, P } from 'ts-pattern'
 
 async function submitTestData(client: Client) {
   const bob = KeyPair.deriveFromSeed(Bytes.hex('bbbb'))
-  const bobAcc = new dm.AccountId(dm.PublicKeyWrap.fromCrypto(bob.publicKey()), dm.DomainId.parse('based'))
+  const bobAcc = new dm.AccountId(dm.PublicKeyWrap.fromCrypto(bob.publicKey()), new dm.DomainId('based'))
   const bobPub = bob.publicKey().toMultihash()
 
   const madHatter = KeyPair.deriveFromSeed(Bytes.hex('aaaa'))
@@ -17,23 +17,23 @@ async function submitTestData(client: Client) {
 
   const multitudeOfDomains = Array.from({ length: 25 }, (_v, i) =>
     dm.InstructionBox.Register.Domain({
-      id: dm.Name.parse(`domains-multitude-${i}`),
+      id: new dm.Name(`domains-multitude-${i}`),
       ...EMPTY_LOGO_META,
     }),
   )
 
   const ALL_ISI = [
-    dm.InstructionBox.Register.Domain({ id: dm.Name.parse('certainty'), ...EMPTY_LOGO_META }),
-    dm.InstructionBox.Register.Domain({ id: dm.Name.parse('based'), ...EMPTY_LOGO_META }),
-    dm.InstructionBox.Register.Domain({ id: dm.Name.parse('wherever'), ...EMPTY_LOGO_META }),
+    dm.InstructionBox.Register.Domain({ id: new dm.Name('certainty'), ...EMPTY_LOGO_META }),
+    dm.InstructionBox.Register.Domain({ id: new dm.Name('based'), ...EMPTY_LOGO_META }),
+    dm.InstructionBox.Register.Domain({ id: new dm.Name('wherever'), ...EMPTY_LOGO_META }),
     ...multitudeOfDomains,
     dm.InstructionBox.Register.Account({
       id: bobAcc,
-      metadata: [{ key: dm.Name.parse('alias'), value: dm.Json.fromValue('Bob') }],
+      metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Bob') }],
     }),
     dm.InstructionBox.Register.Account({
-      id: new dm.AccountId(dm.PublicKeyWrap.fromCrypto(madHatter.publicKey()), dm.Name.parse('certainty')),
-      metadata: [{ key: dm.Name.parse('alias'), value: dm.Json.fromValue('Mad Hatter') }],
+      id: new dm.AccountId(dm.PublicKeyWrap.fromCrypto(madHatter.publicKey()), new dm.Name('certainty')),
+      metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Mad Hatter') }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
       id: dm.AssetDefinitionId.parse('base_coin#based'),
@@ -46,7 +46,7 @@ async function submitTestData(client: Client) {
       type: dm.AssetType.Store,
       mintable: dm.Mintable.Not,
       logo: null,
-      metadata: [{ key: dm.Name.parse('foo'), value: dm.Json.fromValue(['bar', false]) }],
+      metadata: [{ key: new dm.Name('foo'), value: dm.Json.fromValue(['bar', false]) }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
       id: dm.AssetDefinitionId.parse('gator_coin#certainty'),
@@ -70,17 +70,17 @@ async function submitTestData(client: Client) {
 
     dm.InstructionBox.SetKeyValue.Asset({
       object: dm.AssetId.parse(`neko_coin#wherever#${bobAcc}`),
-      key: dm.Name.parse('mewo?'),
+      key: new dm.Name('mewo?'),
       value: dm.Json.fromValue({ me: 'wo' }),
     }),
     dm.InstructionBox.SetKeyValue.Asset({
       object: dm.AssetId.parse(`base_coin#based#${madHatter.publicKey().toMultihash()}@certainty`),
-      key: dm.Name.parse('hey'),
+      key: new dm.Name('hey'),
       value: dm.Json.fromValue([1, 2, 3]),
     }),
     dm.InstructionBox.Register.Trigger({
       // TODO: make just Name
-      id: { name: dm.Name.parse('mewo_maker') },
+      id: new dm.Name('mewo_maker'),
       action: {
         filter: dm.EventFilterBox.Data.Asset({
           idMatcher: null,
@@ -93,7 +93,7 @@ async function submitTestData(client: Client) {
       },
     }),
     dm.InstructionBox.Register.Trigger({
-      id: { name: dm.Name.parse('make_havoc_every_300_ms') },
+      id: new dm.Name('make_havoc_every_300_ms'),
       action: {
         filter: dm.EventFilterBox.Time.Schedule({
           start: dm.Timestamp.now(),
@@ -143,7 +143,7 @@ describe('queries', () => {
           ),
         ),
         selector: dm.AccountProjectionSelector.Metadata.Key({
-          key: dm.Name.parse('alias'),
+          key: new dm.Name('alias'),
           projection: { kind: 'Atom' },
         }),
       })
@@ -163,7 +163,7 @@ describe('queries', () => {
         },
         {
           selector: dm.AccountProjectionSelector.Metadata.Key({
-            key: dm.Name.parse('alias'),
+            key: new dm.Name('alias'),
             projection: { kind: 'Atom' },
           }),
         },
@@ -200,7 +200,7 @@ describe('queries', () => {
     const activeOnes = await client.find.activeTriggerIds().executeAll()
 
     expect(all).toEqual(activeOnes)
-    expect(activeOnes.map((x) => x.name)).toMatchInlineSnapshot(`
+    expect(activeOnes).toMatchInlineSnapshot(`
       [
         "make_havoc_every_300_ms",
         "mewo_maker",
@@ -299,7 +299,7 @@ describe('queries', () => {
     await submitTestData(client)
 
     const unsorted = await client.find.assets().executeAll()
-    const sorted = await client.find.assets({ sorting: { byMetadataKey: dm.Name.parse('mewo?') } }).executeAll()
+    const sorted = await client.find.assets({ sorting: { byMetadataKey: new dm.Name('mewo?') } }).executeAll()
 
     expect(new Set(sorted)).toEqual(new Set(unsorted))
     expect(sorted).not.toEqual(unsorted)
@@ -446,7 +446,7 @@ describe('Transactions', () => {
     const { client } = await usePeer()
 
     function randomAccountId() {
-      return new dm.AccountId(dm.PublicKeyWrap.fromCrypto(KeyPair.random().publicKey()), dm.Name.parse('wonderland'))
+      return new dm.AccountId(dm.PublicKeyWrap.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
     }
 
     // TODO: include detailed rejection reason into the error
@@ -455,7 +455,7 @@ describe('Transactions', () => {
         .transaction(
           dm.Executable.Instructions([
             dm.InstructionBox.Transfer.Domain({
-              object: dm.Name.parse('non-existing-domain'),
+              object: new dm.Name('non-existing-domain'),
               destination: randomAccountId(),
               source: randomAccountId(),
             }),
@@ -469,7 +469,7 @@ describe('Transactions', () => {
     const { client } = await usePeer()
 
     function randomAccountId() {
-      return new dm.AccountId(dm.PublicKeyWrap.fromCrypto(KeyPair.random().publicKey()), dm.Name.parse('wonderland'))
+      return new dm.AccountId(dm.PublicKeyWrap.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
     }
 
     // TODO: include detailed rejection reason into the error
@@ -477,7 +477,7 @@ describe('Transactions', () => {
       .transaction(
         dm.Executable.Instructions([
           dm.InstructionBox.Transfer.Domain({
-            object: dm.Name.parse('non-existing-domain'),
+            object: new dm.Name('non-existing-domain'),
             destination: randomAccountId(),
             source: randomAccountId(),
           }),
@@ -523,7 +523,7 @@ describe('Block Stream API', () => {
         .transaction(
           dm.Executable.Instructions([
             dm.InstructionBox.Register.Domain({
-              id: dm.Name.parse(domainName),
+              id: new dm.Name(domainName),
               logo: null,
               metadata: [],
             }),
@@ -554,7 +554,7 @@ describe('Custom parameters', () => {
       .transaction(
         dm.Executable.Instructions([
           dm.InstructionBox.SetParameter.Custom({
-            id: dm.Name.parse('dededede'),
+            id: new dm.Name('dededede'),
             payload: dm.Json.fromValue(['ha', { nya: 'nya' }, 'fu', 'wa']),
           }),
         ]),
