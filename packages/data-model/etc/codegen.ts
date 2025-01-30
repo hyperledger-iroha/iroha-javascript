@@ -6,14 +6,8 @@ import { deepEqual } from 'fast-equals'
 import invariant from 'tiny-invariant'
 import { P, match } from 'ts-pattern'
 
-// TODO: return HashOf<..>
-
-// export class CodeGen {
-//   public constructor(schema: Schema, opts: {
-//     dataModelLibModule: string
-//     client
-//   })
-// }
+// TODO: return HashOf<..> ?
+//       remove empty enum builders (for never variants)
 
 export function generateDataModel(resolver: Resolver, libModule: string): string {
   const { emits } = resolver
@@ -135,6 +129,7 @@ export type TypeRef =
   | { t: 'local'; id: Ident; params?: TypeRef[]; lazy?: boolean }
   | { t: 'lib'; id: LibType; params?: TypeRef[] }
   | { t: 'lib-array'; len: number; type: TypeRef }
+  | { t: 'lib-b-tree-set-with-cmp'; type: TypeRef; compareFn: string }
   | { t: 'param'; index: number }
   | { t: 'null' }
 
@@ -153,7 +148,8 @@ export type LibType =
   | 'Option'
   | 'Compact'
   | 'Vec'
-  | 'Map'
+  | 'BTreeSet'
+  | 'BTreeMap'
   | 'Json'
   | 'Bool'
   | 'Timestamp'
@@ -171,51 +167,52 @@ export type LibType =
 
 export class Resolver {
   #schema: Schema
-  #cache: Map<string, TypeRefWithEmit> = new Map()
-  #emits: EmitsMap
+  #resolved: Map<string, TypeRefWithEmit> = new Map()
+  #emits: EmitsMap = new Map()
 
   constructor(schema: Schema) {
     this.#schema = schema
 
-    this.#emits = Object.keys(schema)
-      .map<[string, TypeRefWithEmit]>((key) => [key, this.resolve(key)])
-      .reduce((map, [originId, resolved]) => {
-        if (resolved.t === 'local' && resolved.emit) {
-          const prevEmit = map.get(resolved.id)
-          const newEmit = resolved.emit()
-          if (prevEmit) {
-            invariant(
-              deepEqual(newEmit, prevEmit),
-              () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
-            )
-          } else {
-            map.set(resolved.id, newEmit)
-          }
+    for (const key of Object.keys(schema)) {
+      this.resolve(key)
+    }
+
+    for (const [originId, resolved] of this.#resolved) {
+      if (resolved.t === 'local' && resolved.emit) {
+        const prevEmit = this.#emits.get(resolved.id)
+        const newEmit = resolved.emit()
+        if (prevEmit) {
+          invariant(
+            deepEqual(newEmit, prevEmit),
+            () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
+          )
+        } else {
+          this.#emits.set(resolved.id, newEmit)
         }
-        return map
-      }, new Map<string, EmitCode>())
+      }
+    }
   }
 
   public get emits() {
     return this.#emits
   }
 
-  resolve(refOrStr: string | SchemaId): TypeRefWithEmit {
+  private resolve(refOrStr: string | SchemaId): TypeRefWithEmit {
     const [ref, refStr] =
       typeof refOrStr === 'string' ? [SchemaId.parse(refOrStr), refOrStr] : [refOrStr, refOrStr.toStr()]
 
-    if (!this.#cache.has(refStr)) {
+    if (!this.#resolved.has(refStr)) {
       invariant(refStr in this.#schema, () => `Couldn't find schema for '${refStr}'`)
       const schema = this.#schema[refStr]
       const resolved = this.resolveInner(ref, refStr, schema)
 
       if (resolved.t === 'local' && CYCLE_BREAK_POINTS.has(resolved.id)) resolved.lazy = true
 
-      this.#cache.set(refStr, resolved)
+      this.#resolved.set(refStr, resolved)
       return resolved
     }
 
-    return this.#cache.get(refStr)!
+    return this.#resolved.get(refStr)!
   }
 
   private resolveInner(ref: null | SchemaId, refStr: string, schema: SchemaTypeDefinition): TypeRefWithEmit {
@@ -550,11 +547,30 @@ export class Resolver {
           (type): TypeRef => ({ t: 'lib', id: 'Option', params: [this.resolve(type)] }),
         )
 
+        .with({ ref: { id: 'SortedVec', items: [{ id: 'Permission' }] } }, () => ({
+          t: 'local',
+          id: 'PermissionsSet',
+          emit: () => ({
+            t: 'alias',
+            to: {
+              t: 'lib-b-tree-set-with-cmp',
+              type: this.resolve('Permission'),
+              compareFn: `(a, b) => {  
+                const names = lib.ordCompare(a.name, b.name)
+                if (names !== 0) return names
+                return lib.ordCompare(a.payload, b.payload)
+              }`,
+            },
+          }),
+        }))
         .with(
-          { ref: { id: P.union('Vec', 'SortedVec'), items: [P._] }, schema: { Vec: P.string.select() } },
-          (type): TypeRef => ({
+          {
+            ref: { id: P.union('Vec', 'SortedVec').select('id'), items: [P._] },
+            schema: { Vec: P.string.select('type') },
+          },
+          ({ id, type }): TypeRef => ({
             t: 'lib',
-            id: 'Vec',
+            id: id === 'SortedVec' ? 'BTreeSet' : id,
             params: [this.resolve(type)],
           }),
         )
@@ -579,7 +595,7 @@ export class Resolver {
           },
           ({ key, value }) => ({
             t: 'lib',
-            id: 'Map',
+            id: 'BTreeMap',
             params: [key, value].map((x) => this.resolve(x)),
           }),
         )
@@ -641,8 +657,13 @@ export class Resolver {
     )
   }
 
+  private produceType<T extends TypeRefWithEmit & { t: 'local' }>(ref: T): T {
+    this.#resolved.set(ref.id, ref)
+    return ref
+  }
+
   private mapFields(items: NamedStructDefinition['Struct']): EmitStructField[] {
-    return items.map((x) => {
+    return items.map((x): EmitStructField => {
       if (x.name.endsWith('_ms')) {
         const rewriteWith = match(x.name)
           .returnType<LibType>()
@@ -691,7 +712,55 @@ export class Resolver {
           })
         return { name: x.name.slice(0, -3), type }
       }
-      return { name: x.name, type: this.resolve(x.type) }
+      return match(x)
+        .returnType<EmitStructField>()
+        .with({ name: 'errors', type: P.when((y) => y.includes('TransactionRejectionReason')) }, (errorsField) => {
+          return match(this.resolve(errorsField.type))
+            .returnType<EmitStructField>()
+            .with(
+              {
+                t: 'lib',
+                id: 'BTreeMap',
+                params: [
+                  P.select('index', { t: 'lib', id: 'U64' }),
+                  P.select('error', { t: 'local', id: 'TransactionRejectionReason' }),
+                ],
+              },
+              ({ index, error }): EmitStructField => {
+                const errWithIndex = this.produceType({
+                  t: 'local',
+                  id: 'TransactionErrorWithIndex',
+                  emit: () => ({
+                    t: 'struct',
+                    fields: [
+                      { name: 'index', type: index },
+                      { name: 'error', type: error },
+                    ],
+                  }),
+                })
+                const map = this.produceType({
+                  t: 'local',
+                  id: 'TransactionErrors',
+                  emit: () => ({
+                    t: 'alias',
+                    to: {
+                      t: 'lib-b-tree-set-with-cmp',
+                      type: errWithIndex,
+                      compareFn: `(a, b) => lib.ordCompare(a.index, b.index)`,
+                    },
+                  }),
+                })
+                return {
+                  name: x.name,
+                  type: map,
+                }
+              },
+            )
+            .otherwise(() => {
+              throw new Error(`unexpected errors shape: ${errorsField.type}`)
+            })
+        })
+        .otherwise(() => ({ name: x.name, type: this.resolve(x.type) }))
     })
   }
 
@@ -808,6 +877,8 @@ function* visitRefs(ref: TypeRef): Generator<TypeRef> {
     for (const param of ref.params) {
       yield* visitRefs(param)
     }
+  } else if (ref.t === 'lib-b-tree-set-with-cmp') {
+    yield ref.type
   }
 }
 
@@ -891,7 +962,7 @@ interface RefRender {
 }
 
 function renderGetCodec(x: string) {
-  return x + CODEC_SYMBOL
+  return `lib.getCodec(${x})`
 }
 
 function renderRef(ref: TypeRef): RefRender {
@@ -901,7 +972,7 @@ function renderRef(ref: TypeRef): RefRender {
       const valueId = `${id}.with(${params.map((x) => renderRef(x).codec).join(', ')})`
       return {
         type: id + `<${params.map((x) => renderRef(x).type).join(', ')}>`,
-        codec: renderGetCodec(valueId),
+        codec: valueId,
         valueId,
       }
     })
@@ -919,8 +990,7 @@ function renderRef(ref: TypeRef): RefRender {
 
       return {
         type: `lib.${id}${typeGenerics}`,
-        codec: renderGetCodec(valueId),
-        valueId,
+        codec: valueId,
       }
     })
     .with({ t: 'lib' }, ({ id }) => {
@@ -932,6 +1002,12 @@ function renderRef(ref: TypeRef): RefRender {
     })
     .with({ t: 'lib-array' }, () => {
       throw new Error('This type of reference exists on pre-render stage only, really')
+    })
+    .with({ t: 'lib-b-tree-set-with-cmp' }, ({ compareFn, type }) => {
+      return {
+        type: `lib.BTreeSet<${renderRef(type).type}>`,
+        codec: `lib.BTreeSet.withCmp(${renderRef(type).codec}, ${compareFn})`,
+      }
     })
     .with({ t: 'param' }, ({ index }) => {
       return {
@@ -1053,11 +1129,6 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
 
   return iter(root)
 }
-const CODEC_SYMBOL = `[lib.CodecSymbol]`
-
-function renderCodecKeyValue(id: string, content: string): string {
-  return `${CODEC_SYMBOL}: ${content} satisfies lib.Codec<${id}>`
-}
 
 function renderEmit(id: string, map: EmitsMap): string {
   const emit = map.get(id)
@@ -1066,7 +1137,7 @@ function renderEmit(id: string, map: EmitsMap): string {
     .returnType<string[]>()
     .with({ t: 'enum', variants: [] }, () => [
       `export type ${id} = never`,
-      `export const ${id} = { ${CODEC_SYMBOL}: lib.neverCodec }`,
+      `export const ${id} = lib.defineCodec(lib.neverCodec)`,
     ])
     .with({ t: 'enum' }, ({ variants }) => {
       const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
@@ -1075,7 +1146,7 @@ function renderEmit(id: string, map: EmitsMap): string {
       return [
         // `/** */`,
         `export type ${id} = ${renderSumTypes(variants)}`,
-        `export const ${id} = { ${shortcuts}, ${CODEC_SYMBOL}: ${codec} }`,
+        `export const ${id} = { ${shortcuts}, ...lib.defineCodec(${codec}) }`,
       ]
     })
     .with({ t: 'struct' }, ({ fields }) => {
@@ -1096,18 +1167,18 @@ function renderEmit(id: string, map: EmitsMap): string {
         const generics = Array.from({ length: maxGenericsIndex + 1 }, (_v, i) => renderRef({ t: 'param', index: i }))
 
         const genericTypes = generics.map((x) => x.type).join(', ')
-        const withArgs = generics.map((x) => `${x.codec}: lib.Codec<${x.type}>`).join(', ')
-        const withRet = `({ ${CODEC_SYMBOL}: ${codec(`${id}<${genericTypes}>`)} })`
+        const withArgs = generics.map((x) => `${x.codec}: lib.GenCodec<${x.type}>`).join(', ')
+        const withRet = codec(`${id}<${genericTypes}>`)
 
         return [
           `export interface ${id}<${genericTypes}> { ${typeFields} }`,
           `export const ${id} = { ` +
-            `with: <${genericTypes}>(${withArgs}): lib.CodecProvider<${id}<${genericTypes}>> => ${withRet} }`,
+            `with: <${genericTypes}>(${withArgs}): lib.GenCodec<${id}<${genericTypes}>> => ${withRet} }`,
         ]
       } else {
         return [
           `export interface ${id} { ${typeFields} }`,
-          `export const ${id}: lib.CodecProvider<${id}> = { ${CODEC_SYMBOL}: ${codec(id)} }`,
+          `export const ${id}: lib.CodecContainer<${id}> = lib.defineCodec(${codec(id)})`,
         ]
       }
     })
@@ -1115,10 +1186,7 @@ function renderEmit(id: string, map: EmitsMap): string {
       const typeElements = elements.map((x) => renderRef(x).type)
       const codecElements = elements.map((x) => renderRef(x).codec)
       const codec = `lib.tupleCodec([${codecElements.join(', ')}])`
-      return [
-        `export type ${id} = [${typeElements.join(', ')}]`,
-        `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
-      ]
+      return [`export type ${id} = [${typeElements.join(', ')}]`, `export const ${id} = lib.defineCodec(${codec})`]
     })
     .with({ t: 'bitmap' }, ({ masks, repr }) => {
       invariant(repr === 'U32')
@@ -1127,14 +1195,11 @@ function renderEmit(id: string, map: EmitsMap): string {
       const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
       const codec = `lib.bitmapCodec<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`
 
-      return [
-        `export type ${id} = Set<${typeLiterals.join(' | ')}>`,
-        `export const ${id} = { ${renderCodecKeyValue(id, codec)} }`,
-      ]
+      return [`export type ${id} = Set<${typeLiterals.join(' | ')}>`, `export const ${id} = lib.defineCodec(${codec})`]
     })
     .with({ t: 'alias' }, ({ to }) => {
       const rendered = renderRef(to)
-      const value = rendered.valueId ?? `{ ${CODEC_SYMBOL}: ${rendered.codec} }`
+      const value = rendered.valueId ?? `lib.defineCodec(${rendered.codec})`
       return [`export type ${id} = ${rendered.type}`, `export const ${id} = ${value}`]
     })
     .exhaustive()
@@ -1150,8 +1215,6 @@ function takeSelectorTypeName(selector: string): string | null {
   if (!selector.endsWith(SELECTOR_SUFFIX)) return null
   return selector.slice(0, -SELECTOR_SUFFIX.length)
 }
-
-// function getQuery
 
 function buildQuerySelectorMapEntries(emits: EmitsMap): { query: string; selector: string }[] {
   const schema = emits.get('QueryBox')

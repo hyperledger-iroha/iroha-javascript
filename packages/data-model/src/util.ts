@@ -1,7 +1,3 @@
-export interface Parse<I, O> {
-  parse: (input: I) => O
-}
-
 export interface Variant<Kind, Value> {
   kind: Kind
   value: Value
@@ -27,4 +23,18 @@ export function* hexDecode(hex: string): Generator<number> {
 export function hexEncode(bytes: Uint8Array): string {
   // TODO: optimise
   return [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('')
+}
+
+export type CompareFn<T> = (a: T, b: T) => number
+
+export function toSortedSet<T>(items: T[], compareFn: CompareFn<T>): T[] {
+  // TODO: optimise, not a very efficient implementation
+  return [...items].sort(compareFn).filter((val, i, arr) => {
+    if (i < arr.length - 1) {
+      const next = arr[i + 1]
+      const ordering = compareFn(val, next)
+      if (ordering === 0) return false
+    }
+    return true
+  })
 }

@@ -13,7 +13,7 @@ async function submitTestData(client: Client) {
 
   const madHatter = KeyPair.deriveFromSeed(Bytes.hex('aaaa'))
 
-  const EMPTY_LOGO_META = { logo: null, metadata: new Map() } as const
+  const EMPTY_LOGO_META = { logo: null, metadata: [] } satisfies Pick<dm.NewDomain, 'logo' | 'metadata'>
 
   const multitudeOfDomains = Array.from({ length: 25 }, (_v, i) =>
     dm.InstructionBox.Register.Domain({
@@ -29,11 +29,11 @@ async function submitTestData(client: Client) {
     ...multitudeOfDomains,
     dm.InstructionBox.Register.Account({
       id: bobAcc,
-      metadata: new Map([[dm.Name.parse('alias'), dm.Json.fromValue('Bob')]]),
+      metadata: [{ key: dm.Name.parse('alias'), value: dm.Json.fromValue('Bob') }],
     }),
     dm.InstructionBox.Register.Account({
       id: new dm.AccountId(dm.PublicKeyWrap.fromCrypto(madHatter.publicKey()), dm.Name.parse('certainty')),
-      metadata: new Map([[dm.Name.parse('alias'), dm.Json.fromValue('Mad Hatter')]]),
+      metadata: [{ key: dm.Name.parse('alias'), value: dm.Json.fromValue('Mad Hatter') }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
       id: dm.AssetDefinitionId.parse('base_coin#based'),
@@ -46,7 +46,7 @@ async function submitTestData(client: Client) {
       type: dm.AssetType.Store,
       mintable: dm.Mintable.Not,
       logo: null,
-      metadata: new Map([[dm.Name.parse('foo'), dm.Json.fromValue(['bar', false])]]),
+      metadata: [{ key: dm.Name.parse('foo'), value: dm.Json.fromValue(['bar', false]) }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
       id: dm.AssetDefinitionId.parse('gator_coin#certainty'),
@@ -89,7 +89,7 @@ async function submitTestData(client: Client) {
         executable: dm.Executable.Instructions([dm.InstructionBox.Log({ level: { kind: 'WARN' }, msg: 'MEWO!' })]),
         repeats: dm.Repeats.Indefinitely,
         authority: bobAcc,
-        metadata: new Map(),
+        metadata: [],
       },
     }),
     dm.InstructionBox.Register.Trigger({
@@ -107,7 +107,7 @@ async function submitTestData(client: Client) {
             destination: dm.AssetId.parse(`time#certainty#${bobAcc}`),
           }),
         ]),
-        metadata: new Map(),
+        metadata: [],
       },
     }),
   ]
@@ -305,13 +305,11 @@ describe('queries', () => {
     expect(sorted).not.toEqual(unsorted)
 
     expect(
-      // FIXME: impossible to retrieve value by key (introduce SortedMap)
       sorted.map((asset) =>
         match(asset)
-          // TODO: report bug?
           .with(
-            { value: { kind: 'Store', value: P.map(dm.Name.parse('mewo?'), P.select()) } },
-            (([value]: [dm.Json]) => value) as any,
+            { value: { kind: 'Store', value: P.array({ key: { value: 'mewo?' }, value: P.select() }) } },
+            ([val]) => val,
           )
           .otherwise(() => null),
       ),
@@ -404,7 +402,7 @@ describe('singular queries', () => {
         "block": {
           "maxTransactions": 512n,
         },
-        "custom": Map {},
+        "custom": [],
         "executor": {
           "fuel": 55000000n,
           "memory": 55000000n,
@@ -438,7 +436,7 @@ describe('singular queries', () => {
     const dataModel = await client.find.executorDataModel()
 
     // TODO: check something in the schema?
-    expect(dataModel.parameters).toMatchInlineSnapshot(`Map {}`)
+    expect(dataModel.parameters).toMatchInlineSnapshot(`[]`)
     expect(dataModel.instructions).toMatchInlineSnapshot(`[]`)
   })
 })
@@ -527,7 +525,7 @@ describe('Block Stream API', () => {
             dm.InstructionBox.Register.Domain({
               id: dm.Name.parse(domainName),
               logo: null,
-              metadata: new Map(),
+              metadata: [],
             }),
           ]),
         )
@@ -550,7 +548,7 @@ describe('Custom parameters', () => {
     const { client } = await usePeer()
 
     let params = await client.find.parameters().then((x) => x.custom)
-    expect(params).toEqual(new Map())
+    expect(params).toEqual([])
 
     await client
       .transaction(
@@ -565,19 +563,22 @@ describe('Custom parameters', () => {
 
     params = await client.find.parameters().then((x) => x.custom)
     expect(params).toMatchInlineSnapshot(`
-      Map {
-        "dededede" => {
-          "id": "dededede",
-          "payload": [
-            "ha",
-            {
-              "nya": "nya",
-            },
-            "fu",
-            "wa",
-          ],
+      [
+        {
+          "key": "dededede",
+          "value": {
+            "id": "dededede",
+            "payload": [
+              "ha",
+              {
+                "nya": "nya",
+              },
+              "fu",
+              "wa",
+            ],
+          },
         },
-      }
+      ]
     `)
   })
 })

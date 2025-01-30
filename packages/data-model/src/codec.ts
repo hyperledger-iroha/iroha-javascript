@@ -8,39 +8,18 @@ export interface RawScaleCodec<Output, Input = Output> {
 }
 
 /**
- * Symbol used {@link CodecProvider}
- */
-export const CodecSymbol = Symbol('codec')
-
-/**
- * Marks an object that provides a codec over some data type.
- *
- * Use {@link codecOf} to get the codec from the provider.
- */
-export interface CodecProvider<O, I = O> {
-  [CodecSymbol]: Codec<O, I>
-}
-
-/**
- * Get underlying {@link Codec} from the {@link CodecProvider}
- */
-export function codecOf<T>(provider: CodecProvider<T>): Codec<T> {
-  return provider[CodecSymbol]
-}
-
-/**
  * Generic codec.
  *
  * Unlike {@link RawScaleCodec}, provides higher-level encode/decode functions, as well as some composition utilities.
  */
-export class Codec<Output, Input = Output> {
+export class GenCodec<T> {
   /**
    * Create a lazy codec, by only having a getter to the actual codec.
    *
    * The getter is called for each codec access and is not cached.
    */
-  public static lazy<T, U>(f: () => Codec<T, U>): Codec<T, U> {
-    return new Codec({
+  public static lazy<T>(f: () => GenCodec<T>): GenCodec<T> {
+    return new GenCodec({
       encode: scale.encodeFactory(
         (v, w) => f().raw.encode(v, w),
         (v) => f().raw.encode.sizeHint(v),
@@ -52,29 +31,23 @@ export class Codec<Output, Input = Output> {
   /**
    * Access lower-level SCALE codec
    */
-  public readonly raw: RawScaleCodec<Output, Input>
+  public readonly raw: RawScaleCodec<T>
 
-  public constructor(raw: RawScaleCodec<Output, Input>) {
+  public constructor(raw: RawScaleCodec<T>) {
     this.raw = raw
   }
 
-  public encode(value: Input): Uint8Array {
+  public encode(value: T): Uint8Array {
     return scale.WalkerImpl.encode(value, this.raw.encode)
   }
 
-  public decode(data: string | ArrayBufferView): Output {
+  public decode(data: string | ArrayBufferView): T {
     const parsed = ArrayBuffer.isView(data) ? data : Uint8Array.from(hexDecode(data))
     return scale.WalkerImpl.decode(parsed, this.raw.decode)
   }
 
-  public wrap<Out2, In2 = Out2>({
-    toBase,
-    fromBase,
-  }: {
-    toBase: (value: In2) => Input
-    fromBase: (value: Output) => Out2
-  }): Codec<Out2, In2> {
-    return new Codec({
+  public wrap<U>({ toBase, fromBase }: { toBase: (value: U) => T; fromBase: (value: T) => U }): GenCodec<U> {
+    return new GenCodec({
       encode: scale.encodeFactory(
         (v, w) => this.raw.encode(toBase(v), w),
         (v) => this.raw.encode.sizeHint(toBase(v)),
@@ -84,7 +57,7 @@ export class Codec<Output, Input = Output> {
   }
 }
 
-export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate<E>> {
+export class EnumCodec<E extends scale.EnumRecord> extends GenCodec<scale.Enumerate<E>> {
   public discriminated<
     T extends {
       [Tag in keyof E]: E[Tag] extends []
@@ -93,7 +66,7 @@ export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate
           ? Variant<Tag, Value>
           : never
     }[keyof E],
-  >(): Codec<T> {
+  >(): GenCodec<T> {
     return this.wrap<{ kind: string; value?: any }>({
       toBase: (value) => {
         if (value.value !== undefined) return scale.variant<any>(value.kind, value.value)
@@ -104,7 +77,7 @@ export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate
   }
 
   public literalUnion(): {
-    [Tag in keyof E]: E[Tag] extends [] ? Codec<Tag> : never
+    [Tag in keyof E]: E[Tag] extends [] ? GenCodec<Tag> : never
   }[keyof E] {
     return this.wrap<string>({
       toBase: (literal) => scale.variant<any>(literal),
@@ -113,11 +86,11 @@ export class EnumCodec<E extends scale.EnumRecord> extends Codec<scale.Enumerate
   }
 }
 
-export function lazyCodec<T>(f: () => Codec<T>): Codec<T> {
-  return Codec.lazy(f)
+export function lazyCodec<T>(f: () => GenCodec<T>): GenCodec<T> {
+  return GenCodec.lazy(f)
 }
 
-export type EnumCodecSchema = [discriminant: number, tag: string, codec?: Codec<any>][]
+export type EnumCodecSchema = [discriminant: number, tag: string, codec?: GenCodec<any>][]
 
 export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): EnumCodec<E> {
   const encoders: scale.EnumEncoders<any> = {} as any
@@ -134,24 +107,24 @@ export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): 
   })
 }
 
-type TupleFromCodecs<T> = T extends [Codec<infer Head>, ...infer Tail]
+type TupleFromCodecs<T> = T extends [GenCodec<infer Head>, ...infer Tail]
   ? [Head, ...TupleFromCodecs<Tail>]
   : T extends []
     ? []
     : never
 
-export function tupleCodec<T extends [Codec<any>, ...Codec<any>[]]>(codecs: T): Codec<TupleFromCodecs<T>> {
-  return new Codec({
+export function tupleCodec<T extends [GenCodec<any>, ...GenCodec<any>[]]>(codecs: T): GenCodec<TupleFromCodecs<T>> {
+  return new GenCodec({
     encode: scale.createTupleEncoder(codecs.map((x) => x.raw.encode) as any),
     decode: scale.createTupleDecoder(codecs.map((x) => x.raw.decode) as any),
   })
 }
 
 export declare type StructCodecsSchema<T> = {
-  [K in keyof T]: [K, Codec<T[K]>]
+  [K in keyof T]: [K, GenCodec<T[K]>]
 }[keyof T][]
 
-export function structCodec<T>(order: (keyof T & string)[], schema: { [K in keyof T]: Codec<T[K]> }): Codec<T> {
+export function structCodec<T>(order: (keyof T & string)[], schema: { [K in keyof T]: GenCodec<T[K]> }): GenCodec<T> {
   const encoders: scale.StructEncoders<any> = []
   const decoders: scale.StructDecoders<any> = []
 
@@ -160,20 +133,20 @@ export function structCodec<T>(order: (keyof T & string)[], schema: { [K in keyo
     decoders.push([field, schema[field].raw.decode])
   }
 
-  return new Codec({ encode: scale.createStructEncoder(encoders), decode: scale.createStructDecoder(decoders) })
+  return new GenCodec({ encode: scale.createStructEncoder(encoders), decode: scale.createStructDecoder(decoders) })
 }
 
 const thisCodecShouldNeverBeCalled = () => {
   throw new Error('This value could never be encoded')
 }
-export const neverCodec: Codec<never> = new Codec({
+export const neverCodec: GenCodec<never> = new GenCodec({
   encode: scale.encodeFactory(thisCodecShouldNeverBeCalled, thisCodecShouldNeverBeCalled),
   decode: thisCodecShouldNeverBeCalled,
 })
 
-export const nullCodec: Codec<null> = new Codec({ encode: scale.encodeUnit, decode: scale.decodeUnit })
+export const nullCodec: GenCodec<null> = new GenCodec({ encode: scale.encodeUnit, decode: scale.decodeUnit })
 
-export function bitmapCodec<Name extends string>(masks: { [K in Name]: number }): Codec<Set<Name>> {
+export function bitmapCodec<Name extends string>(masks: { [K in Name]: number }): GenCodec<Set<Name>> {
   const REPR_MAX = 2 ** 32 - 1
 
   const toMask = (set: Set<Name>): number => {
@@ -204,5 +177,5 @@ export function bitmapCodec<Name extends string>(masks: { [K in Name]: number })
     return set
   }
 
-  return new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }).wrap({ toBase: toMask, fromBase: fromMask })
+  return new GenCodec({ encode: scale.encodeU32, decode: scale.decodeU32 }).wrap({ toBase: toMask, fromBase: fromMask })
 }

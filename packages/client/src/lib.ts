@@ -237,7 +237,7 @@ export class Client {
       creationTime: params?.creationTime ?? dm.Timestamp.fromDate(new Date()),
       timeToLive: params?.timeToLive ?? new dm.NonZero(dm.Duration.fromMillis(100_000)),
       nonce: params?.nonce ?? null,
-      metadata: params?.metadata ?? new Map(),
+      metadata: params?.metadata ?? [],
       ...params?.payload,
     }
     const tx = dm.signTransaction(payload, this.params.accountKeyPair.privateKey())

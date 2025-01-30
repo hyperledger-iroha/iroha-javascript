@@ -1,70 +1,62 @@
 import * as scale from '@scale-codec/core'
-import { Codec, type CodecProvider, CodecSymbol, codecOf, enumCodec, lazyCodec, structCodec } from '../codec'
+import { GenCodec, enumCodec, lazyCodec, structCodec } from '../codec'
 import type { JsonValue } from 'type-fest'
-import { type Parse, type Variant, type VariantUnit, hexDecode, hexEncode } from '../util'
+import { CompareFn, type Variant, type VariantUnit, hexDecode, hexEncode, toSortedSet } from '../util'
 import * as crypto from '@iroha2/crypto-core'
+import * as traits from '../traits'
 
 export type U8 = number
-export const U8: CodecProvider<U8> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeU8, decode: scale.decodeU8 }),
-}
+export const U8: traits.CodecContainer<U8> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeU8, decode: scale.decodeU8 }),
+)
 
 export type U16 = number
-export const U16: CodecProvider<U16> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeU16, decode: scale.decodeU16 }),
-}
+export const U16: traits.CodecContainer<U16> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeU16, decode: scale.decodeU16 }),
+)
 
 export type U32 = number
-export const U32: CodecProvider<U32> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeU32, decode: scale.decodeU32 }),
-}
+export const U32: traits.CodecContainer<U32> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeU32, decode: scale.decodeU32 }),
+)
 
 export type U64 = bigint
-export const U64: CodecProvider<U64> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeU64, decode: scale.decodeU64 }),
-}
+export const U64: traits.CodecContainer<U64> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeU64, decode: scale.decodeU64 }),
+)
 
 export type U128 = bigint
-export const U128: CodecProvider<U128> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeU128, decode: scale.decodeU128 }),
-}
+export const U128: traits.CodecContainer<U128> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeU128, decode: scale.decodeU128 }),
+)
 
 export type BytesVec = Uint8Array
-
-export const BytesVec: CodecProvider<BytesVec> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeUint8Vec, decode: scale.decodeUint8Vec }),
-}
+export const BytesVec: traits.CodecContainer<BytesVec> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeUint8Vec, decode: scale.decodeUint8Vec }),
+)
 
 export type Bool = boolean
-
-export const Bool: CodecProvider<Bool> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeBool, decode: scale.decodeBool }),
-}
+export const Bool: traits.CodecContainer<Bool> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeBool, decode: scale.decodeBool }),
+)
 
 export type String = string
-
-export const String: CodecProvider<string> = {
-  [CodecSymbol]: new Codec({ encode: scale.encodeStr, decode: scale.decodeStr }),
-}
+export const String: traits.CodecContainer<string> = traits.defineCodec(
+  new GenCodec({ encode: scale.encodeStr, decode: scale.decodeStr }),
+)
 
 export type Compact = bigint
 
-export const Compact: CodecProvider<bigint> = {
-  [CodecSymbol]: new Codec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
-}
+export const Compact: traits.CodecContainer<bigint> = traits.defineCodec(
+  new GenCodec<bigint>({ encode: scale.encodeCompact, decode: scale.decodeCompact }),
+)
 
-export interface ZeroCheckable {
-  isZero: () => boolean
-}
-
-export class NonZero<T extends number | bigint | ZeroCheckable> {
-  public static with<T extends number | bigint | ZeroCheckable>(codec: Codec<T>): CodecProvider<NonZero<T>> {
-    return {
-      [CodecSymbol]: codec.wrap<NonZero<T>>({
-        toBase: (x) => x.value,
-        fromBase: (x) => new NonZero(x),
-      }),
-    }
+export class NonZero<T extends number | bigint | traits.IsZero> {
+  public static with<T extends number | bigint | traits.IsZero>(codec: GenCodec<T>): GenCodec<NonZero<T>> {
+    return codec.wrap<NonZero<T>>({
+      toBase: (x) => x.value,
+      fromBase: (x) => new NonZero(x),
+    })
   }
 
   private _value: T
@@ -80,7 +72,7 @@ export class NonZero<T extends number | bigint | ZeroCheckable> {
     return this._value
   }
 
-  public map<U extends number | bigint | ZeroCheckable>(fun: (value: T) => U): NonZero<U> {
+  public map<U extends number | bigint | traits.IsZero>(fun: (value: T) => U): NonZero<U> {
     return new NonZero(fun(this.value))
   }
 
@@ -92,41 +84,69 @@ export class NonZero<T extends number | bigint | ZeroCheckable> {
 export type Option<T> = null | T
 
 export const Option = {
-  with: <T>(value: Codec<T>): CodecProvider<Option<T>> => ({
-    [CodecSymbol]: new Codec({
+  with: <T>(value: GenCodec<T>): GenCodec<Option<T>> =>
+    new GenCodec({
       encode: scale.createOptionEncoder(value.raw.encode),
       decode: scale.createOptionDecoder(value.raw.decode),
     }).wrap<Option<T>>({
       fromBase: (base) => (base.tag === 'None' ? null : base.as('Some')),
       toBase: (higher) => (higher === null ? scale.variant('None') : scale.variant('Some', higher)),
     }),
-  }),
-}
-export type Map<K, V> = globalThis.Map<K, V>
-
-export const Map = {
-  with: <K, V>(key: Codec<K>, value: Codec<V>): CodecProvider<Map<K, V>> => ({
-    [CodecSymbol]: new Codec({
-      encode: scale.createMapEncoder(key.raw.encode, value.raw.encode),
-      decode: scale.createMapDecoder(key.raw.decode, value.raw.decode),
-    }),
-  }),
 }
 
 export type Vec<T> = globalThis.Array<T>
 
 export const Vec = {
-  with: <T>(item: Codec<T>): CodecProvider<Vec<T>> => ({
-    [CodecSymbol]: new Codec({
+  with: <T>(item: GenCodec<T>): GenCodec<Vec<T>> => {
+    return new GenCodec({
       encode: scale.createVecEncoder(item.raw.encode),
       decode: scale.createVecDecoder(item.raw.decode),
-    }),
-  }),
+    })
+  },
+}
+
+export type BTreeSet<T> = Vec<T>
+
+export const BTreeSet = {
+  with<T extends traits.Ord | string>(type: GenCodec<T>): GenCodec<BTreeSet<T>> {
+    return BTreeSet.withCmp(type, traits.ordCompare)
+  },
+  withCmp<T>(codec: GenCodec<T>, compare: CompareFn<T>): GenCodec<BTreeSet<T>> {
+    return Vec.with(codec).wrap<BTreeSet<T>>({
+      toBase: (x) => toSortedSet(x, compare),
+      fromBase: (x) => x,
+    })
+  },
+}
+
+export interface MapEntry<K, V> {
+  key: K
+  value: V
+}
+
+/**
+ * Being represented as a plain array, its codec ensures that
+ * the entries are encoded in a deterministic manner, sorting and deduplicating items.
+ */
+export type BTreeMap<K, V> = Array<MapEntry<K, V>>
+
+export const BTreeMap = {
+  with: <K extends traits.Ord, V>(key: GenCodec<K>, value: GenCodec<V>): GenCodec<BTreeMap<K, V>> => {
+    return BTreeMap.withCmp(key, value, (a, b) => traits.ordCompare(a.key, b.key))
+  },
+  withCmp: <K, V>(
+    key: GenCodec<K>,
+    value: GenCodec<V>,
+    compareFn: CompareFn<MapEntry<K, V>>,
+  ): GenCodec<BTreeMap<K, V>> => {
+    const entry = structCodec<MapEntry<K, V>>(['key', 'value'], { key, value })
+    return BTreeSet.withCmp(entry, (a, b) => compareFn(a, b))
+  },
 }
 
 // TODO document that parse/stringify json lazily when needed
-export class Json<T extends JsonValue = JsonValue> {
-  public static [CodecSymbol]: Codec<Json<JsonValue>> = codecOf(String).wrap({
+export class Json<T extends JsonValue = JsonValue> implements traits.Ord {
+  public static [traits.SYMBOL_CODEC]: GenCodec<Json<JsonValue>> = traits.getCodec(String).wrap({
     toBase: (x) => x.asJsonString(),
     fromBase: (str) => Json.fromJsonString(str),
   })
@@ -168,10 +188,14 @@ export class Json<T extends JsonValue = JsonValue> {
   public toJSON(): T {
     return this.asValue()
   }
+
+  compare(that: this): number {
+    return traits.ordCompare(this.asJsonString(), that.asJsonString())
+  }
 }
 
 export class Timestamp {
-  public static [CodecSymbol]: Codec<Timestamp> = codecOf(U64).wrap({
+  public static [traits.SYMBOL_CODEC]: GenCodec<Timestamp> = traits.getCodec(U64).wrap({
     toBase: (x) => x.asMillis(),
     fromBase: (x) => Timestamp.fromMillis(x),
   })
@@ -210,8 +234,8 @@ export class Timestamp {
 
 export { Timestamp as TimestampU128 }
 
-export class Duration implements ZeroCheckable {
-  public static [CodecSymbol]: Codec<Duration> = U64[CodecSymbol].wrap({
+export class Duration implements traits.IsZero {
+  public static [traits.SYMBOL_CODEC]: GenCodec<Duration> = traits.getCodec(U64).wrap({
     fromBase: (x) => Duration.fromMillis(x),
     toBase: (y) => y.asMillis(),
   })
@@ -231,7 +255,7 @@ export class Duration implements ZeroCheckable {
     return this._ms
   }
 
-  public isZero() {
+  public isZero(): boolean {
     return this._ms === 0n
   }
 
@@ -244,111 +268,6 @@ export type CompoundPredicate<Atom> =
   | Variant<'Atom', Atom>
   | Variant<'Not', CompoundPredicate<Atom>>
   | Variant<'And' | 'Or', CompoundPredicate<Atom>[]>
-
-//   & {
-//   and: (other: CompoundPredicate<Atom>) => CompoundPredicate<Atom>
-//   or: (other: CompoundPredicate<Atom>) => CompoundPredicate<Atom>
-//   not: () => CompoundPredicate<Atom>
-// }
-
-// class EnumClass<const E extends VariantUnit<any> | Variant<any, any>> {
-//   public readonly variant: E
-//
-//   public constructor(variant: E) {
-//     this.variant = variant
-//   }
-//
-//   public get kind(): E extends { kind: infer K } ? K : never {
-//     return this.variant.kind
-//   }
-//
-//   public get value(): E extends { value: infer V } ? V : never {
-//     if ('value' in this.variant) return this.variant.value
-//     throw new TypeError(`Tried to get a value from the empty Enum Variant: ${this.variant.kind}`)
-//   }
-//
-//   public as<K extends E['kind']>(kind: K): E extends { kind: K; value: infer V } ? V : never {
-//     // TODO
-//     throw new Error('unimpl')
-//   }
-//
-//   public is<K extends E['kind']>(kind: K): this is EnumClass<E & { kind: K }> {
-//     // TODO
-//     throw new Error('unimpl')
-//   }
-// }
-//
-// const test = new EnumClass<VariantUnit<'any'> | Variant<'not-any', 'foo bar baz'>>({ kind: 'any'})
-// if (test.is('any')) {
-//   const a = test
-//   const b = a.as('not-any')
-// } else if (test.is('not-any')) {
-//   const a = test
-//   const b = test.is('any')
-//   const c = test.as('not-any')
-// }
-//
-// if (test.variant.kind === 'any') {
-//   const value = test.value
-// }
-//
-// export type CompoundPredicateEnum<Atom> =
-//   | Variant<'Atom', Atom>
-//   | Variant<'Not', CompoundPredicateClass<Atom>>
-//   | Variant<'And' | 'Or', CompoundPredicateClass<Atom>[]>
-//
-// class CompoundPredicateClass<Atom> extends EnumClass<CompoundPredicateEnum<Atom>> {
-//   public static readonly PASS = new CompoundPredicateClass(Object.freeze({ kind: 'And', value: [] }))
-//
-//   public static readonly FAIL = new CompoundPredicateClass(Object.freeze({ kind: 'Or', value: [] }))
-//
-//   public static Atom<T>(value: T): CompoundPredicateClass<T> {
-//     return new CompoundPredicateClass<T>({ kind: 'Atom', value })
-//   }
-//
-//   public static Not<T>(predicate: CompoundPredicateClass<T>): CompoundPredicateClass<T> {
-//     return new CompoundPredicateClass<T>({ kind: 'Not', value: predicate })
-//   }
-//
-//   public static And<T>(...predicates: CompoundPredicateClass<T>[]): CompoundPredicateClass<T> {
-//     return new CompoundPredicateClass<T>({ kind: 'And', value: predicates })
-//   }
-//
-//   public static Or<T>(...predicates: CompoundPredicateClass<T>[]): CompoundPredicateClass<T> {
-//     return new CompoundPredicateClass<T>({ kind: 'Or', value: predicates })
-//   }
-//
-//   public static with<Atom>(atom: Codec<Atom>): CodecProvider<CompoundPredicateClass<Atom>> {
-//     const lazySelf = lazyCodec(() => codec)
-//
-//     const codec: Codec<CompoundPredicate<Atom>> = enumCodec<{
-//       Atom: [Atom]
-//       Not: [CompoundPredicate<Atom>]
-//       And: [CompoundPredicate<Atom>[]]
-//       Or: [CompoundPredicate<Atom>[]]
-//     }>([
-//       // magic discriminants from schema
-//       [0, 'Atom', atom],
-//       [1, 'Not', lazySelf],
-//       [2, 'And', codecOf(Vec.with(lazySelf))],
-//       [3, 'Or', codecOf(Vec.with(lazySelf))],
-//     ]).discriminated()
-//
-//     return { [CodecSymbol]: codec }
-//   }
-//
-//   public and(other: CompoundPredicateClass<Atom>): CompoundPredicateClass<Atom> {
-//     // return new CompoundPredicateClass({ kind: "And", value: []})
-//   }
-//
-//   public or(other: CompoundPredicateClass<Atom>): CompoundPredicateClass<Atom> {
-//     // return new CompoundPredicateClass({ kind: "And", value: []})
-//   }
-//
-//   public not(): CompoundPredicateClass<Atom> {
-//     // return new CompoundPredicateClass({ kind: "And", value: []})
-//   }
-// }
 
 export const CompoundPredicate = {
   // TODO: freeze `value: []` too?
@@ -370,23 +289,23 @@ export const CompoundPredicate = {
   And: <T>(...predicates: CompoundPredicate<T>[]): CompoundPredicate<T> => ({ kind: 'And', value: predicates }),
   Or: <T>(...predicates: CompoundPredicate<T>[]): CompoundPredicate<T> => ({ kind: 'Or', value: predicates }),
 
-  with: <Atom>(atom: Codec<Atom>): CodecProvider<CompoundPredicate<Atom>> => {
+  with: <Atom>(atomType: GenCodec<Atom>): GenCodec<CompoundPredicate<Atom>> => {
     const lazySelf = lazyCodec(() => codec)
 
-    const codec: Codec<CompoundPredicate<Atom>> = enumCodec<{
+    const codec: GenCodec<CompoundPredicate<Atom>> = enumCodec<{
       Atom: [Atom]
       Not: [CompoundPredicate<Atom>]
       And: [CompoundPredicate<Atom>[]]
       Or: [CompoundPredicate<Atom>[]]
     }>([
       // magic discriminants from schema
-      [0, 'Atom', atom],
+      [0, 'Atom', atomType],
       [1, 'Not', lazySelf],
-      [2, 'And', codecOf(Vec.with(lazySelf))],
-      [3, 'Or', codecOf(Vec.with(lazySelf))],
+      [2, 'And', Vec.with(lazySelf)],
+      [3, 'Or', Vec.with(lazySelf)],
     ]).discriminated()
 
-    return { [CodecSymbol]: codec }
+    return codec
   },
 }
 
@@ -398,23 +317,25 @@ export const Algorithm = {
   Secp256k1: Object.freeze<Algorithm>({ kind: 'secp256k1' }),
   BlsNormal: Object.freeze<Algorithm>({ kind: 'bls_normal' }),
   BlsSmall: Object.freeze<Algorithm>({ kind: 'bls_small' }),
-  [CodecSymbol]: enumCodec<{
-    ed25519: []
-    secp256k1: []
-    bls_normal: []
-    bls_small: []
-  }>([
-    [0, 'ed25519'],
-    [1, 'secp256k1'],
-    [2, 'bls_normal'],
-    [3, 'bls_small'],
-  ]).discriminated() satisfies Codec<Algorithm>,
+  ...traits.defineCodec(
+    enumCodec<{
+      ed25519: []
+      secp256k1: []
+      bls_normal: []
+      bls_small: []
+    }>([
+      [0, 'ed25519'],
+      [1, 'secp256k1'],
+      [2, 'bls_normal'],
+      [3, 'bls_small'],
+    ]).discriminated() satisfies GenCodec<Algorithm>,
+  ),
 }
 
 const HASH_ARR_LEN = 32
 
 export class HashWrap {
-  public static [CodecSymbol]: Codec<HashWrap> = new Codec({
+  public static [traits.SYMBOL_CODEC]: GenCodec<HashWrap> = new GenCodec({
     encode: scale.createUint8ArrayEncoder(HASH_ARR_LEN),
     decode: scale.createUint8ArrayDecoder(HASH_ARR_LEN),
   }).wrap<HashWrap>({
@@ -466,10 +387,10 @@ interface PubKeyObj {
   payload: BytesVec
 }
 
-export class PublicKeyWrap {
-  public static [CodecSymbol]: Codec<PublicKeyWrap> = structCodec(['algorithm', 'payload'], {
-    algorithm: codecOf(Algorithm),
-    payload: codecOf(BytesVec),
+export class PublicKeyWrap implements traits.Ord {
+  public static [traits.SYMBOL_CODEC]: GenCodec<PublicKeyWrap> = structCodec(['algorithm', 'payload'], {
+    algorithm: traits.getCodec(Algorithm),
+    payload: traits.getCodec(BytesVec),
   }).wrap({
     toBase: (higher) => higher,
     fromBase: (x) => new PublicKeyWrap(x, null, null),
@@ -535,10 +456,14 @@ export class PublicKeyWrap {
     }
     return this._obj
   }
+
+  compare(other: this): number {
+    return traits.ordCompare(this.asHex(), other.asHex())
+  }
 }
 
 export class SignatureWrap {
-  public static [CodecSymbol]: Codec<SignatureWrap> = codecOf(BytesVec).wrap<SignatureWrap>({
+  public static [traits.SYMBOL_CODEC]: GenCodec<SignatureWrap> = traits.getCodec(BytesVec).wrap<SignatureWrap>({
     toBase: (higher) => higher.asRaw(),
     fromBase: (lower) => SignatureWrap.fromRaw(lower),
   })
@@ -595,25 +520,31 @@ export class SignatureWrap {
   }
 }
 
-export class Name {
-  public static [CodecSymbol] = codecOf(String).wrap<Name>({ toBase: (x) => x.value, fromBase: (x) => new Name(x) })
+export class Name implements traits.Ord {
+  public static [traits.SYMBOL_CODEC] = traits
+    .getCodec(String)
+    .wrap<Name>({ toBase: (x) => x.value, fromBase: (x) => new Name(x) })
 
+  /**
+   * @deprecated
+   */
   public static parse(unchecked: string): Name {
-    if (!unchecked.length) throw new SyntaxError(`Name should not be empty`)
-    if (/[\s#@]/.test(unchecked))
-      throw new SyntaxError(
-        `Invalid name: "${unchecked}". Name should not contain whitespace characters, ` +
-          `'@' (reserved for '⟨account⟩@⟨domain⟩' constructs, e.g. 'alice@wonderland'), ` +
-          `and '#' (reserved for '⟨asset⟩#⟨domain⟩' constructs, e.g. 'rose#wonderland') `,
-      )
     return new Name(unchecked)
   }
 
   private _brand!: 'Name'
   private _value: string
 
-  private constructor(checked: string) {
-    this._value = checked
+  public constructor(name: string) {
+    if (!name.length) throw new SyntaxError(`Name should not be empty`)
+    if (/[\s#@]/.test(name))
+      throw new SyntaxError(
+        `Invalid name: "${name}". Name should not contain whitespace characters, ` +
+          `'@' (reserved for '⟨account⟩@⟨domain⟩' constructs, e.g. 'alice@wonderland'), ` +
+          `and '#' (reserved for '⟨asset⟩#⟨domain⟩' constructs, e.g. 'rose#wonderland') `,
+      )
+
+    this._value = name
   }
 
   public get value(): string {
@@ -623,40 +554,23 @@ export class Name {
   public toJSON() {
     return this.value
   }
+
+  public compare(other: Name): number {
+    return this.value > other.value ? 1 : this.value < other.value ? -1 : 0
+  }
 }
-
-// export class DomainId {
-//   public static [CodecSymbol] = codecOf(Name).wrap<DomainId>({
-//     toBase: (x) => x.name,
-//     fromBase: (x) => new DomainId(x),
-//   })
-
-//   private _brand!: 'DomainId'
-//   public readonly name: Name
-
-//   public constructor(name: Name) {
-//     this.name = name
-//   }
-
-//   public toJSON() {
-//     return this.name.toJSON()
-//   }
-// }
-
-// const DomainId = createBrandedNameWrap<'DomainId'>()
-// type DomainId = InstanceType<typeof DomainId>
 
 export type DomainId = Name
 export const DomainId = Name
 
-export class AccountId {
-  public static [CodecSymbol]: Codec<AccountId> = structCodec<{ signatory: PublicKeyWrap; domain: DomainId }>(
-    ['domain', 'signatory'],
-    {
-      domain: codecOf(DomainId),
-      signatory: codecOf(PublicKeyWrap),
-    },
-  ).wrap<AccountId>({ fromBase: (x) => new AccountId(x.signatory, x.domain), toBase: (x) => x })
+export class AccountId implements traits.Ord {
+  public static [traits.SYMBOL_CODEC]: GenCodec<AccountId> = structCodec<{
+    signatory: PublicKeyWrap
+    domain: DomainId
+  }>(['domain', 'signatory'], {
+    domain: traits.getCodec(DomainId),
+    signatory: traits.getCodec(PublicKeyWrap),
+  }).wrap<AccountId>({ fromBase: (x) => new AccountId(x.signatory, x.domain), toBase: (x) => x })
 
   public static parse(str: string): AccountId {
     return accountIdFromStr(str)
@@ -677,6 +591,12 @@ export class AccountId {
   public toString(): string {
     return `${this.signatory.asHex() satisfies string}@${this.domain.value satisfies string}`
   }
+
+  public compare(other: this): number {
+    const domains = traits.ordCompare(this.domain, other.domain)
+    if (domains !== 0) return domains
+    return traits.ordCompare(this.signatory, other.signatory)
+  }
 }
 
 function accountIdFromObj({ signatory, domain }: { signatory: string; domain: string }): AccountId {
@@ -693,12 +613,12 @@ function accountIdFromStr(str: string): AccountId {
 }
 
 export class AssetDefinitionId {
-  public static [CodecSymbol]: Codec<AssetDefinitionId> = structCodec<{
+  public static [traits.SYMBOL_CODEC]: GenCodec<AssetDefinitionId> = structCodec<{
     name: Name
     domain: DomainId
   }>(['domain', 'name'], {
-    domain: codecOf(DomainId),
-    name: codecOf(Name),
+    domain: traits.getCodec(DomainId),
+    name: traits.getCodec(Name),
   }).wrap<AssetDefinitionId>({
     toBase: (higher) => higher,
     fromBase: (lower) => new AssetDefinitionId(lower.name, lower.domain),
@@ -741,10 +661,16 @@ function assetDefIdFromStr(input: string) {
 }
 
 export class AssetId {
-  public static [CodecSymbol]: Codec<AssetId> = structCodec<{ account: AccountId; definition: AssetDefinitionId }>(
-    ['account', 'definition'],
-    { account: codecOf(AccountId), definition: codecOf(AssetDefinitionId) },
-  ).wrap<AssetId>({ toBase: (higher) => higher, fromBase: (lower) => new AssetId(lower.account, lower.definition) })
+  public static [traits.SYMBOL_CODEC]: GenCodec<AssetId> = structCodec<{
+    account: AccountId
+    definition: AssetDefinitionId
+  }>(['account', 'definition'], {
+    account: traits.getCodec(AccountId),
+    definition: traits.getCodec(AssetDefinitionId),
+  }).wrap<AssetId>({
+    toBase: (higher) => higher,
+    fromBase: (lower) => new AssetId(lower.account, lower.definition),
+  })
 
   /**
    * Parses a stringified ID in a form of either

@@ -5,6 +5,7 @@ import { resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID } from './util'
+import { Bytes, KeyPair } from '@iroha2/crypto-core'
 
 async function encodeWithCLI(type: keyof typeof SCHEMA, data: JsonValue): Promise<Uint8Array> {
   const tool = await resolveBinary('iroha_codec')
@@ -103,7 +104,7 @@ function casesTxPayload() {
         creationTime: dm.Timestamp.fromDate(new Date(505050)),
         timeToLive: null,
         nonce: null,
-        metadata: new Map(),
+        metadata: [],
       },
     }),
   ]
@@ -112,7 +113,7 @@ function casesTxPayload() {
 function casesCompoundPredicates() {
   const base = {
     type: 'CompoundPredicate<Asset>',
-    codec: dm.CompoundPredicate.with(dm.codecOf(dm.AssetProjectionPredicate)),
+    codec: dm.defineCodec(dm.CompoundPredicate.with(dm.codecOf(dm.AssetProjectionPredicate))),
   } as const
   const atom = defCase({
     ...base,
@@ -251,25 +252,130 @@ test.each([
         ),
         creationTime: dm.Timestamp.fromDate(new Date(1723592746838)),
         instructions: dm.Executable.Instructions([
-          dm.InstructionBox.Register.Domain({ id: dm.Name.parse('roses'), metadata: new Map(), logo: null }),
+          dm.InstructionBox.Register.Domain({ id: dm.Name.parse('roses'), metadata: [], logo: null }),
         ]),
         timeToLive: null,
         nonce: null,
-        metadata: new Map(),
+        metadata: [],
       },
       signature: dm.SignatureWrap.fromHex(
         '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
       ),
     }),
   }),
+  defCase({
+    type: 'SortedMap<u64, TransactionRejectionReason>',
+    json: { 1: { WasmExecution: 'whichever' }, 0: { LimitCheck: 'mewo' } },
+    codec: dm.TransactionErrors,
+    value: [
+      { index: 1n, error: dm.TransactionRejectionReason.WasmExecution({ reason: 'whichever' }) },
+      { index: 0n, error: dm.TransactionRejectionReason.LimitCheck({ reason: 'mewo' }) },
+    ],
+  }),
   // TODO: add SignedBlock
-  // TODO: add SortedMap!
 ])(`Check encoding against iroha_codec of type $type: $value`, async <T>(data: Case<T>) => {
   const referenceEncoded = await encodeWithCLI(data.type, data.json)
   const actualEncoded = dm.codecOf(data.codec).encode(data.value)
   expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
 })
 
-// describe('SortedMap', () => {
-//   test.todo('define a few cases')
-// })
+describe('BTree{Set/Map}', () => {
+  function shuffle<T>(arr: T[]): T[] {
+    const copy = [...arr]
+    return copy.sort(() => Math.random() * 2 - 1)
+  }
+
+  test('Metadata encoding matches with iroha_codec', async () => {
+    const CODEC = dm.codecOf(dm.Metadata)
+    const reference = await encodeWithCLI('Metadata', { foo: 'bar', bar: [1, 2, 3], '1': 2, 12: 1, 2: false })
+
+    const value: dm.Metadata = [
+      { key: new dm.Name('foo'), value: dm.Json.fromValue('bar') },
+      { key: new dm.Name('bar'), value: dm.Json.fromValue([1, 2, 3]) },
+      { key: new dm.Name('1'), value: dm.Json.fromValue(2) },
+      { key: new dm.Name('12'), value: dm.Json.fromValue(1) },
+      { key: new dm.Name('2'), value: dm.Json.fromValue(false) },
+    ]
+
+    expect(CODEC.decode(reference)).toEqual(CODEC.decode(CODEC.encode(value)))
+    expect(CODEC.encode(value)).toEqual(reference)
+  })
+
+  test('Metadata encoding is the same with and without duplicate entries', () => {
+    const CODEC = dm.codecOf(dm.Metadata)
+
+    const withDuplicate: dm.Metadata = [
+      { key: new dm.Name('foo'), value: dm.Json.fromValue('bar') },
+      { key: new dm.Name('foo'), value: dm.Json.fromValue([1, 2, 3]) },
+    ]
+    const without: dm.Metadata = [{ key: new dm.Name('foo'), value: dm.Json.fromValue([1, 2, 3]) }]
+
+    expect(CODEC.encode(withDuplicate)).toEqual(CODEC.encode(without))
+  })
+
+  test('BTreeSet<AccountId> - encoding matches with mixed keys and mixed domains', async () => {
+    const keys = Array.from({ length: 7 }, (_v, i) =>
+      dm.PublicKeyWrap.fromCrypto(KeyPair.deriveFromSeed(Bytes.array(new Uint8Array([0, 1, 2, i]))).publicKey()),
+    )
+
+    const domains = Array.from({ length: 5 }, (_v, i) => new dm.DomainId(`domain-${i}`))
+
+    const ids = keys.flatMap((key) =>
+      domains.flatMap((domain) => [new dm.AccountId(key, domain), new dm.AccountId(key, domain)]),
+    )
+
+    const reference = await encodeWithCLI(
+      'SortedVec<AccountId>',
+      ids.map((x) => x.toJSON()),
+    )
+
+    expect(dm.BTreeSet.with(dm.codecOf(dm.AccountId)).encode(ids)).toEqual(reference)
+  })
+
+  test('BTreeSet<Permission> - encoding matches', async () => {
+    const codec = dm.codecOf(dm.PermissionsSet)
+    const reference = await encodeWithCLI('SortedVec<Permission>', [
+      { name: 'foo', payload: [1, 2, 3] },
+      { name: 'foo', payload: [3, 2, 1] },
+      { name: 'bar', payload: false },
+    ])
+
+    const js: dm.PermissionsSet = [
+      { name: 'foo', payload: dm.Json.fromValue([3, 2, 1]) },
+      { name: 'foo', payload: dm.Json.fromValue([1, 2, 3]) },
+      // this must be deduped
+      { name: 'foo', payload: dm.Json.fromValue([1, 2, 3]) },
+      { name: 'bar', payload: dm.Json.fromValue(false) },
+    ]
+
+    const encoded = codec.encode(js)
+    expect(encoded).toEqual(reference)
+
+    const decoded = codec.decode(encoded)
+    expect(decoded).toEqual(codec.decode(reference))
+    expect(decoded).toMatchInlineSnapshot(`
+      [
+        {
+          "name": "bar",
+          "payload": false,
+        },
+        {
+          "name": "foo",
+          "payload": [
+            1,
+            2,
+            3,
+          ],
+        },
+        {
+          "name": "foo",
+          "payload": [
+            3,
+            2,
+            1,
+          ],
+        },
+      ]
+    `)
+  })
+})
