@@ -753,7 +753,6 @@ export type MetadataProjectionPredicate =
   | lib.Variant<'Atom', MetadataPredicateAtom>
   | lib.Variant<'Key', MetadataKeyProjectionPredicate>
 export const MetadataProjectionPredicate = {
-  Atom: {},
   Key: <const T extends MetadataKeyProjectionPredicate>(
     value: T,
   ): lib.Variant<'Key', T> => ({ kind: 'Key', value }),
@@ -773,7 +772,6 @@ export type AccountProjectionPredicate =
   | lib.Variant<'Id', AccountIdProjectionPredicate>
   | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const AccountProjectionPredicate = {
-  Atom: {},
   Id: {
     Atom: {
       Equals: <const T extends lib.AccountId>(
@@ -881,7 +879,6 @@ export const AccountProjectionPredicate = {
     },
   },
   Metadata: {
-    Atom: {},
     Key: <const T extends MetadataKeyProjectionPredicate>(
       value: T,
     ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
@@ -6517,9 +6514,7 @@ export type ActionProjectionPredicate =
   | lib.Variant<'Atom', ActionPredicateAtom>
   | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const ActionProjectionPredicate = {
-  Atom: {},
   Metadata: {
-    Atom: {},
     Key: <const T extends MetadataKeyProjectionPredicate>(
       value: T,
     ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
@@ -6905,7 +6900,6 @@ export type AssetDefinitionProjectionPredicate =
   | lib.Variant<'Id', AssetDefinitionIdProjectionPredicate>
   | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const AssetDefinitionProjectionPredicate = {
-  Atom: {},
   Id: {
     Atom: {
       Equals: <const T extends lib.AssetDefinitionId>(
@@ -7038,7 +7032,6 @@ export const AssetDefinitionProjectionPredicate = {
     },
   },
   Metadata: {
-    Atom: {},
     Key: <const T extends MetadataKeyProjectionPredicate>(
       value: T,
     ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
@@ -7521,7 +7514,6 @@ export type NumericProjectionPredicate = lib.Variant<
   NumericPredicateAtom
 >
 export const NumericProjectionPredicate = {
-  Atom: {},
   ...lib.defineCodec(
     lib.enumCodec<{ Atom: [NumericPredicateAtom] }>([[
       0,
@@ -7545,9 +7537,7 @@ export const AssetValueProjectionPredicate = {
       value: AssetValuePredicateAtom.IsStore,
     }),
   },
-  Numeric: { Atom: {} },
   Store: {
-    Atom: {},
     Key: <const T extends MetadataKeyProjectionPredicate>(
       value: T,
     ): lib.Variant<'Store', lib.Variant<'Key', T>> => ({
@@ -7576,7 +7566,6 @@ export type AssetProjectionPredicate =
   | lib.Variant<'Id', AssetIdProjectionPredicate>
   | lib.Variant<'Value', AssetValueProjectionPredicate>
 export const AssetProjectionPredicate = {
-  Atom: {},
   Id: {
     Atom: {
       Equals: <const T extends lib.AssetId>(
@@ -7916,9 +7905,7 @@ export const AssetProjectionPredicate = {
         lib.Variant<'Value', lib.Variant<'Atom', lib.VariantUnit<'IsStore'>>>
       >({ kind: 'Value', value: AssetValueProjectionPredicate.Atom.IsStore }),
     },
-    Numeric: { Atom: {} },
     Store: {
-      Atom: {},
       Key: <const T extends MetadataKeyProjectionPredicate>(
         value: T,
       ): lib.Variant<'Value', lib.Variant<'Store', lib.Variant<'Key', T>>> => ({
@@ -8275,7 +8262,6 @@ export type BlockHeaderProjectionPredicate =
   | lib.Variant<'Atom', BlockHeaderPredicateAtom>
   | lib.Variant<'Hash', BlockHeaderHashProjectionPredicate>
 export const BlockHeaderProjectionPredicate = {
-  Atom: {},
   Hash: {
     Atom: {
       Equals: <const T extends lib.HashWrap>(
@@ -8850,7 +8836,6 @@ export type SignedTransactionProjectionPredicate =
   | lib.Variant<'Hash', TransactionHashProjectionPredicate>
   | lib.Variant<'Authority', AccountIdProjectionPredicate>
 export const SignedTransactionProjectionPredicate = {
-  Atom: {},
   Hash: {
     Atom: {
       Equals: <const T extends lib.HashWrap>(
@@ -9023,7 +9008,6 @@ export type CommittedTransactionProjectionPredicate =
   | lib.Variant<'Value', SignedTransactionProjectionPredicate>
   | lib.Variant<'Error', TransactionErrorProjectionPredicate>
 export const CommittedTransactionProjectionPredicate = {
-  Atom: {},
   BlockHash: {
     Atom: {
       Equals: <const T extends lib.HashWrap>(
@@ -9038,7 +9022,6 @@ export const CommittedTransactionProjectionPredicate = {
     },
   },
   Value: {
-    Atom: {},
     Hash: {
       Atom: {
         Equals: <const T extends lib.HashWrap>(
@@ -9407,7 +9390,6 @@ export type DomainProjectionPredicate =
   | lib.Variant<'Id', DomainIdProjectionPredicate>
   | lib.Variant<'Metadata', MetadataProjectionPredicate>
 export const DomainProjectionPredicate = {
-  Atom: {},
   Id: {
     Atom: {
       Equals: <const T extends lib.DomainId>(
@@ -9459,7 +9441,6 @@ export const DomainProjectionPredicate = {
     },
   },
   Metadata: {
-    Atom: {},
     Key: <const T extends MetadataKeyProjectionPredicate>(
       value: T,
     ): lib.Variant<'Metadata', lib.Variant<'Key', T>> => ({
@@ -9490,7 +9471,6 @@ export type PeerIdProjectionPredicate =
   | lib.Variant<'Atom', PeerIdPredicateAtom>
   | lib.Variant<'PublicKey', PublicKeyProjectionPredicate>
 export const PeerIdProjectionPredicate = {
-  Atom: {},
   PublicKey: {
     Atom: {
       Equals: <const T extends lib.PublicKeyWrap>(
@@ -9523,7 +9503,6 @@ export type PermissionProjectionPredicate = lib.Variant<
   PermissionPredicateAtom
 >
 export const PermissionProjectionPredicate = {
-  Atom: {},
   ...lib.defineCodec(
     lib.enumCodec<{ Atom: [PermissionPredicateAtom] }>([[
       0,
@@ -9615,7 +9594,6 @@ export type RoleProjectionPredicate =
   | lib.Variant<'Atom', RolePredicateAtom>
   | lib.Variant<'Id', RoleIdProjectionPredicate>
 export const RoleProjectionPredicate = {
-  Atom: {},
   Id: {
     Atom: {
       Equals: <const T extends RoleId>(
@@ -9684,9 +9662,7 @@ export type SignedBlockProjectionPredicate =
   | lib.Variant<'Atom', SignedBlockPredicateAtom>
   | lib.Variant<'Header', BlockHeaderProjectionPredicate>
 export const SignedBlockProjectionPredicate = {
-  Atom: {},
   Header: {
-    Atom: {},
     Hash: {
       Atom: {
         Equals: <const T extends lib.HashWrap>(
@@ -9801,7 +9777,6 @@ export type TriggerProjectionPredicate =
   | lib.Variant<'Id', TriggerIdProjectionPredicate>
   | lib.Variant<'Action', ActionProjectionPredicate>
 export const TriggerProjectionPredicate = {
-  Atom: {},
   Id: {
     Atom: {
       Equals: <const T extends TriggerId>(
@@ -9853,9 +9828,7 @@ export const TriggerProjectionPredicate = {
     },
   },
   Action: {
-    Atom: {},
     Metadata: {
-      Atom: {},
       Key: <const T extends MetadataKeyProjectionPredicate>(
         value: T,
       ): lib.Variant<

@@ -5,6 +5,7 @@ import {
   type EmitCode,
   EmitsMap,
   enumShortcuts,
+  EnumShortcutTreeVariant,
   generateClientFindAPI,
   generateDataModel,
   renderShortcutsTree,
@@ -14,8 +15,8 @@ import {
 import * as dprint from 'dprint-node'
 
 async function formatTS(code: string): Promise<string> {
-    // return code
-  return dprint.format('whichever.ts', code, { semiColons: 'asi', quoteStyle: 'preferSingle'})
+  // return code
+  return dprint.format('whichever.ts', code, { semiColons: 'asi', quoteStyle: 'preferSingle' })
 }
 
 // import { format } from 'prettier'
@@ -184,6 +185,45 @@ describe('enum shortcuts', () => {
         },
       ]
     `)
+  })
+
+  test('build: omits enums without variants', () => {
+    const map: EmitsMap = new Map<string, EmitCode>([
+      ['Foo', { t: 'enum', variants: [] }],
+      [
+        'Bar',
+        {
+          t: 'enum',
+          variants: [
+            { discriminant: 0, tag: 'Baz', type: { t: 'null' } },
+            { discriminant: 1, tag: 'Foo', type: { t: 'local', id: 'Foo' } },
+          ],
+        },
+      ],
+      // nested void
+      ['Void0', { t: 'enum', variants: [{ discriminant: 0, tag: 'Void1', type: { t: 'local', id: 'Void1' } }] }],
+      ['Void1', { t: 'enum', variants: [{ discriminant: 0, tag: 'Foo', type: { t: 'local', id: 'Foo' } }] }],
+    ])
+
+    const tree = enumShortcuts(
+      [
+        { discriminant: 0, tag: 'foo', type: { t: 'local', id: 'Foo' } },
+        { discriminant: 1, tag: 'bar', type: { t: 'local', id: 'Bar' } },
+        { discriminant: 2, tag: 'void', type: { t: 'local', id: 'Void0' } },
+      ],
+      map,
+    )
+
+    expect(tree).toEqual([
+      {
+        name: 'bar',
+        t: 'enum',
+        tree: {
+          id: 'Bar',
+          variants: [{ name: 'Baz', t: 'unit' }],
+        },
+      },
+    ] satisfies EnumShortcutTreeVariant[])
   })
 
   test('generate shortcut tree', () => {

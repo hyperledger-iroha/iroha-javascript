@@ -6,8 +6,7 @@ import { deepEqual } from 'fast-equals'
 import invariant from 'tiny-invariant'
 import { P, match } from 'ts-pattern'
 
-// TODO: return HashOf<..> ?
-//       remove empty enum builders (for never variants)
+// TODO: return HashOf<..> ? Hard. Requires all hashable items to implement Hash on instances => why not all make all types as classes, finally...
 
 export function generateDataModel(resolver: Resolver, libModule: string): string {
   const { emits } = resolver
@@ -852,19 +851,24 @@ function findEnum(map: EmitsMap, id: string): null | (EmitCode & { t: 'enum' }) 
 }
 
 export function enumShortcuts(variants: EmitEnumVariant[], types: EmitsMap): EnumShortcutTreeVariant[] {
-  return variants.map((variant): EnumShortcutTreeVariant & { name: string } => {
-    if (variant.type.t === 'null') return { name: variant.tag, t: 'unit' }
+  return variants.flatMap((variant): (EnumShortcutTreeVariant & { name: string })[] => {
+    if (variant.type.t === 'null') return [{ name: variant.tag, t: 'unit' }]
     if (variant.type.t === 'local') {
       const found = findEnum(types, variant.type.id)
       if (found) {
-        return {
-          t: 'enum',
-          name: variant.tag,
-          tree: { id: variant.type.id, variants: enumShortcuts(found.variants, types) },
-        }
+        const variants = enumShortcuts(found.variants, types)
+        // there are some "never" enums, and we don't need shortcuts for them
+        if (!variants.length) return []
+        return [
+          {
+            t: 'enum',
+            name: variant.tag,
+            tree: { id: variant.type.id, variants },
+          },
+        ]
       }
     }
-    return { t: 'value', value_ty: variant.type, name: variant.tag }
+    return [{ t: 'value', value_ty: variant.type, name: variant.tag }]
   })
 }
 
@@ -1146,7 +1150,7 @@ function renderEmit(id: string, map: EmitsMap): string {
       return [
         // `/** */`,
         `export type ${id} = ${renderSumTypes(variants)}`,
-        `export const ${id} = { ${shortcuts}, ...lib.defineCodec(${codec}) }`,
+        `export const ${id} = { ${shortcuts ? shortcuts + ',' : ''} ...lib.defineCodec(${codec}) }`,
       ]
     })
     .with({ t: 'struct' }, ({ fields }) => {
