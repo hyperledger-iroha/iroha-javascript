@@ -12,6 +12,7 @@ import * as crypto from '@iroha2/crypto-core'
 
 export * from './items/index'
 export * from './query'
+export * from './transaction'
 export { type GenCodec as Codec } from './codec'
 export type { Variant, VariantUnit } from './util'
 

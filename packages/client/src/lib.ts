@@ -59,14 +59,6 @@ export interface SubmitParams {
   verifyAbort?: AbortSignal
 }
 
-export interface TransactionPayloadParams {
-  payload?: Except<dm.TransactionPayload, 'chain' | 'authority' | 'instructions'>
-  creationTime?: dm.Timestamp
-  timeToLive?: dm.NonZero<dm.Duration>
-  nonce?: never
-  metadata?: dm.Metadata
-}
-
 export class ResponseError extends Error {
   public static async assertStatus(response: Response, status: number) {
     if (response.status !== status) {
@@ -229,18 +221,18 @@ export class Client {
     return this.params.accountKeyPair.privateKey()
   }
 
-  public transaction(executable: dm.Executable, params?: TransactionPayloadParams): TransactionHandle {
-    const payload: dm.TransactionPayload = {
-      chain: this.params.chain,
-      authority: this.authority(),
-      instructions: executable,
-      creationTime: params?.creationTime ?? dm.Timestamp.fromDate(new Date()),
-      timeToLive: params?.timeToLive ?? new dm.NonZero(dm.Duration.fromMillis(100_000)),
-      nonce: params?.nonce ?? null,
-      metadata: params?.metadata ?? [],
-      ...params?.payload,
-    }
-    const tx = dm.signTransaction(payload, this.params.accountKeyPair.privateKey())
+  public transaction(
+    executable: dm.Executable,
+    params?: Except<dm.TransactionPayloadParams, 'authority' | 'chain'>,
+  ): TransactionHandle {
+    const tx = dm.signTransaction(
+      dm.buildTransactionPayload(executable, {
+        chain: this.params.chain,
+        authority: this.authority(),
+        ...params,
+      }),
+      this.params.accountKeyPair.privateKey(),
+    )
 
     return new TransactionHandle(tx, this)
   }
