@@ -1,4 +1,4 @@
-import { EXECUTOR_WASM_PATH, resolveBinary } from '@iroha2/iroha-source'
+import { EXECUTOR_WASM_PATH, irohaCodecToJson, resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
 import path from 'path'
 import { fs } from 'zx'
@@ -12,6 +12,7 @@ import {
   PEER_CONFIG_BASE,
 } from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
+import * as dm from '@iroha2/data-model'
 import { temporaryDirectory } from 'tempy'
 import { type ToriiHttpParams, getStatus } from '@iroha2/client'
 import mergeDeep from '@tinkoff/utils/object/mergeDeep'
@@ -81,6 +82,37 @@ export interface IrohaConfiguration {
   config: unknown
 }
 
+async function createGenesis() {
+  const alice = dm.AccountId.parse(`${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.value}`)
+  const genesis = dm.AccountId.parse(`${GENESIS_KEY_PAIR.publicKey}@genesis`)
+
+  const instructionsJson = await irohaCodecToJson(
+    'Vec<InstructionBox>',
+    dm.Vec.with(dm.codecOf(dm.InstructionBox)).encode([
+      dm.InstructionBox.Register.Domain({ id: DOMAIN, metadata: [], logo: null }),
+      dm.InstructionBox.Register.Account({ id: alice, metadata: [] }),
+      dm.InstructionBox.Transfer.Domain({ source: genesis, object: DOMAIN, destination: alice }),
+      dm.InstructionBox.SetParameter.Sumeragi.BlockTime(dm.Duration.fromMillis(BLOCK_TIME_MS)),
+      dm.InstructionBox.SetParameter.Sumeragi.CommitTime(dm.Duration.fromMillis(COMMIT_TIME_MS)),
+      ...[
+        { name: 'CanSetParameters', payload: dm.Json.fromValue(null) },
+        { name: 'CanRegisterDomain', payload: dm.Json.fromValue(null) },
+      ].map((object) => dm.InstructionBox.Grant.Permission({ object, destination: alice })),
+    ]),
+  )
+
+  return {
+    chain: CHAIN,
+    executor: EXECUTOR_WASM_PATH,
+    instructions: instructionsJson,
+    topology: [PEER_CONFIG_BASE.public_key],
+    // FIXME: migrate to direct building of `SignedBlock`, without `genesis.json`.
+    //        And note that I don't use any WASMs and these fields are extra for my case.
+    wasm_dir: 'why the hell do you require wasm_dir at all times?',
+    wasm_triggers: [], 
+  }
+}
+
 /**
  * Start network with a single peer.
  *
@@ -97,39 +129,7 @@ export async function startPeer(params?: { ports?: { api?: number; p2p?: number 
   const kagami = await resolveBinary('iroha_kagami')
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
-  const alice = `${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.value}`
-
-  const RAW_GENESIS = {
-    chain: CHAIN,
-    executor: EXECUTOR_WASM_PATH,
-    instructions: [
-      { Register: { Domain: { id: DOMAIN, metadata: {} } } },
-      { Register: { Account: { id: alice, metadata: {} } } },
-      {
-        Transfer: {
-          Domain: {
-            source: `${GENESIS_KEY_PAIR.publicKey}@genesis`,
-            object: DOMAIN,
-            destination: alice,
-          },
-        },
-      },
-      { SetParameter: { Sumeragi: { BlockTimeMs: BLOCK_TIME_MS } } },
-      { SetParameter: { Sumeragi: { CommitTimeMs: COMMIT_TIME_MS } } },
-      {
-        Grant: {
-          Permission: {
-            object: { name: 'CanSetParameters', payload: null },
-            destination: alice,
-          },
-        },
-      },
-      { Grant: { Permission: { destination: alice, object: { name: 'CanRegisterDomain', payload: null } } } },
-    ],
-    topology: [PEER_CONFIG_BASE.public_key],
-    wasm_dir: 'why the hell do you require wasm_dir at all times?',
-    wasm_triggers: [], // FIXME IROHA I DONT NEED IT STOPP!
-  }
+  const RAW_GENESIS = await createGenesis()
 
   await fs.writeFile(path.join(TMP_DIR, 'genesis.json'), JSON.stringify(RAW_GENESIS))
   await execa(

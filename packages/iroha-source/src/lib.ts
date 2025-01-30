@@ -4,6 +4,8 @@ import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
 import { match } from 'ts-pattern'
+import { SCHEMA } from '@iroha2/data-model-schema'
+import { JsonValue } from 'type-fest'
 
 export type Binary = 'irohad' | 'iroha_kagami' | 'iroha_codec'
 
@@ -55,4 +57,32 @@ async function isAccessible(path: string, mode?: number): Promise<boolean> {
     .access(path, mode)
     .then(() => true)
     .catch(() => false)
+}
+
+export async function irohaCodecToScale(type: keyof typeof SCHEMA, json: JsonValue): Promise<Uint8Array> {
+  const tool = await resolveBinary('iroha_codec')
+  const input = JSON.stringify(json, undefined, 2)
+  try {
+    const result = await execa(tool.path, ['json-to-scale', '--type', type], {
+      input,
+      encoding: null,
+    })
+    return new Uint8Array(result.stdout)
+  } catch (err) {
+    console.error(input)
+    throw err
+  }
+}
+
+export async function irohaCodecToJson(type: keyof typeof SCHEMA, scale: Uint8Array): Promise<JsonValue> {
+  const tool = await resolveBinary('iroha_codec')
+  try {
+    const result = await execa(tool.path, ['scale-to-json', '--type', type], {
+      input: Buffer.from(scale),
+      encoding: 'utf8',
+    })
+    return JSON.parse(result.stdout)
+  } catch (err) {
+    throw err
+  }
 }

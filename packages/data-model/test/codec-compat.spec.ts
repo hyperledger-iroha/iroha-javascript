@@ -1,26 +1,10 @@
 import type { Except, JsonValue } from 'type-fest'
 import * as dm from '@iroha2/data-model'
 import type { SCHEMA } from '@iroha2/data-model-schema'
-import { resolveBinary } from '@iroha2/iroha-source'
-import { execa } from 'execa'
+import { irohaCodecToScale } from '@iroha2/iroha-source'
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID } from './util'
 import { Bytes, KeyPair } from '@iroha2/crypto-core'
-
-async function encodeWithCLI(type: keyof typeof SCHEMA, data: JsonValue): Promise<Uint8Array> {
-  const tool = await resolveBinary('iroha_codec')
-  const input = JSON.stringify(data, undefined, 2)
-  try {
-    const result = await execa(tool.path, ['json-to-scale', '--type', type], {
-      input,
-      encoding: null,
-    })
-    return new Uint8Array(result.stdout)
-  } catch (err) {
-    console.error(input)
-    throw err
-  }
-}
 
 function toHex(bytes: Uint8Array) {
   return [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('')
@@ -274,7 +258,7 @@ test.each([
   }),
   // TODO: add SignedBlock
 ])(`Check encoding against iroha_codec of type $type: $value`, async <T>(data: Case<T>) => {
-  const referenceEncoded = await encodeWithCLI(data.type, data.json)
+  const referenceEncoded = await irohaCodecToScale(data.type, data.json)
   const actualEncoded = dm.codecOf(data.codec).encode(data.value)
   expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
 })
@@ -287,7 +271,7 @@ describe('BTree{Set/Map}', () => {
 
   test('Metadata encoding matches with iroha_codec', async () => {
     const CODEC = dm.codecOf(dm.Metadata)
-    const reference = await encodeWithCLI('Metadata', { foo: 'bar', bar: [1, 2, 3], '1': 2, 12: 1, 2: false })
+    const reference = await irohaCodecToScale('Metadata', { foo: 'bar', bar: [1, 2, 3], '1': 2, 12: 1, 2: false })
 
     const value: dm.Metadata = [
       { key: new dm.Name('foo'), value: dm.Json.fromValue('bar') },
@@ -324,7 +308,7 @@ describe('BTree{Set/Map}', () => {
       domains.flatMap((domain) => [new dm.AccountId(key, domain), new dm.AccountId(key, domain)]),
     )
 
-    const reference = await encodeWithCLI(
+    const reference = await irohaCodecToScale(
       'SortedVec<AccountId>',
       ids.map((x) => x.toJSON()),
     )
@@ -334,7 +318,7 @@ describe('BTree{Set/Map}', () => {
 
   test('BTreeSet<Permission> - encoding matches', async () => {
     const codec = dm.codecOf(dm.PermissionsSet)
-    const reference = await encodeWithCLI('SortedVec<Permission>', [
+    const reference = await irohaCodecToScale('SortedVec<Permission>', [
       { name: 'foo', payload: [1, 2, 3] },
       { name: 'foo', payload: [3, 2, 1] },
       { name: 'bar', payload: false },
