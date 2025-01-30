@@ -5,6 +5,7 @@ import * as dm from '@iroha2/data-model'
 import { Client } from '@iroha2/client'
 import { usePeer } from './util'
 import { match, P } from 'ts-pattern'
+import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha2/test-configuration'
 
 async function submitTestData(client: Client) {
   const bob = KeyPair.deriveFromSeed(Bytes.hex('bbbb'))
@@ -344,10 +345,6 @@ describe('queries', () => {
     expect(found).toEqual(someBlock)
   })
 
-  test.todo('find roles by account id')
-
-  test.todo('find permissions by account id')
-
   test('find asset definitions', async () => {
     const { client } = await usePeer()
     await submitTestData(client)
@@ -581,4 +578,32 @@ describe('Custom parameters', () => {
       ]
     `)
   })
+})
+
+describe('Roles & Permission', () => {
+  test('find account permissions from genesis', async () => {
+    const { client } = await usePeer()
+
+    const permissions = await client.find
+      .permissionsByAccountId({
+        id: new dm.AccountId(dm.PublicKeyWrap.fromHex(ACCOUNT_KEY_PAIR.publicKey), DOMAIN),
+      })
+      .executeAll()
+
+    // set in genesis block
+    expect(permissions).toMatchInlineSnapshot(`
+      [
+        {
+          "name": "CanRegisterDomain",
+          "payload": null,
+        },
+        {
+          "name": "CanSetParameters",
+          "payload": null,
+        },
+      ]
+    `)
+  })
+
+  test.todo('find roles by account id')
 })
