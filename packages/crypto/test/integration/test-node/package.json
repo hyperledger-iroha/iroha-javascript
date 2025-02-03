@@ -2,8 +2,8 @@
   "name": "@iroha2/crypto-test-node",
   "private": true,
   "devDependencies": {
-    "@iroha2/crypto-core": "workspace:^1.0.0",
-    "@iroha2/crypto-target-node": "workspace:^1.0.0"
+    "@iroha2/crypto-core": "workspace:^2.0.0",
+    "@iroha2/crypto-target-node": "workspace:^2.0.0"
   },
   "scripts": {
     "test": "run-s test:types run:cjs run:mjs test:unit",

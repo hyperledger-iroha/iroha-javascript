@@ -291,6 +291,14 @@ export class Client {
   public get httpTransport(): HttpTransport {
     return new HttpTransport(this.params.toriiBaseURL, this.params.fetch)
   }
+
+  public async query(
+    pre: ToriiRequirementsForApiHttp,
+    query: datamodel.QueryBox,
+    params?: QueryParams,
+  ): Promise<QueryResponse> {
+    return Torii.queryWithParams(pre, queryBoxIntoSignedQuery({ query, signer: this.signer }), params)
+  }
 }
 
 export interface ToriiHttpParams {

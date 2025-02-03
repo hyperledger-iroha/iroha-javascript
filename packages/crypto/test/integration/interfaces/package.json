@@ -5,9 +5,9 @@
     "test": "tsc --noEmit"
   },
   "devDependencies": {
-    "@iroha2/crypto-core": "workspace:^1.0.0",
-    "@iroha2/crypto-target-bundler": "workspace:^1.0.0",
-    "@iroha2/crypto-target-node": "workspace:^1.0.0",
-    "@iroha2/crypto-target-web": "workspace:^1.0.0"
+    "@iroha2/crypto-core": "workspace:^2.0.0",
+    "@iroha2/crypto-target-bundler": "workspace:^2.0.0",
+    "@iroha2/crypto-target-node": "workspace:^2.0.0",
+    "@iroha2/crypto-target-web": "workspace:^2.0.0"
   }
 }

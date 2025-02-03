@@ -1,6 +1,6 @@
 {
   "name": "@iroha2/crypto-target-bundler",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "module": "dist/lib.mjs",
   "types": "dist/lib.d.ts",
   "exports": {

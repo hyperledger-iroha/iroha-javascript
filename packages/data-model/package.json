@@ -1,6 +1,6 @@
 {
   "name": "@iroha2/data-model",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "module": "dist/esm/lib.mjs",
   "main": "dist/cjs/lib.cjs",
   "types": "dist/types/lib.d.ts",
@@ -17,13 +17,13 @@
   ],
   "license": "Apache 2.0",
   "dependencies": {
-    "@iroha2/crypto-core": "workspace:^1.1.1",
+    "@iroha2/crypto-core": "workspace:^",
     "@scale-codec/core": "^2.0.1",
     "type-fest": "^4.23.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@iroha2/crypto-target-node": "workspace:^1.1.1",
+    "@iroha2/crypto-target-node": "workspace:*",
     "@iroha2/data-model-schema": "workspace:*",
     "@iroha2/iroha-source": "workspace:*",
     "@scale-codec/util": "^1.1.2",

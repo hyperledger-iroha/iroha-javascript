@@ -1,5 +1,22 @@
 # @iroha2/client
 
+## 7.1.0
+
+### Minor Changes
+
+- a780a96: **feat:** add full support of Query API, soft-deprecating previous improper implementation
+
+  The new implementation is available via `Client.query`, `Torii.queryWithParams`, and `doQuery` functions.
+
+- 787a198: **refactor:** handle the major update of `@iroha2/crypto-core`
+- a780a96: **feat:** soft-deprecate `computeTransactionHash`; add `computeTransactionPayloadHash` & `computeSignedTransactionHash` instead, with descriptions which one to use and when
+
+### Patch Changes
+
+- Updated dependencies [787a198]
+  - @iroha2/crypto-core@2.0.0
+  - @iroha2/data-model@7.1.0
+
 ## 7.0.0
 
 ### Major Changes

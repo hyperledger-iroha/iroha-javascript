@@ -1,6 +1,6 @@
 {
   "name": "@iroha2/crypto-core",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "module": "dist/lib.mjs",
   "main": "dist/lib.cjs",
   "types": "dist/lib.d.ts",
@@ -16,6 +16,6 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@iroha2/crypto-util": "workspace:^0.1.0"
+    "@iroha2/crypto-util": "workspace:^"
   }
 }

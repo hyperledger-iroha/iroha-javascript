@@ -5,7 +5,7 @@ This project is a collection of integration tests running from Node.js with actu
 ## SDK Compatibility Matrix
 
 Tests for [compatibility matrix](https://hyperledger.github.io/iroha-2-docs/reference/compatibility-matrix.html)
-are defined at [`compatibility.spec.ts`](./test/compatibility.spec.ts).
+are defined at [`compatibility` directory](./test/compatibility).
 
 The easiest way to run tests:
 

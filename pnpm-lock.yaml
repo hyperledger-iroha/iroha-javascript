@@ -141,10 +141,10 @@ importers:
   packages/client:
     dependencies:
       '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^2.0.0
         version: link:../crypto/packages/core
       '@iroha2/data-model':
-        specifier: workspace:7.0.0
+        specifier: workspace:7.1.0
         version: link:../data-model
       debug:
         specifier: ^4.3.4
@@ -178,10 +178,10 @@ importers:
   packages/client/test/integration/test-node:
     devDependencies:
       '@iroha2/client':
-        specifier: workspace:^7.0.0
+        specifier: workspace:^
         version: link:../../..
       '@iroha2/crypto-target-node':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^
         version: link:../../../../crypto/packages/target-node
       '@iroha2/data-model-schema':
         specifier: workspace:^
@@ -214,16 +214,16 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0(esbuild@0.17.10)
       '@iroha2/client':
-        specifier: workspace:^7.0.0
+        specifier: workspace:^7.1.0
         version: link:../../..
       '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^2.0.0
         version: link:../../../../crypto/packages/core
       '@iroha2/crypto-target-web':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^2.0.0
         version: link:../../../../crypto/packages/target-web
       '@iroha2/data-model':
-        specifier: workspace:^7.0.0
+        specifier: workspace:^7.1.0
         version: link:../../../../data-model
       '@iroha2/test-configuration':
         specifier: workspace:^
@@ -276,7 +276,7 @@ importers:
   packages/crypto/packages/core:
     dependencies:
       '@iroha2/crypto-util':
-        specifier: workspace:^0.1.0
+        specifier: workspace:^
         version: link:../util
 
   packages/crypto/packages/target-bundler: {}
@@ -290,34 +290,34 @@ importers:
   packages/crypto/test/integration/interfaces:
     devDependencies:
       '@iroha2/crypto-core':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^2.0.0
         version: link:../../../packages/core
       '@iroha2/crypto-target-bundler':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^2.0.0
         version: link:../../../packages/target-bundler
       '@iroha2/crypto-target-node':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^2.0.0
         version: link:../../../packages/target-node
       '@iroha2/crypto-target-web':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^2.0.0
         version: link:../../../packages/target-web
 
   packages/crypto/test/integration/test-node:
     devDependencies:
       '@iroha2/crypto-core':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^2.0.0
         version: link:../../../packages/core
       '@iroha2/crypto-target-node':
-        specifier: workspace:^1.0.0
+        specifier: workspace:^2.0.0
         version: link:../../../packages/target-node
 
   packages/crypto/test/integration/test-web:
     devDependencies:
       '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^
         version: link:../../../packages/core
       '@iroha2/crypto-target-web':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^
         version: link:../../../packages/target-web
       cypress:
         specifier: ^13.12.0
@@ -332,7 +332,7 @@ importers:
   packages/data-model:
     dependencies:
       '@iroha2/crypto-core':
-        specifier: workspace:^1.1.1
+        specifier: workspace:^
         version: link:../crypto/packages/core
       '@scale-codec/core':
         specifier: ^2.0.1
@@ -345,7 +345,7 @@ importers:
         version: 3.23.8
     devDependencies:
       '@iroha2/crypto-target-node':
-        specifier: workspace:^1.1.1
+        specifier: workspace:*
         version: link:../crypto/packages/target-node
       '@iroha2/data-model-schema':
         specifier: workspace:*
