@@ -1,8 +1,8 @@
 /* eslint-disable no-lone-blocks */
-import { IrohaCryptoInterface } from '@iroha2/crypto-core'
-import { crypto as cryptoWeb, init as initWeb } from '@iroha2/crypto-target-web'
-import { crypto as cryptoNode } from '@iroha2/crypto-target-node'
-import { crypto as cryptoBundler } from '@iroha2/crypto-target-bundler'
+import type { WasmPkg } from '@iroha2/crypto-core'
+import type { init as initWeb, wasmPkg as wasmWeb } from '@iroha2/crypto-target-web'
+import type { wasmPkg as wasmNode } from '@iroha2/crypto-target-node'
+import type { wasmPkg as wasmBundler } from '@iroha2/crypto-target-bundler'
 
 {
   /**
@@ -10,11 +10,11 @@ import { crypto as cryptoBundler } from '@iroha2/crypto-target-bundler'
    * namespaces with classes could not be identical in any way?). So, just
    * to *extend* the core interface is enough.
    */
-  type ExpectToExtendCoreInterface<T extends IrohaCryptoInterface> = T
+  type ExpectToExtendCoreInterface<T extends WasmPkg> = T
 
-  type _test1 = ExpectToExtendCoreInterface<typeof cryptoNode>
-  type _test2 = ExpectToExtendCoreInterface<typeof cryptoWeb>
-  type _test3 = ExpectToExtendCoreInterface<typeof cryptoBundler>
+  type _test1 = ExpectToExtendCoreInterface<typeof wasmWeb>
+  type _test2 = ExpectToExtendCoreInterface<typeof wasmNode>
+  type _test3 = ExpectToExtendCoreInterface<typeof wasmBundler>
 }
 
 {

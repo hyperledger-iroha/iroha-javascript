@@ -15,23 +15,6 @@ export type Algorithm =
     | 'bls_small'
 
 
-    
-export interface PrivateKeyJson {
-    algorithm: string
-    /** Hex-encoded bytes */
-    payload: string
-}
-
-export interface KeyPairJson {
-    public_key: string
-    private_key: PrivateKeyJson
-}
-
-export interface SignatureJson {
-    public_key: string
-    /** Hex-encoded bytes */
-    payload: string
-}
 
 export type VerifyResult =
     | { t: 'ok' }
@@ -76,13 +59,6 @@ export class Hash {
 export class KeyPair {
   free(): void;
 /**
-* # Errors
-* Fails if deserialization fails
-* @param {KeyPairJson} value
-* @returns {KeyPair}
-*/
-  static from_json(value: KeyPairJson): KeyPair;
-/**
 * Generate a random key pair
 *
 * # Errors
@@ -121,12 +97,6 @@ export class KeyPair {
 */
   private_key(): PrivateKey;
 /**
-* # Errors
-* Fails if serialisation fails
-* @returns {KeyPairJson}
-*/
-  to_json(): KeyPairJson;
-/**
 */
   readonly algorithm: Algorithm;
 }
@@ -137,11 +107,11 @@ export class PrivateKey {
   free(): void;
 /**
 * # Errors
-* Fails if serialization fails
-* @param {PrivateKeyJson} value
+* Fails if multihash parsing fails
+* @param {string} multihash
 * @returns {PrivateKey}
 */
-  static from_json(value: PrivateKeyJson): PrivateKey;
+  static from_multihash_hex(multihash: string): PrivateKey;
 /**
 * # Errors
 * Fails if parsing of digest function or payload byte input fails
@@ -159,11 +129,9 @@ export class PrivateKey {
 */
   payload_hex(): string;
 /**
-* # Errors
-* Fails is serialisation fails
-* @returns {PrivateKeyJson}
+* @returns {string}
 */
-  to_json(): PrivateKeyJson;
+  to_multihash_hex(): string;
 /**
 */
   readonly algorithm: Algorithm;
@@ -198,11 +166,6 @@ export class PublicKey {
 */
   to_multihash_hex(): string;
 /**
-* Equivalent to [`Self::to_multihash_hex`]
-* @returns {string}
-*/
-  to_json(): string;
-/**
 * @returns {Uint8Array}
 */
   payload(): Uint8Array;
@@ -220,45 +183,34 @@ export class PublicKey {
 export class Signature {
   free(): void;
 /**
-* # Errors
-* If failed to deserialise JSON
-* @param {SignatureJson} value
-* @returns {Signature}
-*/
-  static from_json(value: SignatureJson): Signature;
-/**
 * Construct the signature from raw components received from elsewhere
 *
 * # Errors
 * - Invalid bytes input
-* @param {PublicKey} public_key
 * @param {Binary} payload
 * @returns {Signature}
 */
-  static from_bytes(public_key: PublicKey, payload: Binary): Signature;
+  static from_bytes(payload: Binary): Signature;
 /**
 * Creates new signature by signing the payload via the key pair's private key.
 *
 * # Errors
 * If parsing bytes input fails
-* @param {KeyPair} key_pair
+* @param {PrivateKey} private_key
 * @param {Binary} payload
 */
-  constructor(key_pair: KeyPair, payload: Binary);
+  constructor(private_key: PrivateKey, payload: Binary);
 /**
-* Verify `payload` using signed data and the signature's public key
+* Verify that the signature is signed by the given public key
 *
 * # Errors
 * - If parsing of bytes input fails
 * - If failed to construct verify error
+* @param {PublicKey} public_key
 * @param {Binary} payload
 * @returns {VerifyResult}
 */
-  verify(payload: Binary): VerifyResult;
-/**
-* @returns {PublicKey}
-*/
-  public_key(): PublicKey;
+  verify(public_key: PublicKey, payload: Binary): VerifyResult;
 /**
 * @returns {Uint8Array}
 */
@@ -267,10 +219,4 @@ export class Signature {
 * @returns {string}
 */
   payload_hex(): string;
-/**
-* # Errors
-* If conversion fails
-* @returns {SignatureJson}
-*/
-  to_json(): SignatureJson;
 }

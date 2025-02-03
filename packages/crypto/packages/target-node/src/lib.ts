@@ -1,2 +1,4 @@
-export * as crypto from '@iroha2/crypto-interface-wrap'
-export * as wasmPkg from '@iroha2/crypto/~wasm-pkg/nodejs'
+/**
+ * @module @iroha2/crypto-target-node
+ */
+export * from '@iroha2/crypto-target-node~rollup-wasm'

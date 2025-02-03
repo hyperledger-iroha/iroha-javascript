@@ -2,11 +2,11 @@
   "name": "@iroha2/iroha-source",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "main": "./src/lib.ts",
   "scripts": {
     "cli": "tsx etc/cli",
-    "clone": "pnpm cli clone",
-    "build:iroha": "pnpm cli build iroha"
+    "build-all-binaries": "pnpm cli build-all"
   },
   "devDependencies": {
     "@types/yargs": "^17.0.22",

@@ -1,13 +1,6 @@
-import { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types'
-import { Debugger } from 'debug'
+import type { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types'
+import type { Debugger } from 'debug'
 import Emittery from 'emittery'
-import JsonBigIntParseFactory from 'json-bigint/lib/parse.js'
-import { getCryptoAnyway } from './crypto-singleton'
-import { Bytes, freeScope } from '@iroha2/crypto-core'
-
-export function cryptoHash(input: Bytes): Uint8Array {
-  return freeScope(() => getCryptoAnyway().Hash.hash(input).bytes())
-}
 
 export function transformProtocolInUrlFromHttpToWs(url: string): string {
   return url.replace(/^https?:\/\//, (substr) => {
@@ -81,30 +74,49 @@ export function setupWebSocket<EmitMap extends SocketEmitMapBase>(params: {
   return { isClosed, send, close: closeAsync, ee, accepted }
 }
 
-const jsonBigIntParse = JsonBigIntParseFactory({ useNativeBigInt: true })
-
-export function parseJsonWithBigInts(raw: string): any {
-  return jsonBigIntParse(raw)
+async function* asyncIterFlatten<T>(iter: AsyncIterable<T[]>) {
+  for await (const batch of iter) {
+    for (const i of batch) {
+      yield i
+    }
+  }
 }
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
+/**
+ * A util to get just all items from all batches from an async iterator.
+ */
+export async function asyncIterAll<T>(iter: AsyncIterable<T[]>): Promise<T[]> {
+  // TODO: replace with Array.fromAsync when available
+  const acc: T[] = []
+  for await (const i of asyncIterFlatten(iter)) {
+    acc.push(i)
+  }
+  return acc
+}
 
-  test('When plain JSON is passed, it parses numbers as plain numbers', () => {
-    const raw = `{"num":123}`
-    const parsed = { num: 123 }
+/**
+ * A util extracting one and only one item from an async iterator.
+ *
+ * It is an error if the iterator yields more than one item or finishes without yielding anything.
+ */
+export async function asyncIterOne<T>(iter: AsyncIterable<T[]>): Promise<T> {
+  const item = await asyncIterOneOpt(iter)
+  if (!item) throw new Error('expected async iterator to yield exactly one item, but it yielded no items at all')
+  return item.some
+}
 
-    const actual = parseJsonWithBigInts(raw)
-
-    expect(actual).toEqual(parsed)
-  })
-
-  test('When JSON with too big ints is passed, it parses numbers as BigInts', () => {
-    const raw = `{"num":123456789123456789123456789123456789}`
-    const parsed = { num: 123456789123456789123456789123456789n }
-
-    const actual = parseJsonWithBigInts(raw)
-
-    expect(actual).toEqual(parsed)
-  })
+/**
+ * A util extracting a single optional element from an async iterator.
+ *
+ * It is an error if the iterator yields more than a single item.
+ */
+export async function asyncIterOneOpt<T>(iter: AsyncIterable<T[]>): Promise<null | { some: T }> {
+  // TODO: maybe simplify with collecting just all
+  let item: null | { some: T } = null
+  for await (const batch of iter) {
+    if (!item && batch.length === 1) item = { some: batch[0] }
+    else if ((item && batch.length) || (!item && batch.length > 1))
+      throw new Error('expected async iterator with batches to yield exactly one item, but it yields more')
+  }
+  return item
 }

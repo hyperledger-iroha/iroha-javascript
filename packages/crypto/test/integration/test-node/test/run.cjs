@@ -1,7 +1,10 @@
 // we want to ensure that the Node target package works in CJS mode
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { crypto } = require('@iroha2/crypto-target-node')
+const { wasmPkg } = require('@iroha2/crypto-target-node')
+const { Bytes, setWASM, Hash } = require('@iroha2/crypto-core')
 
-const hash = crypto.Hash.hash('hex', '0011224433').bytes('hex')
+setWASM(wasmPkg)
+
+const hash = Hash.hash(Bytes.hex('deadbeef')).payload('hex')
 console.log('Sample hash:', hash)

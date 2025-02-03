@@ -6,13 +6,8 @@
     "types": ["vitest/importMeta"],
     "paths": {
       // these virtual imports are replaced in Rollup
-      "@iroha2/crypto/~wasm-pkg/*": ["./packages/crypto/crypto-rs/wasm-pkg-*/iroha_crypto"],
-
-      // "default" virtual import - might be any of `wasm-pkg-*`
-      "@iroha2/crypto/~wasm-pkg": ["./packages/crypto/crypto-rs/wasm-pkg-nodejs/iroha_crypto"],
-
+      "@iroha2/~crypto-wasm-pkg/*": ["./packages/crypto/crypto-rs/wasm-pkg-*/iroha_crypto"],
       "@iroha2/crypto-*": ["./packages/crypto/packages/*/src/lib.ts"],
-      "@iroha2/client/*": ["./packages/client/src/*"],
       "@iroha2/*": ["./packages/*/src/lib.ts"]
     }
   },
@@ -22,5 +17,6 @@
     "**/test/integration",
     "packages/client-isomorphic-*",
     "packages/crypto/crypto-rs"
-  ]
+  ],
+  "include": ["**/*.ts", "**/*.js"]
 }

@@ -69,7 +69,9 @@ function printHexHash(data: Uint8Array, crypto: IrohaCryptoInterface) {
 
 ### Avoid memory leaks
 
-WASM objects are not deallocated automatically. All the objects that reflect some struct in WASM have `.free()` method to trigger deallocation manually, for example:
+WASM objects are deallocated automatically on platforms with [Weak References support](https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html).
+
+However, on platforms with no support for this feature, all WASM objects must be deallocated manually with `.free()` method. For example:
 
 ```ts
 import { crypto } from '@iroha2/crypto-target-node'

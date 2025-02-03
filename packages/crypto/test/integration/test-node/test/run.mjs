@@ -1,6 +1,9 @@
 // we want to ensure that the Node target package works in ESM mode
 
-import { crypto } from '@iroha2/crypto-target-node'
+import { wasmPkg } from '@iroha2/crypto-target-node'
+import { Bytes, Hash, setWASM } from '@iroha2/crypto-core'
 
-const hash = crypto.Hash.hash('hex', '0011224433').bytes('hex')
+setWASM(wasmPkg)
+
+const hash = Hash.hash(Bytes.hex('deadbeef')).payload('hex')
 console.log('Sample hash:', hash)

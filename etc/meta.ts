@@ -1,9 +1,10 @@
 import path from 'path'
-import { PackageJson } from 'type-fest'
+import type { PackageJson } from 'type-fest'
 import { Set } from 'immutable'
 import * as metaCrypto from './meta-crypto'
 import { P, match } from 'ts-pattern'
-import { SetEntry, resolve } from './util'
+import type { SetEntry } from './util'
+import { resolve } from './util'
 
 function predicateStartsWith<S extends string>(prefix: S): (x: string) => x is `${S}${string}` {
   return (x): x is `${S}` => x.startsWith(prefix)
@@ -44,17 +45,15 @@ export async function loadProductionDependencies(pkg: PackageToRollup): Promise<
   const pathToPackageJson: string = path.join(packageRoot(pkg), 'package.json')
   const {
     default: { dependencies, peerDependencies },
-  }: { default: PackageJson } = await import(pathToPackageJson, { assert: { type: 'json' } })
+  }: { default: PackageJson } = await import(pathToPackageJson, { with: { type: 'json' } })
   return Set(Object.keys({ ...dependencies, ...peerDependencies }))
 }
 
 export type PackageToRollup = SetEntry<typeof PACKAGES_TO_ROLLUP>
 
-export const PACKAGES_TO_ROLLUP = metaCrypto.PACKAGES_TO_ROLLUP.merge(
-  Set(['client', 'data-model', 'i64-fixnum'] as const),
-)
+export const PACKAGES_TO_ROLLUP = metaCrypto.PACKAGES.merge(Set(['client', 'data-model', 'i64-fixnum'] as const))
 
-export const PACKAGES_TO_BUILD_WITH_TSC = metaCrypto.PACKAGES_TO_BUILD_WITH_TSC.merge(PACKAGES_TO_ROLLUP)
+export const PACKAGES_TO_BUILD_WITH_TSC = metaCrypto.PACKAGES.merge(PACKAGES_TO_ROLLUP)
 
 export type PackageToBuildWithTsc = SetEntry<typeof PACKAGES_TO_BUILD_WITH_TSC>
 
@@ -62,20 +61,12 @@ export type PackageToPublish = SetEntry<typeof PACKAGES_TO_PUBLISH>
 
 export const PACKAGES_TO_PUBLISH = PACKAGES_TO_ROLLUP.merge(Set(['data-model-schema'] as const))
 
-export type PackageAny = PackageToRollup | PackageToPublish | metaCrypto.PackageToBuildWithTsc
+export type PackageAny = PackageToRollup | PackageToPublish | metaCrypto.Package
 
 export function scopePackage<T extends PackageAny>(name: T) {
   return `@iroha2/${name}` as const
 }
 
 export function artifactsToClean(): string[] {
-  return [
-    '**/dist',
-    '**/dist-tsc',
-
-    // compilation artifacts
-    'packages/data-model-schema/src/__schema__.json',
-    'packages/data-model-rust-samples/samples.json',
-    'packages/data-model/src/__generated__.ts',
-  ]
+  return ['**/dist', '**/dist-tsc']
 }

@@ -1,46 +1,42 @@
 <script setup lang="ts">
-import { SetupEventsReturn, Torii } from '@iroha2/client'
-import { datamodel, sugar } from '@iroha2/data-model'
 import { computed, onBeforeUnmount, shallowReactive, shallowRef } from 'vue'
-import { toriiPre } from '../client'
+import type { SetupEventsReturn } from '@iroha2/client'
+import { datamodel } from '@iroha2/data-model'
+import { P, match } from 'ts-pattern'
+import { client } from '../client'
 
-function bytesToHex(bytes: number[]): string {
+function bytesToHex(bytes: Pick<Array<number>, 'map'>): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-interface EventData {
-  hash: string
-  status: string
-}
-
-const events = shallowReactive<EventData[]>([])
-
+const events = shallowReactive<string[]>([])
 const currentListener = shallowRef<null | SetupEventsReturn>(null)
-
 const isListening = computed(() => !!currentListener.value)
 
-function displayStatus(status: datamodel.PipelineStatus): string {
-  switch (status.enum.tag) {
-    case 'Validating':
-      return 'validating'
-    case 'Committed':
-      return 'committed'
-    case 'Rejected':
-      return 'rejected with some reason'
-  }
-}
-
 async function startListening() {
-  currentListener.value = await Torii.listenForEvents(toriiPre, {
-    filter: sugar.filter.pipeline({ entityKind: 'Transaction', statusKind: 'Committed' }),
+  currentListener.value = await client.eventsStream({
+    filters: [
+      datamodel.EventFilterBox({ t: 'Pipeline', value: { t: 'Block', value: {} } }),
+      datamodel.EventFilterBox({ t: 'Pipeline', value: { t: 'Transaction', value: {} } }),
+    ],
   })
 
   currentListener.value.ee.on('event', (event) => {
-    const { hash, status } = event.enum.as('Pipeline')
-    events.push({
-      hash: bytesToHex([...hash]),
-      status: displayStatus(status),
-    })
+    events.push(
+      match(event)
+        .returnType<string>()
+        .with(
+          { t: 'Pipeline', value: { t: 'Block', value: P.select() } },
+          ({ status, header }) => `Block (height=${header.height}): ${status.t}`,
+        )
+        .with(
+          { t: 'Pipeline', value: { t: 'Transaction', value: P.select() } },
+          ({ hash, status }) => `Transaction (${bytesToHex([...hash.slice(0, 5)])}...): ${status.t}`,
+        )
+        .otherwise(({ t }) => {
+          throw new Error(`This should not appear with given filters: ${t}`)
+        }),
+    )
   })
 }
 
@@ -66,11 +62,10 @@ onBeforeUnmount(stopListening)
 
     <ul class="events-list">
       <li
-        v-for="{ hash, status } in events"
-        :key="hash"
+        v-for="(event, i) in events"
+        :key="i"
       >
-        Transaction <code>{{ hash }}</code> status:
-        {{ status }}
+        {{ event }}
       </li>
     </ul>
   </div>

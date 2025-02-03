@@ -48,7 +48,7 @@ Make sure you have installed **Node.js v16.17 or v18**. As for a package manager
 Also make sure you have installed the following version of **Rust toolchain**:
 
 ```bash
-rustup default nightly-2023-06-25
+rustup default nightly-2024-06-12
 ```
 
 Before working with the repository, install the necessary packages:
@@ -105,7 +105,7 @@ Each monorepo package might have its own scripts and tasks. You can find the pac
 
    > This package targets `hyperledger/iroha` at current `iroha2-lts` branch, which has a hash `b783f10fa7de26ed1fdd4c526bd162f8636f1a65`.
 
-   Put here a new Iroha 2 reference commit information.
+   Put here new Iroha 2 reference commit information.
 
 ### SDK Compatibility Matrix Tests
 

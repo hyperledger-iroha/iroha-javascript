@@ -1,28 +1,57 @@
-import { resolveBinary } from '@iroha2/iroha-source'
+import { EXECUTOR_WASM_PATH, irohaCodecToJson, resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
-import makeDir from 'make-dir'
 import path from 'path'
-import readline from 'readline'
-import invariant from 'tiny-invariant'
-import { match } from 'ts-pattern'
 import { fs } from 'zx'
-import { BLOCK_STORE_PATH_RELATIVE, EXECUTOR_WASM_PATH_RELATIVE, TMP_DIR } from '../etc/meta'
-import debug from './dbg'
-import { rmForce, setConfigurationChecked, waitUntilPeerIsHealthy } from './util'
-import EXECUTOR_WASM from '@iroha2/iroha-source/src/subentries/executor'
-import { CLIENT_CONFIG, PEER_CONFIG, PEER_GENESIS } from '@iroha2/test-configuration'
+import {
+  ACCOUNT_KEY_PAIR,
+  BLOCK_TIME_MS,
+  CHAIN,
+  COMMIT_TIME_MS,
+  DOMAIN,
+  GENESIS_KEY_PAIR,
+  PEER_CONFIG_BASE,
+} from '@iroha2/test-configuration'
+import TOML from '@iarna/toml'
+import * as dm from '@iroha2/data-model'
+import { temporaryDirectory } from 'tempy'
+import { type ToriiHttpParams, getStatus } from '@iroha2/client'
+import mergeDeep from '@tinkoff/utils/object/mergeDeep'
+import readline from 'readline'
 
-/**
- * Time within to check if peer is up and running
- */
-const HEALTH_CHECK_TIMEOUT = 1_500
-const HEALTH_CHECK_INTERVAL = 200
+import Debug from 'debug'
 
-export interface StartPeerParams {
-  /**
-   * @default true
-   */
-  withGenesis?: boolean
+const debug = Debug('@iroha2/test-peer')
+
+const GENESIS_CHECK_TIMEOUT = 1_500
+const GENESIS_CHECK_INTERVAL = 200
+
+async function waitForGenesis(toriiBaseURL: string, abort: AbortSignal) {
+  const toriiHttp = { toriiBaseURL, fetch } satisfies ToriiHttpParams
+
+  let now = Date.now()
+  const endAt = now + GENESIS_CHECK_TIMEOUT
+
+  let aborted = false
+  abort.addEventListener('abort', () => {
+    aborted = true
+  })
+
+  while (true) {
+    if (aborted) throw new Error('Aborted')
+
+    now = Date.now()
+    if (now > endAt) throw new Error(`Genesis is still not committed after ${GENESIS_CHECK_TIMEOUT}ms`)
+
+    try {
+      const { blocks } = await getStatus(toriiHttp)
+      if (blocks === 1n) break
+      throw `blocks: ${blocks}`
+    } catch (error) {
+      debug('genesis is not yet ready: %o', error)
+    }
+
+    await new Promise((r) => setTimeout(r, GENESIS_CHECK_INTERVAL))
+  }
 }
 
 export interface KillPeerParams {
@@ -44,6 +73,8 @@ export interface StartPeerReturn {
    * Check for alive status
    */
   isAlive: () => boolean
+
+  toriiURL: string
 }
 
 export interface IrohaConfiguration {
@@ -51,23 +82,35 @@ export interface IrohaConfiguration {
   config: unknown
 }
 
-function resolveTempJsonConfigFile(key: keyof IrohaConfiguration): string {
-  return path.resolve(TMP_DIR, `${key}.json`)
-}
+async function createGenesis() {
+  const alice = dm.AccountId.parse(`${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.value}`)
+  const genesis = dm.AccountId.parse(`${GENESIS_KEY_PAIR.publicKey}@genesis`)
 
-async function prepareTempDir(): Promise<void> {
-  await makeDir(TMP_DIR)
-}
+  const instructionsJson = await irohaCodecToJson(
+    'Vec<InstructionBox>',
+    dm.Vec.with(dm.codecOf(dm.InstructionBox)).encode([
+      dm.InstructionBox.Register.Domain({ id: DOMAIN, metadata: [], logo: null }),
+      dm.InstructionBox.Register.Account({ id: alice, metadata: [] }),
+      dm.InstructionBox.Transfer.Domain({ source: genesis, object: DOMAIN, destination: alice }),
+      dm.InstructionBox.SetParameter.Sumeragi.BlockTime(dm.Duration.fromMillis(BLOCK_TIME_MS)),
+      dm.InstructionBox.SetParameter.Sumeragi.CommitTime(dm.Duration.fromMillis(COMMIT_TIME_MS)),
+      ...[
+        { name: 'CanSetParameters', payload: dm.Json.fromValue(null) },
+        { name: 'CanRegisterDomain', payload: dm.Json.fromValue(null) },
+      ].map((object) => dm.InstructionBox.Grant.Permission({ object, destination: alice })),
+    ]),
+  )
 
-async function reportTmpContents() {
-  const contents = await fs.readdir(TMP_DIR)
-  debug('Dir contents BEFORE start: %o', contents)
-}
-
-// eslint-disable-next-line no-undef
-function readableToDebug(input: NodeJS.ReadableStream, prefix: string) {
-  const dbg = debug.extend(prefix)
-  readline.createInterface(input).on('line', (line) => dbg(line))
+  return {
+    chain: CHAIN,
+    executor: EXECUTOR_WASM_PATH,
+    instructions: instructionsJson,
+    topology: [PEER_CONFIG_BASE.public_key],
+    // FIXME: migrate to direct building of `SignedBlock`, without `genesis.json`.
+    //        And note that I don't use any WASMs and these fields are extra for my case.
+    wasm_dir: 'why the hell do you require wasm_dir at all times?',
+    wasm_triggers: [],
+  }
 }
 
 /**
@@ -75,27 +118,66 @@ function readableToDebug(input: NodeJS.ReadableStream, prefix: string) {
  *
  * **Note:** Iroha binary must be pre-built.
  */
-export async function startPeer(params?: StartPeerParams): Promise<StartPeerReturn> {
-  const iroha = (await resolveBinary('iroha', { skipUpdate: true })).path
+export async function startPeer(params?: { ports?: { api?: number; p2p?: number } }): Promise<StartPeerReturn> {
+  const PORT = params?.ports?.api ?? 8080
+  const PORT_P2P = params?.ports?.p2p ?? 1337
+  const API_ADDRESS = `127.0.0.1:${PORT}`
+  const API_URL = `http://${API_ADDRESS}`
+  const P2P_ADDRESS = `127.0.0.1:${PORT_P2P}`
+  const TMP_DIR = temporaryDirectory()
+  const irohad = await resolveBinary('irohad')
+  const kagami = await resolveBinary('iroha_kagami')
+  debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
-  await reportTmpContents()
+  const RAW_GENESIS = await createGenesis()
+
+  await fs.writeFile(path.join(TMP_DIR, 'genesis.json'), JSON.stringify(RAW_GENESIS))
+  await execa(
+    kagami.path,
+    [
+      `genesis`,
+      `sign`,
+      path.join(TMP_DIR, 'genesis.json'),
+      `--public-key`,
+      GENESIS_KEY_PAIR.publicKey,
+      `--private-key`,
+      GENESIS_KEY_PAIR.privateKey,
+      '--out-file',
+      path.join(TMP_DIR, 'genesis.scale'),
+    ],
+    { encoding: 'buffer' },
+  )
+
+  await fs.writeFile(
+    path.join(TMP_DIR, 'config.toml'),
+    TOML.stringify(
+      mergeDeep(PEER_CONFIG_BASE, {
+        genesis: { file: './genesis.scale' },
+        kura: { store_dir: './storage' },
+        torii: { address: API_ADDRESS },
+        network: { address: P2P_ADDRESS, public_address: P2P_ADDRESS },
+        snapshot: { mode: 'disabled' },
+        logger: {
+          format: 'json',
+          level: 'DEBUG',
+        },
+      }),
+    ),
+  )
 
   // state
   let isAlive = false
 
   // starting peer
-  const withGenesis: boolean = params?.withGenesis ?? true
-  const subprocess = execa(iroha, withGenesis ? ['--submit-genesis'] : [], {
+  const subprocess = execa(irohad.path, ['--config', './config.toml'], {
     cwd: TMP_DIR,
-    env: {
-      IROHA2_CONFIG_PATH: resolveTempJsonConfigFile('config'),
-      IROHA2_GENESIS_PATH: resolveTempJsonConfigFile('genesis'),
-    },
   })
 
-  invariant(subprocess.stdout && subprocess.stderr)
-  readableToDebug(subprocess.stdout, 'subprocess-stdout')
-  readableToDebug(subprocess.stderr, 'subprocess-stderr')
+  subprocess.pipeStdout!(fs.createWriteStream(path.join(TMP_DIR, 'stdout.json')))
+  subprocess.pipeStderr!(fs.createWriteStream(path.join(TMP_DIR, 'stderr')))
+  readline.createInterface(subprocess.stderr!).on('line', (line) => {
+    debug.extend('stderr')(line)
+  })
 
   subprocess.once('spawn', () => {
     isAlive = true
@@ -107,11 +189,6 @@ export async function startPeer(params?: StartPeerParams): Promise<StartPeerRetu
   })
 
   const healthCheckAbort = new AbortController()
-  const irohaIsHealthyPromise = waitUntilPeerIsHealthy(CLIENT_CONFIG.torii.apiURL, {
-    checkInterval: HEALTH_CHECK_INTERVAL,
-    checkTimeout: HEALTH_CHECK_TIMEOUT,
-    abort: healthCheckAbort.signal,
-  })
 
   const exitPromise = new Promise<void>((resolve) => {
     subprocess.once('exit', (...args) => {
@@ -124,56 +201,22 @@ export async function startPeer(params?: StartPeerParams): Promise<StartPeerRetu
   const kill = async function () {
     if (!isAlive) throw new Error('Already dead')
     debug('Killing peer...')
-    subprocess.kill('SIGTERM', { forceKillAfterTimeout: 500 })
+    subprocess.kill('SIGTERM')
     await exitPromise
     debug('Peer is killed')
   }
 
-  await new Promise<void>((resolve, reject) => {
+  await Promise.race([
     exitPromise.then(() => {
-      reject(new Error('Iroha has exited already, maybe something went wrong'))
       healthCheckAbort.abort()
-    })
-    irohaIsHealthyPromise.then(() => resolve()).catch((err) => reject(err))
-  })
+      throw new Error('Iroha has exited already, maybe something went wrong')
+    }),
+    waitForGenesis(API_URL, healthCheckAbort.signal),
+  ])
 
   return {
     kill,
     isAlive: () => isAlive,
+    toriiURL: API_URL,
   }
-}
-
-export async function prepareConfiguration() {
-  await setConfigurationChecked({
-    // parsing with type-level check
-    peerGenesis: match(PEER_GENESIS)
-      .with({ executor: EXECUTOR_WASM_PATH_RELATIVE }, (x) => x)
-      .otherwise(() => {
-        throw new Error('Invalid genesis')
-      }),
-    peerConfig: match(PEER_CONFIG)
-      .with({ KURA: { BLOCK_STORE_PATH: BLOCK_STORE_PATH_RELATIVE } }, (x) => x)
-      .otherwise(() => {
-        throw new Error('Invalid peer config')
-      }),
-
-    executorWasm: EXECUTOR_WASM,
-  })
-}
-
-/**
- * Clear working peer directory completely
- */
-export async function clearAll(): Promise<void> {
-  const deleted = await rmForce(path.join(TMP_DIR, '*'))
-  debug('working dir is cleared: %o', deleted)
-}
-
-/**
- * Clear peer storage. Use it before each peer startup if you want to isolate states.
- */
-export async function clearPeerStorage() {
-  const rmTarget = path.resolve(TMP_DIR, BLOCK_STORE_PATH_RELATIVE)
-  const deleted = await rmForce(rmTarget)
-  debug('Blocks are cleaned: %o', deleted)
 }

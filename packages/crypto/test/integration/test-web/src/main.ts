@@ -1,18 +1,18 @@
-import { crypto, init } from '@iroha2/crypto-target-web'
+import { init, wasmPkg } from '@iroha2/crypto-target-web'
+import { PrivateKey, PublicKey, setWASM } from '@iroha2/crypto-core'
+
+setWASM(wasmPkg)
+await init()
 
 interface Config {
-  private_key: {
-    digest_function: string
-    payload: string
-  }
+  privateKey: string
 }
 
-await init()
-const { private_key } =
+const { privateKey } =
   // intercepted by Cypress
   await fetch('/api/config').then<Config>((x) => x.json())
 
-const payloadHex = crypto.PublicKey.fromPrivateKey(crypto.PrivateKey.fromJSON(private_key)).payload('hex')
+const multihash = PublicKey.fromPrivateKey(PrivateKey.fromMultihash(privateKey)).toMultihash()
 
 const app = document.querySelector<HTMLDivElement>('#app')!
-app.innerHTML = `Public key payload hex is: ${payloadHex}`
+app.innerHTML = `Public key multihash: ${multihash}`

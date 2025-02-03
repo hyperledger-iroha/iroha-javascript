@@ -1,4 +1,8 @@
 /**
+ * @module @iroha2/i64-fixnum
+ */
+
+/**
  * @packageDocumentation
  *
  * JS implementation of fixed-point numbers with explicit rounding.

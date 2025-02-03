@@ -6,11 +6,5 @@
   "files": [
     "src"
   ],
-  "license": "Apache 2.0",
-  "scripts": {
-    "compile-with-kagami": "tsx etc/compile-with-kagami"
-  },
-  "devDependencies": {
-    "@iroha2/iroha-source": "workspace:^0.0.0"
-  }
+  "license": "Apache 2.0"
 }

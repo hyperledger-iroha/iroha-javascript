@@ -1,4 +1,4 @@
-import { IncomingData, IsomorphicWebSocketAdapter } from '@iroha2/client'
+import type { IncomingData, IsomorphicWebSocketAdapter } from '@iroha2/client'
 
 async function handleIncomingData(data: any): Promise<IncomingData> {
   if (data instanceof Blob) {

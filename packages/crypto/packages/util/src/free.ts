@@ -70,12 +70,9 @@ function unwrapTrackObject(object: TrackObjectOrInner): TrackObject {
   return i
 }
 
-export const FREE_HEAP = new Set<FreeGuard<Free>>()
-
 /**
  * Wrapper around a free-able object to control its access,
- * to track in a global heap (see {@link FREE_HEAP}), and to track
- * within scopes (see {@link FreeScope}).
+ * to track within scopes (see {@link FreeScope}).
  */
 export class FreeGuard<T extends Free> implements TrackObject {
   public readonly [FreeScope.trackObject] = true
@@ -89,7 +86,6 @@ export class FreeGuard<T extends Free> implements TrackObject {
     const scope = getCurrentFreeScope()
     this.#maybeInner = { object, scope }
     scope?.track(this)
-    FREE_HEAP.add(this)
   }
 
   /**
@@ -124,7 +120,6 @@ export class FreeGuard<T extends Free> implements TrackObject {
   public forget(): void {
     if (!this.#maybeInner) throw new Error('Already forgotten')
     const { scope } = this.#maybeInner
-    FREE_HEAP.delete(this)
     scope?.forget(this, { strict: false, adopt: false })
     this.#maybeInner = null
   }

@@ -12,8 +12,8 @@ export type SchemaTypeDefinition =
   | EnumDefinition
   | ArrayDefinition
   | IntDefinition
-  | FixedPointDefinition
-  | TupleDef
+  | TupleDefinition
+  | BitmapDefinition
 
 export interface MapDefinition {
   Map: {
@@ -22,7 +22,7 @@ export interface MapDefinition {
   }
 }
 
-export interface TupleDef {
+export interface TupleDefinition {
   Tuple: TypePath[]
 }
 
@@ -64,10 +64,10 @@ export interface IntDefinition {
   Int: string
 }
 
-export interface FixedPointDefinition {
-  FixedPoint: {
-    base: string
-    decimal_places: number
+export interface BitmapDefinition {
+  Bitmap: {
+    repr: string
+    masks: { name: string; mask: number }[]
   }
 }
 

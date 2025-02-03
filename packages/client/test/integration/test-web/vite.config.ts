@@ -21,10 +21,10 @@ export default defineConfig({
     port: PORT_VITE,
     strictPort: true,
     proxy: {
-      '/torii/api': {
+      '/torii': {
         ws: true,
         target: `http://127.0.0.1:${PORT_PEER_API}`,
-        rewrite: (path) => path.replace(/^\/torii\/api/, ''),
+        rewrite: (path) => path.replace(/^\/torii/, ''),
       },
       '/peer-server': {
         ws: true,

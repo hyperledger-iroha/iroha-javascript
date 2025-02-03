@@ -12,24 +12,9 @@ task('clean', async () => {
   reportDeleted(deleted)
 })
 
-namespace('prepare', () => {
-  desc('Compile data-model schema with Kagami')
-  task('data-model-schema', ['clean'], async () => {
-    await $`pnpm --filter data-model-schema compile-with-kagami`
-  })
-
-  desc('Generate data-model codecs according to the compiled schema')
-  task('data-model-codegen', ['clean', 'data-model-schema'], async () => {
-    await $`pnpm --filter data-model codegen`
-  })
-
-  desc('Produce Rust SCALE samples for data-model tests')
-  task('data-model-rust-samples', ['clean'], async () => {
-    await $`pnpm --filter data-model-rust-samples produce-samples`
-  })
-
-  desc('Compile all necessary artifacts')
-  task('all', ['data-model-schema', 'data-model-rust-samples', 'data-model-codegen'])
+desc('Necessary preparations before most of the tasks')
+task('build-iroha-binaries', async () => {
+  await $`pnpm --filter iroha-source build-all-binaries`
 })
 
 namespace('crypto-wasm', () => {
@@ -76,7 +61,7 @@ namespace('crypto-wasm', () => {
 
 namespace('build', () => {
   desc('Build TypeScript of the whole project and put corresponding artifacts near the packages')
-  task('tsc', ['clean', 'prepare:all'], async () => {
+  task('tsc', ['clean'], async () => {
     await $`pnpm tsc`
 
     for (const pkg of PACKAGES_TO_BUILD_WITH_TSC) {
@@ -89,7 +74,7 @@ namespace('build', () => {
 
   desc('Rollup')
   task('rollup', ['build:tsc'], async () => {
-    await $`pnpm rollup -c`
+    await $`pnpm rollup`
   })
 
   desc('Run TypeScript Compiler and Rollup')
@@ -97,15 +82,15 @@ namespace('build', () => {
 })
 
 namespace('test', () => {
-  task('unit', ['prepare:all'], async () => {
+  task('unit', ['build-iroha-binaries'], async () => {
     await $`pnpm vitest run`
   })
 
-  task('crypto', async () => {
-    await $`pnpm --filter monorepo-crypto test`
+  task('crypto', ['build:all'], async () => {
+    await $`pnpm --filter monorepo-crypto test:integration`
   })
 
-  task('prepare-client-integration', ['build:all'])
+  task('prepare-client-integration', ['build-iroha-binaries', 'build:all'])
 
   task('client-integration', ['prepare-client-integration'], async () => {
     await $`pnpm --filter client test:integration`
@@ -113,11 +98,6 @@ namespace('test', () => {
 
   desc('Run all tests')
   task('all', ['test:unit', 'test:crypto', 'test:client-integration'])
-})
-
-desc('Perform type checking in the whole repo')
-task('type-check', ['prepare:all'], async () => {
-  await $`pnpm tsc --noEmit`
 })
 
 task('lint', async () => {

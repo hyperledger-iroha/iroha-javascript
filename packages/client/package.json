@@ -31,7 +31,7 @@
   },
   "scripts": {
     "test:integration": "run-s test:build-iroha test:node test:web",
-    "test:build-iroha": "pnpm --filter iroha-source build:iroha",
+    "test:build-iroha": "pnpm --filter iroha-source cli build irohad",
     "test:node": "pnpm --filter client-test-node test",
     "test:web": "pnpm --filter client-test-web test"
   },
@@ -39,8 +39,9 @@
     "@iroha2/crypto-core": "workspace:^2.0.0",
     "@iroha2/data-model": "workspace:7.1.0",
     "debug": "^4.3.4",
-    "emittery": "^0.10.1",
-    "json-bigint": "^1.0.0",
+    "emittery": "^1.0.3",
+    "p-defer": "^4.0.1",
+    "tiny-invariant": "^1.3.1",
     "type-fest": "^3.6.1"
   },
   "devDependencies": {

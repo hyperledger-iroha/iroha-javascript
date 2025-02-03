@@ -1,4 +1,4 @@
-import { IncomingData, initWebSocket as trueInit } from '../types'
+import type { IncomingData, initWebSocket as trueInit } from '../types'
 
 async function handleIncomingData(data: any): Promise<IncomingData> {
   if (data instanceof Blob) {

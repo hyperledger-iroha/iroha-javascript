@@ -29,24 +29,7 @@ export type Algorithm =
 ";
 
 #[wasm_bindgen(typescript_custom_section)]
-const TS_TYPES: &str = r#"    
-export interface PrivateKeyJson {
-    algorithm: string
-    /** Hex-encoded bytes */
-    payload: string
-}
-
-export interface KeyPairJson {
-    public_key: string
-    private_key: PrivateKeyJson
-}
-
-export interface SignatureJson {
-    public_key: string
-    /** Hex-encoded bytes */
-    payload: string
-}
-
+const TS_TYPES: &str = r#"
 export type VerifyResult =
     | { t: 'ok' }
     | { t: 'err', error: string }
@@ -149,11 +132,6 @@ impl PublicKey {
         format!("{}", self.0)
     }
 
-    /// Equivalent to [`Self::to_multihash_hex`]
-    pub fn to_json(&self) -> String {
-        todo!()
-    }
-
     #[wasm_bindgen(getter)]
     pub fn algorithm(&self) -> AlgorithmJsStr {
         self.0.algorithm().into()
@@ -174,36 +152,12 @@ impl PublicKey {
 pub struct PrivateKey(pub(crate) iroha_crypto::PrivateKey);
 
 #[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "PrivateKeyJson")]
-    pub type PrivateKeyJson;
-}
-
-impl TryFrom<PrivateKeyJson> for PrivateKey {
-    type Error = JsError;
-
-    fn try_from(value: PrivateKeyJson) -> Result<Self, Self::Error> {
-        let inner: iroha_crypto::PrivateKey = serde_wasm_bindgen::from_value(value.obj)?;
-        Ok(Self(inner))
-    }
-}
-
-impl TryFrom<&PrivateKey> for PrivateKeyJson {
-    type Error = JsError;
-
-    fn try_from(value: &PrivateKey) -> Result<Self, Self::Error> {
-        Ok(PrivateKeyJson {
-            obj: serde_wasm_bindgen::to_value(&value.0)?,
-        })
-    }
-}
-
-#[wasm_bindgen]
 impl PrivateKey {
     /// # Errors
-    /// Fails if serialization fails
-    pub fn from_json(value: PrivateKeyJson) -> JsResult<PrivateKey> {
-        Self::try_from(value)
+    /// Fails if multihash parsing fails
+    pub fn from_multihash_hex(multihash: &str) -> JsResult<PrivateKey> {
+        let inner = iroha_crypto::PrivateKey::from_str(multihash).wrap_js_error()?;
+        Ok(Self(inner))
     }
 
     /// # Errors
@@ -228,10 +182,9 @@ impl PrivateKey {
         hex::encode(self.payload())
     }
 
-    /// # Errors
-    /// Fails is serialisation fails
-    pub fn to_json(&self) -> JsResult<PrivateKeyJson> {
-        self.try_into()
+    pub fn to_multihash_hex(&self) -> String {
+        // FIXME: cloning
+        format!("{}", iroha_crypto::ExposedPrivateKey(self.0.clone()))
     }
 }
 
@@ -241,38 +194,7 @@ impl PrivateKey {
 pub struct KeyPair(iroha_crypto::KeyPair);
 
 #[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "KeyPairJson")]
-    pub type KeyPairJson;
-}
-
-impl TryFrom<&KeyPair> for KeyPairJson {
-    type Error = JsError;
-
-    fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
-        Ok(KeyPairJson {
-            obj: serde_wasm_bindgen::to_value(&value.0)?,
-        })
-    }
-}
-
-impl TryFrom<KeyPairJson> for KeyPair {
-    type Error = JsError;
-
-    fn try_from(value: KeyPairJson) -> Result<Self, Self::Error> {
-        let inner: iroha_crypto::KeyPair = serde_wasm_bindgen::from_value(value.obj)?;
-        Ok(Self(inner))
-    }
-}
-
-#[wasm_bindgen]
 impl KeyPair {
-    /// # Errors
-    /// Fails if deserialization fails
-    pub fn from_json(value: KeyPairJson) -> JsResult<KeyPair> {
-        Self::try_from(value)
-    }
-
     /// Generate a random key pair
     ///
     /// # Errors
@@ -324,12 +246,6 @@ impl KeyPair {
         let inner = self.0.private_key().clone();
         PrivateKey(inner)
     }
-
-    /// # Errors
-    /// Fails if serialisation fails
-    pub fn to_json(&self) -> JsResult<KeyPairJson> {
-        self.try_into()
-    }
 }
 
 /// Represents the signature of the data
@@ -338,45 +254,14 @@ impl KeyPair {
 pub struct Signature(iroha_crypto::Signature);
 
 #[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "SignatureJson")]
-    pub type SignatureJson;
-}
-
-impl TryFrom<SignatureJson> for Signature {
-    type Error = JsError;
-
-    fn try_from(value: SignatureJson) -> Result<Self, Self::Error> {
-        let inner: iroha_crypto::Signature = serde_wasm_bindgen::from_value(value.obj)?;
-        Ok(Self(inner))
-    }
-}
-
-impl TryFrom<&Signature> for SignatureJson {
-    type Error = JsError;
-
-    fn try_from(value: &Signature) -> Result<Self, Self::Error> {
-        Ok(SignatureJson {
-            obj: serde_wasm_bindgen::to_value(&value.0)?,
-        })
-    }
-}
-
-#[wasm_bindgen]
 impl Signature {
-    /// # Errors
-    /// If failed to deserialise JSON
-    pub fn from_json(value: SignatureJson) -> JsResult<Signature> {
-        Self::try_from(value)
-    }
-
     /// Construct the signature from raw components received from elsewhere
     ///
     /// # Errors
     /// - Invalid bytes input
-    pub fn from_bytes(public_key: &PublicKey, payload: BytesJs) -> JsResult<Signature> {
+    pub fn from_bytes(payload: BytesJs) -> JsResult<Signature> {
         let payload: Vec<u8> = payload.try_into()?;
-        let inner = iroha_crypto::Signature::from_bytes(public_key.0.clone(), &payload);
+        let inner = iroha_crypto::Signature::from_bytes(&payload);
         Ok(Self(inner))
     }
 
@@ -385,26 +270,21 @@ impl Signature {
     /// # Errors
     /// If parsing bytes input fails
     #[wasm_bindgen(constructor)]
-    pub fn new(key_pair: &KeyPair, payload: BytesJs) -> JsResult<Signature> {
+    pub fn new(private_key: &PrivateKey, payload: BytesJs) -> JsResult<Signature> {
         let payload: Vec<u8> = payload.try_into()?;
-        let inner = iroha_crypto::Signature::new(&key_pair.0, &payload);
+        let inner = iroha_crypto::Signature::new(&private_key.0, &payload);
         Ok(Self(inner))
     }
 
-    /// Verify `payload` using signed data and the signature's public key
+    /// Verify that the signature is signed by the given public key
     ///
     /// # Errors
     /// - If parsing of bytes input fails
     /// - If failed to construct verify error
-    pub fn verify(&self, payload: BytesJs) -> JsResult<VerifyResultJs> {
+    pub fn verify(&self, public_key: &PublicKey, payload: BytesJs) -> JsResult<VerifyResultJs> {
         let payload: Vec<_> = payload.try_into()?;
-        let result = self.0.verify(&payload).try_into()?;
+        let result = self.0.verify(&public_key.0, &payload).try_into()?;
         Ok(result)
-    }
-
-    pub fn public_key(&self) -> PublicKey {
-        let inner = self.0.public_key().clone();
-        PublicKey(inner)
     }
 
     pub fn payload(&self) -> Vec<u8> {
@@ -413,12 +293,6 @@ impl Signature {
 
     pub fn payload_hex(&self) -> String {
         hex::encode(self.0.payload())
-    }
-
-    /// # Errors
-    /// If conversion fails
-    pub fn to_json(&self) -> JsResult<SignatureJson> {
-        self.try_into()
     }
 }
 
