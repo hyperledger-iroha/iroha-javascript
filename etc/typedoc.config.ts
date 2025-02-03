@@ -1,11 +1,8 @@
-import TypeDoc from 'typedoc'
-import * as meta from './meta'
 import { path } from 'zx'
-import invariant from 'tiny-invariant'
+import * as meta from './meta'
 import { resolve } from './util'
 
-// FIXME: crypto core reexport of crypto util is rendered in crypto core
-const app = await TypeDoc.Application.bootstrapWithPlugins({
+export default {
   plugin: [
     'typedoc-plugin-markdown',
     'typedoc-plugin-frontmatter',
@@ -22,21 +19,21 @@ const app = await TypeDoc.Application.bootstrapWithPlugins({
     .map((pkg) => path.join(meta.packageRoot(pkg), 'src/lib.ts'))
     .toArray(),
 
-  // TypeDoc cannot type options for plugins
-  // @ts-ignore
-
   frontmatterGlobals: { prev: false, next: false },
   indexFormat: 'table',
 
-  // for vitepress-theme plugin
-  // https://www.typedoc-plugin-markdown.org/plugins/vitepress/options#--docsroot
   out: resolve('docs/api'),
   docsRoot: resolve('docs'),
 
   coverageOutputType: 'svg',
-})
-
-const project = await app.convert()
-invariant(project)
-
-await app.generateDocs(project, resolve(`docs/api`))
+} satisfies Partial<
+  import('typedoc').TypeDocOptions &
+    import('typedoc-plugin-markdown').PluginOptions &
+    import('typedoc-plugin-frontmatter').PluginOptions & {
+      // https://www.typedoc-plugin-markdown.org/plugins/vitepress/options#--docsroot
+      docsRoot: string
+    } & {
+      //  https://github.com/Gerrit0/typedoc-plugin-coverage?tab=readme-ov-file#options
+      coverageOutputType: 'svg' | 'json' | 'all'
+    }
+>

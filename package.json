@@ -13,7 +13,7 @@
     "jake": "jake -f jakefile.cjs",
     "rollup": "NODE_OPTIONS='--import tsx/esm' rollup -c etc/rollup.config.ts",
     "docs:build": "run-s docs:build:api docs:build:vitepress",
-    "docs:build:api": "tsx etc/typedoc",
+    "docs:build:api": "NODE_OPTIONS='--import tsx/esm' typedoc --options etc/typedoc.config.ts",
     "docs:build:vitepress": "vitepress build docs"
   },
   "devDependencies": {
@@ -49,15 +49,15 @@
     "ts-pattern": "^5.0.1",
     "tsx": "^4.15.4",
     "type-fest": "^3.9.0",
-    "typedoc": "^0.26.3",
-    "typedoc-plugin-coverage": "^3.3.0",
-    "typedoc-plugin-frontmatter": "^1.0.0",
-    "typedoc-plugin-markdown": "^4.1.1",
-    "typedoc-plugin-mdn-links": "^3.2.2",
-    "typedoc-vitepress-theme": "^1.0.0",
+    "typedoc": "^0.27.6",
+    "typedoc-plugin-coverage": "^3.4.1",
+    "typedoc-plugin-frontmatter": "^1.1.2",
+    "typedoc-plugin-markdown": "^4.4.1",
+    "typedoc-plugin-mdn-links": "^4.0.10",
+    "typedoc-vitepress-theme": "^1.1.2",
     "typescript": "^5.4.5",
     "vite": "^5.1.5",
-    "vitepress": "^1.2.3",
+    "vitepress": "^1.6.3",
     "vitest": "^3.0.4",
     "zx": "^7.2.0"
   }
