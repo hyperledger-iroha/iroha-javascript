@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+
 import { path } from 'zx'
 import * as meta from './meta'
 import { resolve } from './util'

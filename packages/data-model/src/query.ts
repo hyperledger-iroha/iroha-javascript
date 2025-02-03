@@ -1,11 +1,11 @@
 import * as types from './items/index'
-import { VariantUnit } from './util'
+import type { VariantUnit } from './util'
 
 /**
  * Type map, defining relation between the variants of {@link types.SingularQueryBox} and its outputs in
  * {@link types.SingularQueryOutputBox}
  */
-export type SingularQueryOutputMap = {
+export interface SingularQueryOutputMap {
   FindExecutorDataModel: 'ExecutorDataModel'
   FindParameters: 'Parameters'
 }
@@ -122,8 +122,10 @@ export function buildQuery<K extends QueryKind, const P extends BuildQueryParams
 ): BuildQueryResult<GetQueryOutput<K, P>> {
   return {
     query: {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       query: {
         kind,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         value: {
           query: payload,
           predicate: params?.predicate || types.CompoundPredicate.PASS,

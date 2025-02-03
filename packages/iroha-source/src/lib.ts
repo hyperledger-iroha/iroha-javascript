@@ -4,8 +4,8 @@ import { fs, path } from 'zx'
 import { IROHA_DIR } from '../etc/meta'
 import { execa } from 'execa'
 import { match } from 'ts-pattern'
-import { SCHEMA } from '@iroha2/data-model-schema'
-import { JsonValue } from 'type-fest'
+import type { SCHEMA } from '@iroha2/data-model-schema'
+import type { JsonValue } from 'type-fest'
 
 export type Binary = 'irohad' | 'iroha_kagami' | 'iroha_codec'
 
@@ -76,13 +76,9 @@ export async function irohaCodecToScale(type: keyof typeof SCHEMA, json: JsonVal
 
 export async function irohaCodecToJson(type: keyof typeof SCHEMA, scale: Uint8Array): Promise<JsonValue> {
   const tool = await resolveBinary('iroha_codec')
-  try {
-    const result = await execa(tool.path, ['scale-to-json', '--type', type], {
-      input: Buffer.from(scale),
-      encoding: 'utf8',
-    })
-    return JSON.parse(result.stdout)
-  } catch (err) {
-    throw err
-  }
+  const result = await execa(tool.path, ['scale-to-json', '--type', type], {
+    input: Buffer.from(scale),
+    encoding: 'utf8',
+  })
+  return JSON.parse(result.stdout)
 }

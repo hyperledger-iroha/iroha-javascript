@@ -178,26 +178,6 @@ export class TransactionHandle {
   }
 }
 
-function* generateOutputTuples<Output>(response: dm.QueryOutputBatchBoxTuple): Generator<Output> {
-  // FIXME: this is redundant in runtime, just a safe guard
-  //   invariant(
-  //     response.length === tuple.length,
-  //     () => `Expected response to have exactly ${tuple.length} elements, got ${response.length}`,
-  //   )
-  //   for (let i = 0; i < tuple.length; i++) {
-  //     invariant(
-  //       response[i].kind === tuple[i],
-  //       () => `Expected response to have type ${tuple[i]} at element ${i}, got ${response[i].kind}`,
-  //     )
-  //   }
-  const len = response[0].value.length
-  const tupleLen = response.length
-  for (let i = 0; i < len; i++) {
-    if (tupleLen === 1) yield response[0].value[i] as Output
-    else yield Array.from({ length: tupleLen }, (_v, j) => response[j].value[i]) as Output
-  }
-}
-
 export class Client {
   public params: CreateClientParams
 
@@ -235,14 +215,6 @@ export class Client {
     )
 
     return new TransactionHandle(tx, this)
-  }
-
-  private queryBaseParams(): query.BaseParams {
-    return {
-      authority: this.authority(),
-      authorityPrivateKey: () => this.authorityPrivateKey(),
-      ...this.httpTransport,
-    }
   }
 
   public async health(): Promise<HealthResult> {
@@ -292,12 +264,12 @@ export class Client {
     return new HttpTransport(this.params.toriiBaseURL, this.params.fetch)
   }
 
-  public async query(
-    pre: ToriiRequirementsForApiHttp,
-    query: datamodel.QueryBox,
-    params?: QueryParams,
-  ): Promise<QueryResponse> {
-    return Torii.queryWithParams(pre, queryBoxIntoSignedQuery({ query, signer: this.signer }), params)
+  private queryBaseParams(): query.BaseParams {
+    return {
+      authority: this.authority(),
+      authorityPrivateKey: () => this.authorityPrivateKey(),
+      ...this.httpTransport,
+    }
   }
 }
 

@@ -1,6 +1,7 @@
-import { describe, test, expect } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { toSortedSet } from './util'
-import { Ord, ordCompare, OrdKnown } from './traits'
+import type { Ord, OrdKnown } from './traits'
+import { ordCompare } from './traits'
 
 interface Entry<K, V> {
   key: K
@@ -95,7 +96,7 @@ describe('toSortedSet()', () => {
   test('sort bigints with ordCompare', () => {
     expect(toSortedSet([0n, 10n, 5n, 3n, 3n, 0n, 1n], ordCompare)).toEqual([0n, 1n, 3n, 5n, 10n])
   })
-  
+
   test('sort numbers with ordCompare', () => {
     expect(toSortedSet([0, 5, 1, 6, 2], ordCompare)).toEqual([0, 1, 2, 5, 6])
   })

@@ -1,4 +1,4 @@
-import { GenCodec } from './codec'
+import type { GenCodec } from './codec'
 
 export const SYMBOL_CODEC = '$codec'
 
@@ -35,7 +35,7 @@ export interface Ord {
    * a positive number if `this` is greater than `that`;
    * zero if they are equal. Same behaviour as with {@link Array.sort}
    */
-  compare(that: this): number
+  compare: (that: this) => number
 }
 
 /**

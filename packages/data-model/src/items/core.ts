@@ -1,7 +1,8 @@
 import * as scale from '@scale-codec/core'
 import { GenCodec, enumCodec, lazyCodec, structCodec } from '../codec'
 import type { JsonValue } from 'type-fest'
-import { CompareFn, type Variant, type VariantUnit, hexDecode, hexEncode, toSortedSet } from '../util'
+import type { CompareFn } from '../util'
+import { type Variant, type VariantUnit, hexDecode, hexEncode, toSortedSet } from '../util'
 import * as crypto from '@iroha2/crypto-core'
 import * as traits from '../traits'
 
@@ -189,7 +190,7 @@ export class Json<T extends JsonValue = JsonValue> implements traits.Ord {
     return this.asValue()
   }
 
-  compare(that: this): number {
+  public compare(that: this): number {
     return traits.ordCompare(this.asJsonString(), that.asJsonString())
   }
 }
@@ -480,16 +481,16 @@ export class PublicKeyRepr implements traits.Ord {
     return this.asHex()
   }
 
+  public compare(other: this): number {
+    return traits.ordCompare(this.asHex(), other.asHex())
+  }
+
   private getOrCreateObj(): PubKeyObj {
     if (!this._obj) {
       if (!this._crypto) this._crypto = crypto.PublicKey.fromMultihash(this._hex!)
       this._obj = { algorithm: { kind: this._crypto.algorithm }, payload: this._crypto.payload() }
     }
     return this._obj
-  }
-
-  compare(other: this): number {
-    return traits.ordCompare(this.asHex(), other.asHex())
   }
 }
 
@@ -522,17 +523,17 @@ export class SignatureRepr {
   }
 
   /**
-   * Create from an array of bytes.
-   */
-  private static fromRaw(bytes: Uint8Array): SignatureRepr {
-    return new SignatureRepr(null, bytes, null)
-  }
-
-  /**
    * Create from an instance of {@link crypto.Signature}.
    */
   public static fromCrypto(signature: crypto.Signature): SignatureRepr {
     return new SignatureRepr(null, null, signature)
+  }
+
+  /**
+   * Create from an array of bytes.
+   */
+  private static fromRaw(bytes: Uint8Array): SignatureRepr {
+    return new SignatureRepr(null, bytes, null)
   }
 
   private _hex: null | string
@@ -567,6 +568,10 @@ export class SignatureRepr {
     return this._hex
   }
 
+  public toJSON(): string {
+    return this.asHex()
+  }
+
   /**
    * Representation as raw bytes.
    */
@@ -576,10 +581,6 @@ export class SignatureRepr {
       this._raw = this._crypto!.payload()
     }
     return this._raw
-  }
-
-  public toJSON(): string {
-    return this.asHex()
   }
 }
 

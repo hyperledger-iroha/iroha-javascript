@@ -1,8 +1,6 @@
 import { KeyPair, PublicKey } from '@iroha2/crypto-core'
 import * as dm from '@iroha2/data-model'
-import { describe, expect, onTestFinished, test, vi } from 'vitest'
-import type { z } from 'zod'
-import { hexDecode } from '../src/util'
+import { describe, expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util'
 
 describe('JSON/string serialisation', () => {
@@ -40,9 +38,8 @@ describe('JSON/string serialisation', () => {
     )
   })
 
-
   test('NonZero serializes as its value', () => {
-    expect({ nonZero: new dm.NonZero(51)}).toMatchInlineSnapshot(`
+    expect({ nonZero: new dm.NonZero(51) }).toMatchInlineSnapshot(`
       {
         "nonZero": 51,
       }
@@ -50,7 +47,7 @@ describe('JSON/string serialisation', () => {
   })
 
   test('Duration serializes as { ms: <value> }', () => {
-    expect({ duration: dm.Duration.fromMillis(51123)}).toMatchInlineSnapshot(`
+    expect({ duration: dm.Duration.fromMillis(51123) }).toMatchInlineSnapshot(`
       {
         "duration": {
           "ms": 51123n,
@@ -60,7 +57,7 @@ describe('JSON/string serialisation', () => {
   })
 
   test('Timestamp serialises as ISO string', () => {
-    expect({ timestamp: dm.Timestamp.fromDate(new Date(1022, 10, 10))}).toMatchInlineSnapshot(`
+    expect({ timestamp: dm.Timestamp.fromDate(new Date(1022, 10, 10)) }).toMatchInlineSnapshot(`
       {
         "timestamp": "1022-11-09T14:41:01.000Z",
       }
@@ -170,7 +167,6 @@ describe('construct pub key wrap', () => {
     assertMatches(key2)
   })
 })
-
 
 // describe('SortedMap', () => {
 //   // test.todo('')

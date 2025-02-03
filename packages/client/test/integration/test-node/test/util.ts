@@ -1,4 +1,4 @@
-import { onTestFinished, inject } from 'vitest'
+import { onTestFinished } from 'vitest'
 
 import getPort from 'get-port'
 
@@ -6,7 +6,7 @@ import { Client } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/node'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration'
 import { type Free, KeyPair, PrivateKey, PublicKey } from '@iroha2/crypto-core'
-import * as dm from '@iroha2/data-model'
+import type * as dm from '@iroha2/data-model'
 import * as TestPeer from '@iroha2/test-peer'
 
 import { delay } from '../../util'

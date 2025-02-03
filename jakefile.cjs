@@ -1,3 +1,3 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-require('@esbuild-kit/cjs-loader')
+require('tsx/cjs')
 module.exports = require('./etc/jakefile')

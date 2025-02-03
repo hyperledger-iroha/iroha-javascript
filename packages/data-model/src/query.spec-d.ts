@@ -1,29 +1,31 @@
-import {
-  QuerySelectorMap,
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import type {
+  Account,
+  AccountId,
+  Asset,
+  ExecutorDataModel,
+  Json,
+  Metadata,
+  Name,
+  Parameters,
   QueryBox,
   QueryOutputBatchBox,
+  QuerySelectorMap,
   SelectorOutputMap,
-  Metadata,
-  Account,
   SignedBlock,
-  SingularQueryOutputBox,
   SingularQueryBox,
-  ExecutorDataModel,
-  Parameters,
-  Asset,
-  AccountId,
-  Json,
-  Name,
+  SingularQueryOutputBox,
 } from './items'
-import {
-  type DefaultQueryOutput,
-  type GetQueryOutput,
-  type GetSelectorOutput,
-  type GetSingularQueryOutput,
-  type SelectorToOutput,
-  type SingularQueryOutputMap,
+import type {
+  DefaultQueryOutput,
+  GetQueryOutput,
+  GetSelectorOutput,
+  GetSingularQueryOutput,
+  SelectorToOutput,
+  SingularQueryOutputMap,
 } from './query'
-import { Variant, VariantUnit } from './util'
+import type { Variant, VariantUnit } from './util'
 
 type Expect<T extends true> = T
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false

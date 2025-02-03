@@ -1,5 +1,8 @@
 dist
 dist-tsc
 node_modules
-**/data-model/src/datamodel/generated.ts
+
+packages/data-model/src/items/generated.ts
+packages/client/src/generated/find-api.ts
+
 packages/crypto/crypto-rs/wasm-pkg-*

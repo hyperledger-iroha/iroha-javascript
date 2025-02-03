@@ -28,6 +28,9 @@ module.exports = {
         ignoreRestSiblings: true,
       },
     ],
+    '@typescript-eslint/consistent-type-definitions': 'off',
+    'max-nested-callbacks': ["warn", 5],
+    'max-params': ['warn', 5],
   },
   globals: {
     BigInt: true,

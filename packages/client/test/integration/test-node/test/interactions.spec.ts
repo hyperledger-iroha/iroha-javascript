@@ -1,15 +1,15 @@
-import { describe, test, expect } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
-import { KeyPair, Bytes } from '@iroha2/crypto-core'
+import { Bytes, KeyPair } from '@iroha2/crypto-core'
 import * as dm from '@iroha2/data-model'
-import { Client } from '@iroha2/client'
+import type { Client } from '@iroha2/client'
 import { usePeer } from './util'
-import { match, P } from 'ts-pattern'
+import { P, match } from 'ts-pattern'
 import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha2/test-configuration'
 
 async function submitTestData(client: Client) {
   const bob = KeyPair.deriveFromSeed(Bytes.hex('bbbb'))
-  const bobAcc = new dm.AccountId(dm.PublicKeyWrap.fromCrypto(bob.publicKey()), new dm.DomainId('based'))
+  const bobAcc = new dm.AccountId(dm.PublicKeyRepr.fromCrypto(bob.publicKey()), new dm.DomainId('based'))
   const bobPub = bob.publicKey().toMultihash()
 
   const madHatter = KeyPair.deriveFromSeed(Bytes.hex('aaaa'))
@@ -33,7 +33,7 @@ async function submitTestData(client: Client) {
       metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Bob') }],
     }),
     dm.InstructionBox.Register.Account({
-      id: new dm.AccountId(dm.PublicKeyWrap.fromCrypto(madHatter.publicKey()), new dm.Name('certainty')),
+      id: new dm.AccountId(dm.PublicKeyRepr.fromCrypto(madHatter.publicKey()), new dm.Name('certainty')),
       metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Mad Hatter') }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
@@ -140,7 +140,7 @@ describe('queries', () => {
         predicate: dm.CompoundPredicate.Or<dm.AccountProjectionPredicate>(
           dm.CompoundPredicate.Atom(dm.AccountProjectionPredicate.Id.Domain.Name.Atom.Contains('cert')),
           dm.CompoundPredicate.Atom(
-            dm.AccountProjectionPredicate.Id.Signatory.Atom.Equals(dm.PublicKeyWrap.fromCrypto(bob.publicKey())),
+            dm.AccountProjectionPredicate.Id.Signatory.Atom.Equals(dm.PublicKeyRepr.fromCrypto(bob.publicKey())),
           ),
         ),
         selector: dm.AccountProjectionSelector.Metadata.Key({
@@ -336,7 +336,7 @@ describe('queries', () => {
       .blocks({
         predicate: dm.CompoundPredicate.Atom(
           dm.SignedBlockProjectionPredicate.Header.Hash.Atom.Equals(
-            dm.HashWrap.fromCrypto(dm.blockHash(someBlock.value.payload.header)),
+            dm.HashRepr.fromCrypto(dm.blockHash(someBlock.value.payload.header)),
           ),
         ),
       })
@@ -443,7 +443,7 @@ describe('Transactions', () => {
     const { client } = await usePeer()
 
     function randomAccountId() {
-      return new dm.AccountId(dm.PublicKeyWrap.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
+      return new dm.AccountId(dm.PublicKeyRepr.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
     }
 
     // TODO: include detailed rejection reason into the error
@@ -466,7 +466,7 @@ describe('Transactions', () => {
     const { client } = await usePeer()
 
     function randomAccountId() {
-      return new dm.AccountId(dm.PublicKeyWrap.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
+      return new dm.AccountId(dm.PublicKeyRepr.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
     }
 
     // TODO: include detailed rejection reason into the error
@@ -492,7 +492,7 @@ describe('Transactions', () => {
     await tx.submit({ verify: true })
 
     const hash = tx.hash
-    const found = await client.find
+    const _found = await client.find
       .transactions({
         predicate: dm.CompoundPredicate.Atom(dm.CommittedTransactionProjectionPredicate.Value.Hash.Atom.Equals(hash)),
       })
@@ -586,7 +586,7 @@ describe('Roles & Permission', () => {
 
     const permissions = await client.find
       .permissionsByAccountId({
-        id: new dm.AccountId(dm.PublicKeyWrap.fromHex(ACCOUNT_KEY_PAIR.publicKey), DOMAIN),
+        id: new dm.AccountId(dm.PublicKeyRepr.fromHex(ACCOUNT_KEY_PAIR.publicKey), DOMAIN),
       })
       .executeAll()
 

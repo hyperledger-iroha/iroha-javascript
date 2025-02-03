@@ -8,9 +8,10 @@
   "devDependencies": {
     "@iroha2/client": "workspace:^",
     "@iroha2/crypto-target-node": "workspace:^",
+    "@iroha2/data-model": "workspace:^",
     "@iroha2/data-model-schema": "workspace:^",
     "@iroha2/test-configuration": "workspace:^",
-    "@iroha2/test-peer": "workspace:^0.0.1",
+    "@iroha2/test-peer": "workspace:^",
     "allure-vitest": "^2.14.0",
     "cross-env": "^7.0.3",
     "get-port": "^7.1.0",

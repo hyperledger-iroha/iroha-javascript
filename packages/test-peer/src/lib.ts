@@ -109,7 +109,7 @@ async function createGenesis() {
     // FIXME: migrate to direct building of `SignedBlock`, without `genesis.json`.
     //        And note that I don't use any WASMs and these fields are extra for my case.
     wasm_dir: 'why the hell do you require wasm_dir at all times?',
-    wasm_triggers: [], 
+    wasm_triggers: [],
   }
 }
 

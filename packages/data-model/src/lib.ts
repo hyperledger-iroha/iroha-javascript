@@ -16,7 +16,7 @@ export * from './transaction'
 export { type GenCodec as Codec } from './codec'
 export type { Variant, VariantUnit } from './util'
 
-import { getCodec as codecOf, CodecContainer as CodecProvider, defineCodec } from './traits'
+import { CodecContainer as CodecProvider, getCodec as codecOf, defineCodec } from './traits'
 
 export { codecOf, CodecProvider, defineCodec }
 

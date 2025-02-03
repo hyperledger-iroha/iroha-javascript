@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import { SCHEMA } from '@iroha2/data-model-schema'
-import { Client, getHealth } from '@iroha2/client'
+import {  getHealth } from '@iroha2/client'
 
 import { usePeer } from './util'
 

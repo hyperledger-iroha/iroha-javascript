@@ -84,7 +84,7 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
 
   return [
     `import * as client from '${libClient}'`,
-    `import * as dm from '@iroha2/data-model'`,
+    `import type * as dm from '@iroha2/data-model'`,
     `export class FindApi {`,
     `  private _executor: client.QueryExecutor`,
     `  public constructor(executor: client.QueryExecutor) { this._executor = executor; }`,
@@ -450,7 +450,8 @@ export class Resolver {
             },
           },
           (bindings): TypeRef => {
-            invariant(bindings.refStr === bindings.tyNot), invariant(bindings.tyAnd === bindings.tyOr)
+            invariant(bindings.refStr === bindings.tyNot)
+            invariant(bindings.tyAnd === bindings.tyOr)
             invariant(deepEqual(SchemaId.parse(bindings.tyAnd), new SchemaId('Vec', [bindings.ref])))
             return { t: 'lib', id: 'CompoundPredicate', params: [this.resolve(bindings.tyAtom)] }
           },
@@ -1205,12 +1206,8 @@ function renderEmit(id: string, map: EmitsMap): string {
         renderJsDoc([
           `Enumeration (discriminated union). Represented as one of the following variants:`,
           ``,
-          ...variants.map((x) =>
-            match(x)
-              .with({ type: { t: 'null' } }, ({ tag }) => `- \`${tag}\``)
-              .otherwise(({ tag, type }) => `- \`${tag}\``),
-          ),
-          ``,
+          ...variants.map((x) => `- \`${x.tag}\``),
+          '',
           `TODO how to construct, how to use`,
         ]),
         `export type ${id} = ${renderSumTypes(variants)}`,

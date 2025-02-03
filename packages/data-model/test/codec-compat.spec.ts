@@ -264,11 +264,6 @@ test.each([
 })
 
 describe('BTree{Set/Map}', () => {
-  function shuffle<T>(arr: T[]): T[] {
-    const copy = [...arr]
-    return copy.sort(() => Math.random() * 2 - 1)
-  }
-
   test('Metadata encoding matches with iroha_codec', async () => {
     const CODEC = dm.codecOf(dm.Metadata)
     const reference = await irohaCodecToScale('Metadata', { foo: 'bar', bar: [1, 2, 3], '1': 2, 12: 1, 2: false })

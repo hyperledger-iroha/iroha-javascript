@@ -1,15 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import type { Schema } from '@iroha2/data-model-schema'
 import { SCHEMA } from '@iroha2/data-model-schema'
+import type { EmitsMap, EnumShortcutTreeVariant } from './codegen'
 import {
   type EmitCode,
-  EmitsMap,
+  Resolver,
   enumShortcuts,
-  EnumShortcutTreeVariant,
   generateClientFindAPI,
   generateDataModel,
   renderShortcutsTree,
-  Resolver,
 } from './codegen'
 
 import * as dprint from 'dprint-node'

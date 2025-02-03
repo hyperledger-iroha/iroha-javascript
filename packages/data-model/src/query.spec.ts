@@ -1,5 +1,5 @@
-import { buildQuery, DomainProjectionSelector } from '@iroha2/data-model'
-import { describe, test, expect } from 'vitest'
+import { DomainProjectionSelector, buildQuery } from '@iroha2/data-model'
+import { describe, expect, test } from 'vitest'
 
 describe('buildQuery()', () => {
   test('default selector is [atom]', () => {

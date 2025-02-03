@@ -1,14 +1,3 @@
-import { z } from 'zod'
-
-// TODO
-
-// const TypePath = z.string().brand('TypePath')
-//
-// const Schema = z.record(z.union([
-//   z.object({ Map: z.object({ key: TypePath, value: TypePath})}),
-//  z.object({ })
-// ]))
-
 export interface Schema {
   [type: string]: SchemaTypeDefinition
 }

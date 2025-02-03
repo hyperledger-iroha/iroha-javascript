@@ -1,4 +1,6 @@
-import { Client, QueryHandle } from '@iroha2/client'
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import type { Client, QueryHandle } from '@iroha2/client'
 import * as dm from '@iroha2/data-model'
 
 type Expect<T extends true> = T
