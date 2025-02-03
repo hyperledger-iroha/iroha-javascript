@@ -10,6 +10,9 @@ import { type Bytes, FreeGuard, FreeScope } from '@iroha2/crypto-util'
 import { getWASM } from './singleton'
 import type { wasmPkg } from './types'
 
+/**
+ * Crypto alrogithms supported by Iroha.
+ */
 export type Algorithm = wasmPkg.Algorithm
 export type VerifyResult = wasmPkg.VerifyResult
 
@@ -57,13 +60,24 @@ export interface HasPayload {
   }
 }
 
+/**
+ * Cryptographic hash used in Iroha.
+ */
 export class Hash extends SingleFreeWrap<wasmPkg.Hash> {
+  /**
+   * Create an hash filled with zeros.
+   */
   public static zeroed(): Hash {
     return new Hash(getWASM(true).Hash.zeroed())
   }
 
-  public static hash(payload: Bytes): Hash {
-    return new Hash(new (getWASM(true).Hash)(payload.wasm))
+  /**
+   * Create by hashing the input.
+   * @param input the input to hash
+   * @returns the resulting hash
+   */
+  public static hash(input: Bytes): Hash {
+    return new Hash(new (getWASM(true).Hash)(input.wasm))
   }
 
   public payload(): Uint8Array
@@ -74,7 +88,13 @@ export class Hash extends SingleFreeWrap<wasmPkg.Hash> {
   }
 }
 
+/**
+ * Private key used in Iroha.
+ */
 export class PrivateKey extends SingleFreeWrap<wasmPkg.PrivateKey> implements HasAlgorithm, HasPayload {
+  /**
+   * Create from a multihash string.
+   */
   public static fromMultihash(hex: string): PrivateKey {
     return new PrivateKey(getWASM(true).PrivateKey.from_multihash_hex(hex))
   }
@@ -144,20 +164,30 @@ export class PublicKey extends SingleFreeWrap<wasmPkg.PublicKey> implements HasA
   }
 }
 
-export interface WithAlgorithm {
+export interface KeyGenOptions {
   /**
+   * Cryptographic algorithm to use in key pair generation.
+   *
    * @default 'ed25519'
    */
   algorithm?: Algorithm
 }
 
 export class KeyPair extends SingleFreeWrap<wasmPkg.KeyPair> implements HasAlgorithm {
-  public static random(options?: WithAlgorithm): KeyPair {
+  /**
+   * Generate a random key pair.
+   */
+  public static random(options?: KeyGenOptions): KeyPair {
     const pair = getWASM(true).KeyPair.random(options?.algorithm)
     return new KeyPair(pair)
   }
 
-  public static deriveFromSeed(seed: Bytes, options?: WithAlgorithm): KeyPair {
+  /**
+   * Derive the key pair from a given seed.
+   * @param seed some binary data.
+   * @param options key generation options
+   */
+  public static deriveFromSeed(seed: Bytes, options?: KeyGenOptions): KeyPair {
     const pair = getWASM(true).KeyPair.derive_from_seed(seed.wasm, options?.algorithm)
     return new KeyPair(pair)
   }

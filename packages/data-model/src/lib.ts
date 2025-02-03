@@ -35,7 +35,7 @@ export function signQuery(payload: types.QueryRequestWithAuthority, privateKey: 
     kind: 'V1',
     value: {
       payload,
-      signature: types.SignatureWrap.fromCrypto(signature),
+      signature: types.SignatureRepr.fromCrypto(signature),
     },
   }
 }
@@ -50,7 +50,7 @@ export function signTransaction(
     kind: 'V1',
     value: {
       payload,
-      signature: types.SignatureWrap.fromCrypto(signature),
+      signature: types.SignatureRepr.fromCrypto(signature),
     },
   }
 }

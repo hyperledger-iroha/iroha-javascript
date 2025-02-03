@@ -1,17 +1,34 @@
-import { Except } from 'type-fest'
 import * as dm from './items/index'
 
 export interface TransactionPayloadParams {
   chain: dm.ChainId
   authority: dm.AccountId
 
-  payload?: Except<dm.TransactionPayload, 'chain' | 'authority' | 'instructions'>
+  /**
+   * @default dm.Timestamp.now()
+   */
   creationTime?: dm.Timestamp
+  /**
+   * @default new dm.NonZero(dm.Duration.fromMillis(100_000))
+   */
   timeToLive?: dm.NonZero<dm.Duration>
+  /**
+   * @default null
+   */
   nonce?: dm.NonZero<dm.U32>
+  /**
+   * @default []
+   */
   metadata?: dm.Metadata
 }
 
+/**
+ * Build {@link dm.TransactionPayload}.
+ *
+ * @param executable
+ * @param params
+ * @returns
+ */
 export function buildTransactionPayload(
   executable: dm.Executable,
   params: TransactionPayloadParams,

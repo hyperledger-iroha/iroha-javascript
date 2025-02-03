@@ -160,9 +160,9 @@ export type LibType =
   | `AssetDefinitionId`
   | `AssetId`
   | 'Algorithm'
-  | 'SignatureWrap'
-  | 'HashWrap'
-  | 'PublicKeyWrap'
+  | 'SignatureRepr'
+  | 'HashRepr'
+  | 'PublicKeyRepr'
 
 export class Resolver {
   #schema: Schema
@@ -172,10 +172,18 @@ export class Resolver {
   constructor(schema: Schema) {
     this.#schema = schema
 
-    for (const key of Object.keys(schema)) {
+    this.resolveAll()
+    this.fillEmits()
+    this.processNeverEnums()
+  }
+
+  private resolveAll() {
+    for (const key of Object.keys(this.#schema)) {
       this.resolve(key)
     }
+  }
 
+  private fillEmits() {
     for (const [originId, resolved] of this.#resolved) {
       if (resolved.t === 'local' && resolved.emit) {
         const prevEmit = this.#emits.get(resolved.id)
@@ -187,6 +195,18 @@ export class Resolver {
           )
         } else {
           this.#emits.set(resolved.id, newEmit)
+        }
+      }
+    }
+  }
+
+  private processNeverEnums() {
+    for (const [id, emit] of this.#emits) {
+      if (emit.t === 'enum') {
+        const tree = enumShortcuts(emit.variants, this.#emits)
+        if (!tree.length) {
+          // never type
+          this.#emits.set(id, { t: 'enum', variants: [] })
         }
       }
     }
@@ -483,12 +503,12 @@ export class Resolver {
             { ref: { id: 'SignatureOf', items: [P._] }, schema: 'Signature' },
             { refStr: P.union('TransactionSignature', 'QuerySignature') },
           ),
-          () => ({ t: 'lib', id: 'SignatureWrap' }),
+          () => ({ t: 'lib', id: 'SignatureRepr' }),
         )
-        .with({ ref: { id: 'HashOf', items: [P._] }, schema: 'Hash' }, () => ({ t: 'lib', id: 'HashWrap' }))
+        .with({ ref: { id: 'HashOf', items: [P._] }, schema: 'Hash' }, () => ({ t: 'lib', id: 'HashRepr' }))
         .with({ refStr: P.union('Hash', 'PublicKey', 'Signature').select() }, (id) => ({
           t: 'lib',
-          id: `${id}Wrap`,
+          id: `${id}Repr`,
         }))
 
         .with({ refStr: 'FetchSize', schema: { Struct: [{ name: 'fetch_size', type: P.select() }] } }, (type) =>
@@ -784,10 +804,6 @@ export class Resolver {
       return { ...x, type }
     })
   }
-
-  resolveAll(): TypeRefWithEmit[] {
-    return Object.keys(this.#schema).map((key) => this.resolve(key))
-  }
 }
 
 export class SchemaId {
@@ -1071,6 +1087,15 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
       .otherwise(({ head, chain }) => ({ head, chain: [...chain, variant.name] }))
 
   const genChain = (chain: string[]) => chain.join('.')
+  const genVariantFullChain = (state: State) => {
+    const items = (function* () {
+      yield state.head.id0
+      yield state.head.var0
+      for (const i of state.chain.slice(1)) yield i
+    })()
+
+    return [...items].join('.')
+  }
   const genConcreteType = (
     state: State,
     variant: Pick<Exclude<EnumShortcutTreeVariant, { t: 'enum' }>, 't' | 'name'>,
@@ -1094,10 +1119,10 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
       .map((variant): string => {
         const state = nextState(stateIn, tree, variant)
 
-        const right = match(variant)
-          .returnType<string>()
-          .with({ t: 'unit' }, (variant) =>
-            match(state)
+        const { code, doc } = match(variant)
+          .returnType<{ code: string; doc: string }>()
+          .with({ t: 'unit' }, (variant) => ({
+            code: match(state)
               .with(
                 { chain: [] },
                 ({ head }) => `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}' })`,
@@ -1108,9 +1133,10 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
                     chain,
                   )} })`,
               ),
-          )
-          .with({ t: 'value' }, (variant) =>
-            match(state)
+            doc: renderJsDoc([`Value of variant \`${genVariantFullChain(state)}\``]),
+          }))
+          .with({ t: 'value' }, (variant) => ({
+            code: match(state)
               .with(
                 { chain: [] },
                 ({ head }) =>
@@ -1126,19 +1152,27 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
                     variant,
                   )} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
               ),
-          )
+            doc: renderJsDoc([`Constructor of variant \`${genVariantFullChain(state)}\``]),
+          }))
           .with({ t: 'enum' }, ({ tree }) => {
             const nested = iter(tree, state)
-            return `{ ${nested} }`
+            return {
+              code: `{ ${nested} }`,
+              doc: renderJsDoc([`Constructors of nested enumerations under variant \`${genVariantFullChain(state)}\``]),
+            }
           })
           .exhaustive()
 
-        return `${variant.name}: ${right}`
+        return `${doc} ${variant.name}: ${code}`
       })
       .join(', ')
   }
 
   return iter(root)
+}
+
+function renderJsDoc(lines: string[]): string {
+  return `/**\n` + lines.map((x) => ` * ${x}\n`).join('') + ` */`
 }
 
 function renderEmit(id: string, map: EmitsMap): string {
@@ -1147,17 +1181,41 @@ function renderEmit(id: string, map: EmitsMap): string {
   return match(emit)
     .returnType<string[]>()
     .with({ t: 'enum', variants: [] }, () => [
+      renderJsDoc([
+        `This type could not be constructed.`,
+        ``,
+        `It is a enumeration without any variants that could be created _at this time_. However,`,
+        `in future it is possible that this type will be extended with actual constructable variants.`,
+      ]),
       `export type ${id} = never`,
+      renderJsDoc([
+        `Codec for {@link ${id}}. `,
+        ``,
+        `Since the type is \`never\`, this codec does nothing and throws an error if actually called.`,
+      ]),
       `export const ${id} = lib.defineCodec(lib.neverCodec)`,
     ])
     .with({ t: 'enum' }, ({ variants }) => {
       const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
+      invariant(shortcuts, () => `no shortcuts for ${id} meaning this type could not be created and must be "never"`)
+
       const codec = renderBaseEnumCodec(variants) + `.discriminated()`
 
       return [
-        // `/** */`,
+        renderJsDoc([
+          `Enumeration (discriminated union). Represented as one of the following variants:`,
+          ``,
+          ...variants.map((x) =>
+            match(x)
+              .with({ type: { t: 'null' } }, ({ tag }) => `- \`${tag}\``)
+              .otherwise(({ tag, type }) => `- \`${tag}\``),
+          ),
+          ``,
+          `TODO how to construct, how to use`,
+        ]),
         `export type ${id} = ${renderSumTypes(variants)}`,
-        `export const ${id} = { ${shortcuts ? shortcuts + ',' : ''} ...lib.defineCodec(${codec}) }`,
+        renderJsDoc([`Codec and constructors for enumeration {@link ${id}}.`]),
+        `export const ${id} = { ${shortcuts}, ...lib.defineCodec(${codec}) }`,
       ]
     })
     .with({ t: 'struct' }, ({ fields }) => {
@@ -1182,13 +1240,17 @@ function renderEmit(id: string, map: EmitsMap): string {
         const withRet = codec(`${id}<${genericTypes}>`)
 
         return [
+          renderJsDoc([`Structure with named fields and generic parameters.`]),
           `export interface ${id}<${genericTypes}> { ${typeFields} }`,
-          `export const ${id} = { ` +
-            `with: <${genericTypes}>(${withArgs}): lib.GenCodec<${id}<${genericTypes}>> => ${withRet} }`,
+          renderJsDoc([`Codec constructor for the structure with generic parameters.`]),
+          `export const ${id} = { ` + renderJsDoc([`Create a codec with the actual codecs for generic parameters.`]),
+          `with: <${genericTypes}>(${withArgs}): lib.GenCodec<${id}<${genericTypes}>> => ${withRet} }`,
         ]
       } else {
         return [
+          renderJsDoc([`Structure with named fields.`]),
           `export interface ${id} { ${typeFields} }`,
+          renderJsDoc([`Codec of the structure.`]),
           `export const ${id}: lib.CodecContainer<${id}> = lib.defineCodec(${codec(id)})`,
         ]
       }

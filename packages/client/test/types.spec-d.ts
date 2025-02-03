@@ -35,14 +35,14 @@ const findAccsWithSelector3 = client.find.accounts({
   selector: [dm.AccountProjectionSelector.Id.Signatory.Atom, dm.AccountProjectionSelector.Id.Domain.Name.Atom],
 })
 type test_find_accs_selector3 = Expect<
-  Equal<QueryHandleOutput<typeof findAccsWithSelector3>, [dm.PublicKeyWrap, dm.Name]>
+  Equal<QueryHandleOutput<typeof findAccsWithSelector3>, [dm.PublicKeyRepr, dm.Name]>
 >
 
 const accountsExecuteAll = await client.find.accounts().executeAll()
 type test_accs_exec_all = Expect<Equal<typeof accountsExecuteAll, dm.Account[]>>
 
 const findBlockHeaderHashes = client.find.blockHeaders({ selector: dm.BlockHeaderProjectionSelector.Hash.Atom })
-type test_block_header_hashes = Expect<Equal<QueryHandleOutput<typeof findBlockHeaderHashes>, dm.HashWrap>>
+type test_block_header_hashes = Expect<Equal<QueryHandleOutput<typeof findBlockHeaderHashes>, dm.HashRepr>>
 
 const findDomainsMetadata = client.find.domains({ selector: dm.DomainProjectionSelector.Metadata.Atom })
 const findAccountsMetadata = client.find.accounts({

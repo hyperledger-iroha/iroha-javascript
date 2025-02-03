@@ -1,13 +1,13 @@
 import { describe, test, expect } from 'vitest'
 import { toSortedSet } from './util'
-import { Ord, ordCompare, OrdDefault } from './traits'
+import { Ord, ordCompare, OrdKnown } from './traits'
 
 interface Entry<K, V> {
   key: K
   value: V
 }
 
-const compareEntries = <K extends Ord | OrdDefault>(a: Entry<K, unknown>, b: Entry<K, unknown>): number =>
+const compareEntries = <K extends Ord | OrdKnown>(a: Entry<K, unknown>, b: Entry<K, unknown>): number =>
   ordCompare(a.key, b.key)
 
 class NumHolder implements Ord {

@@ -113,15 +113,15 @@ export class HttpTransport {
 export class TransactionHandle {
   private readonly client: Client
   private readonly tx: dm.SignedTransaction
-  private readonly txHash: dm.HashWrap
+  private readonly txHash: dm.HashRepr
 
   public constructor(tx: dm.SignedTransaction, client: Client) {
     this.client = client
     this.tx = tx
-    this.txHash = dm.HashWrap.fromCrypto(dm.transactionHash(tx))
+    this.txHash = dm.HashRepr.fromCrypto(dm.transactionHash(tx))
   }
 
-  public get hash(): dm.HashWrap {
+  public get hash(): dm.HashRepr {
     return this.txHash
   }
 
@@ -212,7 +212,7 @@ export class Client {
 
   public authority(): dm.AccountId {
     return new dm.AccountId(
-      dm.PublicKeyWrap.fromCrypto(this.params.accountKeyPair.publicKey()),
+      dm.PublicKeyRepr.fromCrypto(this.params.accountKeyPair.publicKey()),
       this.params.accountDomain,
     )
   }

@@ -334,25 +334,25 @@ export const Algorithm = {
 
 const HASH_ARR_LEN = 32
 
-export class HashWrap {
-  public static [traits.SYMBOL_CODEC]: GenCodec<HashWrap> = new GenCodec({
+export class HashRepr {
+  public static [traits.SYMBOL_CODEC]: GenCodec<HashRepr> = new GenCodec({
     encode: scale.createUint8ArrayEncoder(HASH_ARR_LEN),
     decode: scale.createUint8ArrayDecoder(HASH_ARR_LEN),
-  }).wrap<HashWrap>({
-    fromBase: (lower) => HashWrap.fromRaw(lower),
+  }).wrap<HashRepr>({
+    fromBase: (lower) => HashRepr.fromRaw(lower),
     toBase: (higher) => higher.asRaw(),
   })
 
-  public static fromHex(hex: string): HashWrap {
-    return new HashWrap(hex, null)
+  public static fromHex(hex: string): HashRepr {
+    return new HashRepr(hex, null)
   }
 
-  public static fromRaw(raw: Uint8Array): HashWrap {
-    return new HashWrap(null, raw)
+  public static fromRaw(raw: Uint8Array): HashRepr {
+    return new HashRepr(null, raw)
   }
 
-  public static fromCrypto(hash: crypto.Hash): HashWrap {
-    return new HashWrap(null, hash.payload())
+  public static fromCrypto(hash: crypto.Hash): HashRepr {
+    return new HashRepr(null, hash.payload())
   }
 
   private _hex: string | null = null
@@ -387,26 +387,52 @@ interface PubKeyObj {
   payload: BytesVec
 }
 
-export class PublicKeyWrap implements traits.Ord {
-  public static [traits.SYMBOL_CODEC]: GenCodec<PublicKeyWrap> = structCodec(['algorithm', 'payload'], {
+/**
+ * {@link crypto.PublicKey} representation in the data model.
+ *
+ * It could be created from any representation and transformed into another.
+ *
+ * Note that transformations are lazy, thus the validity of input data is not immediately validated
+ * (unless {@link crypto.PublicKey} is passed).
+ */
+export class PublicKeyRepr implements traits.Ord {
+  public static [traits.SYMBOL_CODEC]: GenCodec<PublicKeyRepr> = structCodec(['algorithm', 'payload'], {
     algorithm: traits.getCodec(Algorithm),
     payload: traits.getCodec(BytesVec),
   }).wrap({
     toBase: (higher) => higher,
-    fromBase: (x) => new PublicKeyWrap(x, null, null),
+    fromBase: (x) => new PublicKeyRepr(x, null, null),
   })
 
-  public static fromHex(hex: string): PublicKeyWrap {
+  /**
+   * Create from hex-encoded bytes.
+   *
+   * Throws if the input is not a valid hex or not a valid public key.
+   */
+  public static fromHex(hex: string): PublicKeyRepr {
     try {
       const checked = crypto.PublicKey.fromMultihash(hex)
-      return new PublicKeyWrap(null, hex, checked)
+      return new PublicKeyRepr(null, hex, checked)
     } catch (err) {
       throw new SyntaxError(`Bad PublicKey syntax in "${hex}": ${err.message}`)
     }
   }
 
-  public static fromCrypto(pubkey: crypto.PublicKey): PublicKeyWrap {
-    return new PublicKeyWrap(null, null, pubkey)
+  /**
+   * Create from an instance of {@link crypto.PublicKey}
+   */
+  public static fromCrypto(pubkey: crypto.PublicKey): PublicKeyRepr {
+    return new PublicKeyRepr(null, null, pubkey)
+  }
+
+  /**
+   * Create from an algorithm and payload.
+   *
+   * Throws if the algorithm and payload don't form a valid public key.
+   */
+  public static fromParts(algorithm: Algorithm, payload: BytesVec): PublicKeyRepr {
+    const asCrypto = crypto.PublicKey.fromBytes(algorithm.kind, crypto.Bytes.array(payload))
+    return new PublicKeyRepr({ algorithm, payload }, null, asCrypto)
   }
 
   private _obj: null | PubKeyObj
@@ -427,6 +453,9 @@ export class PublicKeyWrap implements traits.Ord {
     return this.getOrCreateObj().payload
   }
 
+  /**
+   * Get as {@link crypto.PublicKey}
+   */
   public asCrypto(): crypto.PublicKey {
     if (!this._crypto) {
       if (this._hex) this._crypto = crypto.PublicKey.fromMultihash(this._hex)
@@ -435,6 +464,9 @@ export class PublicKeyWrap implements traits.Ord {
     return this._crypto
   }
 
+  /**
+   * Get as a public key multihash, i.e. by {@link crypto.PublicKey.toMultihash}
+   */
   public asHex() {
     if (!this._hex) {
       if (!this._crypto)
@@ -442,7 +474,6 @@ export class PublicKeyWrap implements traits.Ord {
       this._hex = this._crypto.toMultihash()
     }
     return this._hex
-    // return crypto.PublicKey.fromBytes(this.algorithm.kind, crypto.Bytes.array(this.payload)).toMultihash()
   }
 
   public toJSON() {
@@ -462,23 +493,46 @@ export class PublicKeyWrap implements traits.Ord {
   }
 }
 
-export class SignatureWrap {
-  public static [traits.SYMBOL_CODEC]: GenCodec<SignatureWrap> = traits.getCodec(BytesVec).wrap<SignatureWrap>({
+/**
+ * {@link crypto.Signature} representation in the data model.
+ *
+ * It could be created from any representation and transformed into another:
+ *
+ * ```ts
+ * const hex = '01019292afafaaff' // some hex, not real
+ *
+ * const wrap = SignatureWrap.fromHex(hex)
+ * const actualSignature = wrap.asCrypto()
+ * ```
+ */
+export class SignatureRepr {
+  public static [traits.SYMBOL_CODEC]: GenCodec<SignatureRepr> = traits.getCodec(BytesVec).wrap<SignatureRepr>({
     toBase: (higher) => higher.asRaw(),
-    fromBase: (lower) => SignatureWrap.fromRaw(lower),
+    fromBase: (lower) => SignatureRepr.fromRaw(lower),
   })
 
-  public static fromHex(hex: string): SignatureWrap {
+  /**
+   * Create from a hex string.
+   *
+   * Throws if input is not a valid hex.
+   */
+  public static fromHex(hex: string): SignatureRepr {
     const raw = Uint8Array.from(hexDecode(hex))
-    return new SignatureWrap(hex, raw, null)
+    return new SignatureRepr(hex, raw, null)
   }
 
-  public static fromRaw(bytes: Uint8Array): SignatureWrap {
-    return new SignatureWrap(null, bytes, null)
+  /**
+   * Create from an array of bytes.
+   */
+  private static fromRaw(bytes: Uint8Array): SignatureRepr {
+    return new SignatureRepr(null, bytes, null)
   }
 
-  public static fromCrypto(signature: crypto.Signature): SignatureWrap {
-    return new SignatureWrap(null, null, signature)
+  /**
+   * Create from an instance of {@link crypto.Signature}.
+   */
+  public static fromCrypto(signature: crypto.Signature): SignatureRepr {
+    return new SignatureRepr(null, null, signature)
   }
 
   private _hex: null | string
@@ -491,6 +545,9 @@ export class SignatureWrap {
     this._crypto = crypto
   }
 
+  /**
+   * Representation as {@link crypto.Signature}.
+   */
   public asCrypto(): crypto.Signature {
     if (!this._crypto) {
       if (this._raw) this._crypto = crypto.Signature.fromBytes(crypto.Bytes.array(this._raw))
@@ -499,6 +556,9 @@ export class SignatureWrap {
     return this._crypto
   }
 
+  /**
+   * Representation as a hex string.
+   */
   public asHex(): string {
     if (!this._hex) {
       if (this._raw) this._hex = hexEncode(this._raw)
@@ -507,7 +567,10 @@ export class SignatureWrap {
     return this._hex
   }
 
-  public asRaw(): Uint8Array {
+  /**
+   * Representation as raw bytes.
+   */
+  private asRaw(): Uint8Array {
     if (!this._raw) {
       // only if created from crypto
       this._raw = this._crypto!.payload()
@@ -520,6 +583,18 @@ export class SignatureWrap {
   }
 }
 
+/**
+ * Name is a simple wrap around string that ensures that it
+ * doesn't contain whitespaces characters, `@`, and `#`.
+ *
+ * @example
+ * ```ts
+ * const name1 = new Name('alice')
+ * console.log(name1.value) // => alice
+ *
+ * new Name('alice and bob') // Error: whitespace characters.
+ * ```
+ */
 export class Name implements traits.Ord {
   public static [traits.SYMBOL_CODEC] = traits
     .getCodec(String)
@@ -533,7 +608,7 @@ export class Name implements traits.Ord {
     if (/[\s#@]/.test(name))
       throw new SyntaxError(
         `Invalid name: "${name}". Name should not contain whitespace characters, ` +
-          `'@' (reserved for '⟨account⟩@⟨domain⟩' constructs, e.g. 'alice@wonderland'), ` +
+          `'@' (reserved for '⟨signatory⟩@⟨domain⟩' constructs, e.g. 'ed....@wonderland'), ` +
           `and '#' (reserved for '⟨asset⟩#⟨domain⟩' constructs, e.g. 'rose#wonderland') `,
       )
 
@@ -558,21 +633,26 @@ export const DomainId = Name
 
 export class AccountId implements traits.Ord {
   public static [traits.SYMBOL_CODEC]: GenCodec<AccountId> = structCodec<{
-    signatory: PublicKeyWrap
+    signatory: PublicKeyRepr
     domain: DomainId
   }>(['domain', 'signatory'], {
     domain: traits.getCodec(DomainId),
-    signatory: traits.getCodec(PublicKeyWrap),
+    signatory: traits.getCodec(PublicKeyRepr),
   }).wrap<AccountId>({ fromBase: (x) => new AccountId(x.signatory, x.domain), toBase: (x) => x })
 
+  /**
+   * Parses account id from a string in a form of `<signature>@<domain>`.
+   *
+   * Throws an error if the string is not a valid account id.
+   */
   public static parse(str: string): AccountId {
     return accountIdFromStr(str)
   }
 
-  public readonly signatory: PublicKeyWrap
+  public readonly signatory: PublicKeyRepr
   public readonly domain: DomainId
 
-  public constructor(signatory: PublicKeyWrap, domain: DomainId) {
+  public constructor(signatory: PublicKeyRepr, domain: DomainId) {
     this.signatory = signatory
     this.domain = domain
   }
@@ -581,19 +661,22 @@ export class AccountId implements traits.Ord {
     return this.toString()
   }
 
+  /**
+   * String representation of an account id, as described in {@link AccountId.parse}.
+   */
   public toString(): string {
     return `${this.signatory.asHex() satisfies string}@${this.domain.value satisfies string}`
   }
 
-  public compare(other: this): number {
-    const domains = traits.ordCompare(this.domain, other.domain)
+  public compare(that: this): number {
+    const domains = traits.ordCompare(this.domain, that.domain)
     if (domains !== 0) return domains
-    return traits.ordCompare(this.signatory, other.signatory)
+    return traits.ordCompare(this.signatory, that.signatory)
   }
 }
 
 function accountIdFromObj({ signatory, domain }: { signatory: string; domain: string }): AccountId {
-  return new AccountId(PublicKeyWrap.fromHex(signatory), new Name(domain))
+  return new AccountId(PublicKeyRepr.fromHex(signatory), new Name(domain))
 }
 
 function accountIdFromStr(str: string): AccountId {
@@ -617,6 +700,11 @@ export class AssetDefinitionId {
     fromBase: (lower) => new AssetDefinitionId(lower.name, lower.domain),
   })
 
+  /**
+   * Parse an asset definition id from a string representation in a form of `<name>@<domain>`.
+   *
+   * Throws an error if the string is invalid asset definition id.
+   */
   public static parse(str: string): AssetDefinitionId {
     return assetDefIdFromStr(str)
   }
@@ -629,6 +717,9 @@ export class AssetDefinitionId {
     this.domain = domain
   }
 
+  /**
+   * String representation, as described in {@link AssetDefinitionId.parse}
+   */
   public toString(): string {
     return `${this.name.value satisfies string}#${this.domain.value satisfies string}`
   }
@@ -666,10 +757,12 @@ export class AssetId {
   })
 
   /**
-   * Parses a stringified ID in a form of either
+   * Parses an asset id from its string representation in a form of either
    *
-   * - `asset#domain#account@domain`
-   * - `asset##account@domain`
+   * - `<asset>#<domain>#<signatory>@<domain>`
+   * - `<asset>##<signatory>@<domain>` (when domains are the same)
+   *
+   * Throws an error if the string is invalid asset id.
    */
   public static parse(str: string): AssetId {
     return assetIdFromStr(str)

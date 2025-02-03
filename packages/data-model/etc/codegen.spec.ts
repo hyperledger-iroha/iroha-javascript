@@ -230,7 +230,23 @@ describe('enum shortcuts', () => {
     const generated = renderShortcutsTree({ id: 'A', variants: enumShortcuts(SAMPLE.A.variants, SAMPLE_MAP) })
 
     expect(generated).toMatchInlineSnapshot(
-      `"Unit: Object.freeze<lib.VariantUnit<'Unit'>>({ kind: 'Unit' }), WithType: <const T extends Whichever>(value: T): lib.Variant<'WithType', T> => ({ kind: 'WithType', value }), Nested: { Bunit: Object.freeze<lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>>({ kind: 'Nested', value: B.Bunit }), Bnested: { CUnit: Object.freeze<lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>>({ kind: 'Nested', value: B.Bnested.CUnit }), Cfinal: <const T extends Whichever>(value: T): lib.Variant<'Nested', lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>> => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }) } }"`,
+      `
+      "/**
+       * Value of variant \`A.Unit\`
+       */ Unit: Object.freeze<lib.VariantUnit<'Unit'>>({ kind: 'Unit' }), /**
+       * Constructor of variant \`A.WithType\`
+       */ WithType: <const T extends Whichever>(value: T): lib.Variant<'WithType', T> => ({ kind: 'WithType', value }), /**
+       * Constructors of nested enumerations under variant \`A.Nested\`
+       */ Nested: { /**
+       * Value of variant \`A.Nested.Bunit\`
+       */ Bunit: Object.freeze<lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>>({ kind: 'Nested', value: B.Bunit }), /**
+       * Constructors of nested enumerations under variant \`A.Nested.Bnested\`
+       */ Bnested: { /**
+       * Value of variant \`A.Nested.Bnested.CUnit\`
+       */ CUnit: Object.freeze<lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>>({ kind: 'Nested', value: B.Bnested.CUnit }), /**
+       * Constructor of variant \`A.Nested.Bnested.Cfinal\`
+       */ Cfinal: <const T extends Whichever>(value: T): lib.Variant<'Nested', lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>> => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }) } }"
+    `,
     )
   })
 })

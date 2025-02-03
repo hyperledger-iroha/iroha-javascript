@@ -1,18 +1,32 @@
 import * as types from './items/index'
 import { VariantUnit } from './util'
 
+/**
+ * Type map, defining relation between the variants of {@link types.SingularQueryBox} and its outputs in
+ * {@link types.SingularQueryOutputBox}
+ */
 export type SingularQueryOutputMap = {
   FindExecutorDataModel: 'ExecutorDataModel'
   FindParameters: 'Parameters'
 }
 
+/**
+ * Kinds of singular queries.
+ */
 export type SingularQueryKind = keyof SingularQueryOutputMap & types.SingularQueryBox['kind']
 
+/**
+ * Type function to map a singular query kind into the value of its output box.
+ */
 export type GetSingularQueryOutput<K extends SingularQueryKind> =
   SingularQueryOutputMap[K] extends infer OutputKind extends types.SingularQueryOutputBox['kind']
     ? (types.SingularQueryOutputBox & { kind: OutputKind })['value']
     : never
 
+/**
+ * Type function to map the selector of arbitrary shape to the corresponding output value.
+ *
+ */
 export type GetSelectorOutput<K extends keyof types.SelectorOutputMap, S> = S extends { kind: 'Atom' }
   ? types.SelectorOutputMap[K]['Atom'] extends infer OutputKind extends types.QueryOutputBatchBox['kind']
     ? (types.QueryOutputBatchBox & { kind: OutputKind })['value'] extends (infer Output)[]
@@ -27,8 +41,16 @@ export type GetSelectorOutput<K extends keyof types.SelectorOutputMap, S> = S ex
         : never
       : never
 
+/**
+ * Kinds of _iterable_ queries.
+ *
+ * Note that this differs from {@link SingularQueryKind}.
+ */
 export type QueryKind = types.QueryBox['kind'] & keyof types.QuerySelectorMap
 
+/**
+ * Map a tuple with {@link GetSelectorOutput}.
+ */
 export type GetSelectorTupleOutput<K extends keyof types.SelectorOutputMap, Tuple> = Tuple extends [
   infer Head,
   ...infer Tail,
@@ -36,11 +58,19 @@ export type GetSelectorTupleOutput<K extends keyof types.SelectorOutputMap, Tupl
   ? [GetSelectorOutput<K, Head>, ...GetSelectorTupleOutput<K, Tail>]
   : Tuple extends []
     ? []
-    // Not as ergonomic (lost `const` somewhere?), but still works and is correct
-    : Tuple extends Array<infer T>
+    : // Not as ergonomic (lost `const` somewhere?), but still works and is correct
+      Tuple extends Array<infer T>
       ? GetSelectorOutput<K, T>[]
       : never
 
+/**
+ * Maps a query kind and a selector to the corresponding output of this query and this selector.
+ *
+ * The selector must be either a single value or an array. Values of the selectors are actual variants
+ * and structs of the selectors in the schema.
+ *
+ * If the selector is a single value or an array with a single value, the output will be just a value.
+ */
 export type SelectorToOutput<
   Q extends QueryKind & keyof types.QuerySelectorMap,
   Selection,
@@ -54,6 +84,9 @@ export type SelectorToOutput<
         : GetSelectorOutput<Selector, Selection>
   : never
 
+/**
+ * The default output is the root value of the query output, without any projections inside.
+ */
 export type DefaultQueryOutput<Q extends QueryKind> = GetSelectorOutput<
   Q extends keyof types.QuerySelectorMap
     ? types.QuerySelectorMap[Q] extends infer Selector extends keyof types.SelectorOutputMap
@@ -63,17 +96,25 @@ export type DefaultQueryOutput<Q extends QueryKind> = GetSelectorOutput<
   VariantUnit<'Atom'>
 >
 
+const DEFAULT_SELECTOR = [{ kind: 'Atom' }]
+
+/**
+ * Maps query kind to its corresponding predicate type.
+ */
 export type PredicateFor<Q extends QueryKind> =
   (types.QueryBox & { kind: Q })['value'] extends types.QueryWithFilter<any, types.CompoundPredicate<infer P>, any>
     ? P
     : never
 
-const DEFAULT_SELECTOR = [{ kind: 'Atom' }]
-
-export type QueryKindWithoutPayload = { [K in QueryKind]: GetQueryPayload<K> extends null ? K : never }[QueryKind]
-
-export type QueryKindWithPayload = { [K in QueryKind]: GetQueryPayload<K> extends null ? never : K }[QueryKind]
-
+/**
+ * Utility to build a query in a type-safe way.
+ *
+ * @param kind kind of the query
+ * @param payload payload of the query (for most, it's `null`)
+ * @param params params such as predicate, selector, pagination etc
+ * @returns a constructed {@link types.QueryWithParams} and a function that extracts the typed output from
+ * query response.
+ */
 export function buildQuery<K extends QueryKind, const P extends BuildQueryParams<K>>(
   kind: K,
   payload: GetQueryPayload<K>,
@@ -109,13 +150,38 @@ export function buildQuery<K extends QueryKind, const P extends BuildQueryParams
 }
 
 // TODO: document fields!
+/**
+ * Params for {@link buildQuery}.
+ */
 export interface BuildQueryParams<K extends QueryKind> {
+  /**
+   * TODO how to work with predicates
+   */
   predicate?: types.CompoundPredicate<PredicateFor<K>>
+  /**
+   * TODO examples of selectors
+   */
   selector?: unknown
+  /**
+   * TODO what fetch size affects, why to set
+   */
   fetchSize?: types.NonZero<number | bigint>
+  /**
+   * TODO pagination offset
+   */
   offset?: number | bigint
+  /**
+   * TODO pagination limit
+   */
   limit?: types.NonZero<number | bigint>
+  /**
+   * Specify sorting of the output
+   */
   sorting?: {
+    /**
+     * Sort output by the key-value entry in the entity's metadata.
+     * TODO describe example
+     */
     byMetadataKey?: types.Name
   }
 }
@@ -123,11 +189,17 @@ export interface BuildQueryParams<K extends QueryKind> {
 export type GetQueryPayload<K extends QueryKind> =
   (types.QueryBox & { kind: K })['value'] extends types.QueryWithFilter<infer Payload, any, any> ? Payload : never
 
+/**
+ * Result of {@link buildQuery}
+ */
 export interface BuildQueryResult<Output> {
   query: types.QueryWithParams
   parseResponse: (response: types.QueryOutputBatchBoxTuple) => Generator<Output>
 }
 
+/**
+ * Utility type
+ */
 export type GetQueryOutput<K extends QueryKind, P extends BuildQueryParams<K>> = P extends {
   selector: infer S
 }
