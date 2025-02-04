@@ -590,6 +590,10 @@ export class Resolver {
             },
           }),
         }))
+        .with({ ref: { id: 'Vec', items: [{ id: 'u8' }] } }, () => ({
+          t: 'lib',
+          id: 'BytesVec',
+        }))
         .with(
           {
             ref: { id: P.union('Vec', 'SortedVec').select('id'), items: [P._] },

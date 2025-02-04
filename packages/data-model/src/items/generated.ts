@@ -1545,10 +1545,8 @@ export const AccountProjectionSelector = {
   ),
 }
 
-export type WasmSmartContract = lib.Vec<lib.U8>
-export const WasmSmartContract = lib.defineCodec(
-  lib.Vec.with(lib.getCodec(lib.U8)),
-)
+export type WasmSmartContract = lib.BytesVec
+export const WasmSmartContract = lib.BytesVec
 
 /**
  * Enumeration (discriminated union). Represented as one of the following variants:
