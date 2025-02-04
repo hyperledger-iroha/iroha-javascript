@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { Bytes, KeyPair } from '@iroha2/crypto-core'
 import * as dm from '@iroha2/data-model'
-import type { Client } from '@iroha2/client'
+import { QueryValidationError, type Client } from '@iroha2/client'
 import { usePeer } from './util'
 import { P, match } from 'ts-pattern'
 import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha2/test-configuration'
@@ -392,6 +392,22 @@ describe('Queries', () => {
       ]
     `)
   })
+
+  test('when numeric assets filtered, but store is selected, validation error happens and passed', async () => {
+    const { client } = await usePeer()
+    await submitTestData(client)
+
+    await expect(
+      client.find
+        .assets({
+          predicate: dm.CompoundPredicate.Atom(dm.AssetProjectionPredicate.Value.Atom.IsNumeric),
+          selector: [dm.AssetProjectionSelector.Value.Store.Atom],
+        })
+        .executeAll(),
+    ).rejects.toEqual(
+      new QueryValidationError(dm.ValidationFail.QueryFailed.Conversion('Expected store value, got numeric')),
+    )
+  })
 })
 
 describe('Singular queries', () => {
@@ -465,7 +481,7 @@ describe('Transactions', () => {
           ]),
         )
         .submit({ verify: true }),
-    ).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Transaction rejected]`)
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`[TransactionRejectedError]`)
   })
 
   test('invalid transaction without verification - no errors', async () => {

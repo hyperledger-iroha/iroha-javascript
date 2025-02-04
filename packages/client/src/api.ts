@@ -164,8 +164,9 @@ export class QueryValidationError extends Error {
   public reason: dm.ValidationFail
 
   public constructor(reason: dm.ValidationFail) {
-    // TODO: stringify the error
-    super('Query validation failed')
+    super()
+
+    this.name = 'QueryValidationError'
     this.reason = reason
   }
 }

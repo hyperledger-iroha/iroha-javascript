@@ -42,15 +42,16 @@ export class TransactionRejectedError extends Error {
   public reason: dm.TransactionRejectionReason
 
   public constructor(reason: dm.TransactionRejectionReason) {
-    // TODO: parse reason into a specific message
-    super('Transaction rejected')
+    super()
+    this.name = 'TransactionRejectedError'
     this.reason = reason
   }
 }
 
 export class TransactionExpiredError extends Error {
   public constructor() {
-    super('Transaction expired')
+    super()
+    this.name = 'TransactionExpiredError'
   }
 }
 
