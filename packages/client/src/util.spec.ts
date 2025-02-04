@@ -39,12 +39,4 @@ describe('URL join', () => {
   ])('$url + $path = $expect', (params) => {
     expect(urlJoinPath(new URL(params.url), params.path)).toEqual(new URL(params.expect))
   })
-
-  // test('localhost + /', () => {
-  //   expect(urlJoinPath(new URL('http://localhost'), '/')).toEqual(new URL('http://localhost/'))
-  // })
-
-  // test('localhost:410 + /path', () => {
-  //   expect(urlJoinPath(new URL('http://localhost:410'), '/path')).toEqual(new URL('http://localhost:410/path'))
-  // })
 })
