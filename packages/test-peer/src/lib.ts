@@ -1,33 +1,24 @@
-import { EXECUTOR_WASM_PATH, irohaCodecToJson, resolveBinary } from '@iroha2/iroha-source'
+import { resolveBinary } from '@iroha2/iroha-source'
 import { execa } from 'execa'
 import path from 'path'
 import { fs } from 'zx'
-import {
-  ACCOUNT_KEY_PAIR,
-  BLOCK_TIME_MS,
-  CHAIN,
-  COMMIT_TIME_MS,
-  DOMAIN,
-  GENESIS_KEY_PAIR,
-  PEER_CONFIG_BASE,
-} from '@iroha2/test-configuration'
+import { PEER_CONFIG_BASE } from '@iroha2/test-configuration'
 import TOML from '@iarna/toml'
 import * as dm from '@iroha2/data-model'
 import { temporaryDirectory } from 'tempy'
-import { type ToriiHttpParams, getStatus } from '@iroha2/client'
+import { MainAPI, HttpTransport } from '@iroha2/client'
 import mergeDeep from '@tinkoff/utils/object/mergeDeep'
 import readline from 'readline'
 
 import Debug from 'debug'
+import type { KeyPair } from '@iroha2/crypto-core'
 
 const debug = Debug('@iroha2/test-peer')
 
 const GENESIS_CHECK_TIMEOUT = 1_500
 const GENESIS_CHECK_INTERVAL = 200
 
-async function waitForGenesis(toriiBaseURL: string, abort: AbortSignal) {
-  const toriiHttp = { toriiBaseURL, fetch } satisfies ToriiHttpParams
-
+async function waitForGenesis(url: URL, abort: AbortSignal) {
   let now = Date.now()
   const endAt = now + GENESIS_CHECK_TIMEOUT
 
@@ -43,7 +34,7 @@ async function waitForGenesis(toriiBaseURL: string, abort: AbortSignal) {
     if (now > endAt) throw new Error(`Genesis is still not committed after ${GENESIS_CHECK_TIMEOUT}ms`)
 
     try {
-      const { blocks } = await getStatus(toriiHttp)
+      const { blocks } = await new MainAPI(new HttpTransport(url)).telemetry.status()
       if (blocks === 1n) break
       throw `blocks: ${blocks}`
     } catch (error) {
@@ -73,44 +64,6 @@ export interface StartPeerReturn {
    * Check for alive status
    */
   isAlive: () => boolean
-
-  toriiURL: string
-}
-
-export interface IrohaConfiguration {
-  genesis: unknown
-  config: unknown
-}
-
-async function createGenesis() {
-  const alice = dm.AccountId.parse(`${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.value}`)
-  const genesis = dm.AccountId.parse(`${GENESIS_KEY_PAIR.publicKey}@genesis`)
-
-  const instructionsJson = await irohaCodecToJson(
-    'Vec<InstructionBox>',
-    dm.Vec.with(dm.codecOf(dm.InstructionBox)).encode([
-      dm.InstructionBox.Register.Domain({ id: DOMAIN, metadata: [], logo: null }),
-      dm.InstructionBox.Register.Account({ id: alice, metadata: [] }),
-      dm.InstructionBox.Transfer.Domain({ source: genesis, object: DOMAIN, destination: alice }),
-      dm.InstructionBox.SetParameter.Sumeragi.BlockTime(dm.Duration.fromMillis(BLOCK_TIME_MS)),
-      dm.InstructionBox.SetParameter.Sumeragi.CommitTime(dm.Duration.fromMillis(COMMIT_TIME_MS)),
-      ...[
-        { name: 'CanSetParameters', payload: dm.Json.fromValue(null) },
-        { name: 'CanRegisterDomain', payload: dm.Json.fromValue(null) },
-      ].map((object) => dm.InstructionBox.Grant.Permission({ object, destination: alice })),
-    ]),
-  )
-
-  return {
-    chain: CHAIN,
-    executor: EXECUTOR_WASM_PATH,
-    instructions: instructionsJson,
-    topology: [PEER_CONFIG_BASE.public_key],
-    // FIXME: migrate to direct building of `SignedBlock`, without `genesis.json`.
-    //        And note that I don't use any WASMs and these fields are extra for my case.
-    wasm_dir: 'why the hell do you require wasm_dir at all times?',
-    wasm_triggers: [],
-  }
 }
 
 /**
@@ -118,41 +71,43 @@ async function createGenesis() {
  *
  * **Note:** Iroha binary must be pre-built.
  */
-export async function startPeer(params?: { ports?: { api?: number; p2p?: number } }): Promise<StartPeerReturn> {
-  const PORT = params?.ports?.api ?? 8080
-  const PORT_P2P = params?.ports?.p2p ?? 1337
+export async function startPeer(params: {
+  ports: { api: number; p2p: number }
+  keypair: KeyPair
+  trustedPeers?: {
+    address: string
+    /** aka public key */
+    id: string
+  }[]
+  genesis?: dm.SignedBlock
+}): Promise<StartPeerReturn> {
+  const PORT = params.ports.api
+  const PORT_P2P = params.ports.p2p
   const API_ADDRESS = `127.0.0.1:${PORT}`
-  const API_URL = `http://${API_ADDRESS}`
+  const API_URL = new URL(`http://${API_ADDRESS}`)
   const P2P_ADDRESS = `127.0.0.1:${PORT_P2P}`
   const TMP_DIR = temporaryDirectory()
   const irohad = await resolveBinary('irohad')
-  const kagami = await resolveBinary('iroha_kagami')
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
-  const RAW_GENESIS = await createGenesis()
-
-  await fs.writeFile(path.join(TMP_DIR, 'genesis.json'), JSON.stringify(RAW_GENESIS))
-  await execa(
-    kagami.path,
-    [
-      `genesis`,
-      `sign`,
-      path.join(TMP_DIR, 'genesis.json'),
-      `--public-key`,
-      GENESIS_KEY_PAIR.publicKey,
-      `--private-key`,
-      GENESIS_KEY_PAIR.privateKey,
-      '--out-file',
-      path.join(TMP_DIR, 'genesis.scale'),
-    ],
-    { encoding: 'buffer' },
-  )
+  let configGenesisPart = {}
+  if (params?.genesis) {
+    await fs.writeFile(path.join(TMP_DIR, 'genesis.scale'), dm.codecOf(dm.SignedBlock).encode(params.genesis))
+    configGenesisPart = {
+      genesis: {
+        file: './genesis.scale',
+      },
+    }
+  }
 
   await fs.writeFile(
     path.join(TMP_DIR, 'config.toml'),
     TOML.stringify(
       mergeDeep(PEER_CONFIG_BASE, {
-        genesis: { file: './genesis.scale' },
+        ...configGenesisPart,
+        public_key: params.keypair.publicKey().toMultihash(),
+        private_key: params.keypair.privateKey().toMultihash(),
+        trusted_peers: params.trustedPeers?.map((x) => `${x.id}@${x.address}`) ?? [],
         kura: { store_dir: './storage' },
         torii: { address: API_ADDRESS },
         network: { address: P2P_ADDRESS, public_address: P2P_ADDRESS },
@@ -217,6 +172,5 @@ export async function startPeer(params?: { ports?: { api?: number; p2p?: number 
   return {
     kill,
     isAlive: () => isAlive,
-    toriiURL: API_URL,
   }
 }

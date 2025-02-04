@@ -1,6 +1,6 @@
 import * as client from '../find-api-internal'
 import type * as dm from '@iroha2/data-model'
-export class FindApi {
+export class FindAPI {
   private _executor: client.QueryExecutor
   public constructor(executor: client.QueryExecutor) {
     this._executor = executor

@@ -38,6 +38,7 @@
   "dependencies": {
     "@iroha2/crypto-core": "workspace:^2.0.0",
     "@iroha2/data-model": "workspace:7.1.0",
+    "@iroha2/data-model-schema": "workspace:7.1.0",
     "debug": "^4.3.4",
     "emittery": "^1.0.3",
     "p-defer": "^4.0.1",

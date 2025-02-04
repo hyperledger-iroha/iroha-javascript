@@ -140,6 +140,9 @@ importers:
       '@iroha2/data-model':
         specifier: workspace:7.1.0
         version: link:../data-model
+      '@iroha2/data-model-schema':
+        specifier: workspace:7.1.0
+        version: link:../data-model-schema
       debug:
         specifier: ^4.3.4
         version: 4.3.4

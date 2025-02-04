@@ -85,7 +85,7 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
   return [
     `import * as client from '${libClient}'`,
     `import type * as dm from '@iroha2/data-model'`,
-    `export class FindApi {`,
+    `export class FindAPI {`,
     `  private _executor: client.QueryExecutor`,
     `  public constructor(executor: client.QueryExecutor) { this._executor = executor; }`,
     ...iterableQueryMethods,

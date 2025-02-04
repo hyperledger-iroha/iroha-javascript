@@ -118,7 +118,13 @@ async function submitTestData(client: Client) {
   return { bob, madHatter }
 }
 
-describe('queries', () => {
+test('Test data is valid', async () => {
+  const { client } = await usePeer()
+
+  await expect(submitTestData(client)).resolves.not.toThrow()
+})
+
+describe('Queries', () => {
   test('.executeSingle() throws when there are no results', async () => {
     const { client } = await usePeer()
 
@@ -188,7 +194,7 @@ describe('queries', () => {
     const { client } = await usePeer()
 
     const txs = await client.find.transactions().executeAll()
-    const status = await client.status()
+    const status = await client.api.telemetry.status()
 
     expect(txs).toHaveLength(Number(status.txsAccepted))
   })
@@ -388,7 +394,7 @@ describe('queries', () => {
   })
 })
 
-describe('singular queries', () => {
+describe('Singular queries', () => {
   test('find parameters', async () => {
     const { client } = await usePeer()
 
@@ -508,7 +514,7 @@ describe('Block Stream API', () => {
   test('Committing 3 blocks one after another', async () => {
     const { client } = await usePeer()
 
-    const stream = await client.blocksStream({
+    const stream = await client.blocks({
       fromBlockHeight: new dm.NonZero(2),
     })
     const streamClosedPromise = stream.ee.once('close')

@@ -22,7 +22,7 @@ export interface MessageEvent {
 }
 
 export interface InitWebSocketParams {
-  url: string
+  url: URL
   onopen: (event: Event) => void
   onclose: (event: CloseEvent) => void
   onerror: (event: Event) => void

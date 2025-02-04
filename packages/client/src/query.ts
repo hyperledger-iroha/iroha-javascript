@@ -1,70 +1,42 @@
 import type { PrivateKey } from '@iroha2/crypto-core'
 import * as dm from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
-import { ENDPOINT_QUERY } from './const'
+import type { MainAPI } from './api'
 
-export interface BaseParams {
-  fetch: typeof fetch
-  toriiBaseURL: string
-  authority: dm.AccountId
-  authorityPrivateKey: () => PrivateKey
-}
+export class QueryExecutor {
+  private readonly api: MainAPI
+  private readonly authority: dm.AccountId
+  private readonly privateKey: PrivateKey
 
-function signQueryRequest(request: dm.QueryRequest, params: BaseParams) {
-  return dm.signQuery({ authority: params.authority, request }, params.authorityPrivateKey())
-}
-
-export async function* queryBatchStream(params: BaseParams, query: dm.QueryWithParams): AsyncGenerator<dm.QueryOutput> {
-  let continueCursor: dm.ForwardCursor | null = null
-  do {
-    const response: dm.QueryResponse = await params
-      .fetch(params.toriiBaseURL + ENDPOINT_QUERY, {
-        method: 'POST',
-        body: dm
-          .codecOf(dm.SignedQuery)
-          .encode(
-            signQueryRequest(
-              continueCursor ? dm.QueryRequest.Continue(continueCursor) : dm.QueryRequest.Start(query),
-              params,
-            ),
-          ),
-      })
-      .then(handleQueryResponse)
-
-    invariant(response.kind === 'Iterable')
-    yield response.value
-
-    continueCursor = response.value.continueCursor
-  } while (continueCursor)
-}
-
-export async function querySingular(
-  params: BaseParams,
-  query: dm.SingularQueryBox,
-): Promise<dm.SingularQueryOutputBox> {
-  const response = await params
-    .fetch(params.toriiBaseURL + ENDPOINT_QUERY, {
-      method: 'POST',
-      body: dm.codecOf(dm.SignedQuery).encode(signQueryRequest({ kind: 'Singular', value: query }, params)),
-    })
-    .then(handleQueryResponse)
-
-  invariant(response.kind === 'Singular')
-  return response.value
-}
-
-async function handleQueryResponse(resp: Response): Promise<dm.QueryResponse> {
-  if (resp.status === 200) {
-    const bytes = await resp.arrayBuffer()
-    return dm.codecOf(dm.QueryResponse).decode(new Uint8Array(bytes))
-  } else if (resp.status >= 400 && resp.status < 500) {
-    const bytes = await resp.arrayBuffer()
-    const error = dm.codecOf(dm.ValidationFail).decode(new Uint8Array(bytes))
-    // TODO handle error properly
-    console.error(error)
-    throw new Error(`Query execution fail`)
+  public constructor(api: MainAPI, authority: dm.AccountId, authorityPrivateKey: PrivateKey) {
+    this.api = api
+    this.authority = authority
+    this.privateKey = authorityPrivateKey
   }
-  throw new Error(`unexpected response from Iroha: ${resp.status} ${resp.statusText}`)
+
+  public async *execute(query: dm.QueryWithParams): AsyncGenerator<dm.QueryOutput> {
+    let continueCursor: dm.ForwardCursor | null = null
+    do {
+      const response = await this.api.query(
+        this.signQuery(continueCursor ? dm.QueryRequest.Continue(continueCursor) : dm.QueryRequest.Start(query)),
+      )
+
+      invariant(response.kind === 'Iterable')
+      yield response.value
+
+      continueCursor = response.value.continueCursor
+    } while (continueCursor)
+  }
+
+  public async executeSingular(query: dm.SingularQueryBox): Promise<dm.SingularQueryOutputBox> {
+    const response = await this.api.query(this.signQuery({ kind: 'Singular', value: query }))
+    invariant(response.kind === 'Singular')
+    return response.value
+  }
+
+  public signQuery(request: dm.QueryRequest): dm.SignedQuery {
+    return dm.signQuery({ request, authority: this.authority }, this.privateKey)
+  }
 }
 
 export class QueryHandle<Output> {
@@ -102,27 +74,4 @@ export class QueryHandle<Output> {
       yield items
     }
   }
-}
-
-export interface QueryExecutor {
-  execute: (query: dm.QueryWithParams) => AsyncGenerator<dm.QueryOutput>
-  executeSingular: (query: dm.SingularQueryBox) => Promise<dm.SingularQueryOutputBox>
-}
-
-export function buildQueryHandle<K extends dm.QueryKind, O>(
-  executor: QueryExecutor,
-  kind: K,
-  payload: dm.GetQueryPayload<K>,
-  params?: dm.BuildQueryParams<K>,
-): QueryHandle<O> {
-  const query = dm.buildQuery(kind, payload, params)
-  return new QueryHandle<any>(query, executor)
-}
-
-export async function executeSingularQuery<K extends dm.SingularQueryKind>(
-  executor: QueryExecutor,
-  kind: K,
-): Promise<dm.GetSingularQueryOutput<K>> {
-  const result = await executor.executeSingular({ kind })
-  return result.value as dm.GetSingularQueryOutput<K>
 }

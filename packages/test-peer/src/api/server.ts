@@ -2,6 +2,8 @@ import * as h3 from 'h3'
 import { listen } from 'listhen'
 
 import * as lib from '../lib'
+import { KeyPair } from '@iroha2/crypto-core'
+import { createGenesis } from '@iroha2/test-configuration'
 
 export async function run(port = 8765) {
   let peer: lib.StartPeerReturn | undefined
@@ -18,7 +20,9 @@ export async function run(port = 8765) {
           return 'Kill first'
         }
 
-        peer = await lib.startPeer()
+        const keypair = KeyPair.random()
+        const genesis = await createGenesis({ topology: [keypair.publicKey()] })
+        peer = await lib.startPeer({ genesis, ports: { api: 8080, p2p: 1337 }, keypair })
 
         h3.setResponseStatus(event, 204)
         await h3.send(event)

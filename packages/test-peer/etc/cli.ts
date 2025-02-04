@@ -2,6 +2,8 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import consola from 'consola'
 import { startPeer } from '../src/lib'
+import { KeyPair } from '@iroha2/crypto-core'
+import { createGenesis } from '@iroha2/test-configuration'
 
 yargs(hideBin(process.argv))
   .command(
@@ -10,7 +12,9 @@ yargs(hideBin(process.argv))
     (y) => y,
     async () => {
       consola.info('Starting peer')
-      await startPeer()
+      const keypair = KeyPair.random()
+      const genesis = await createGenesis({ topology: [keypair.publicKey()] })
+      await startPeer({ genesis, ports: { api: 8080, p2p: 1337 }, keypair })
       consola.info('Started! Kill this process to kill the peer')
     },
   )
