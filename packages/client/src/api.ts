@@ -104,7 +104,7 @@ export class MainAPI {
   }
 
   public async transaction(transaction: dm.SignedTransaction): Promise<void> {
-    const body = dm.codecOf(dm.SignedTransaction).encode(transaction)
+    const body = dm.getCodec(dm.SignedTransaction).encode(transaction)
     const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_TRANSACTION), {
       body,
       method: 'POST',
@@ -116,7 +116,7 @@ export class MainAPI {
     return this.http
       .fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_QUERY), {
         method: 'POST',
-        body: dm.codecOf(dm.SignedQuery).encode(query),
+        body: dm.getCodec(dm.SignedQuery).encode(query),
       })
       .then(handleQueryResponse)
   }
@@ -151,10 +151,10 @@ export class MainAPI {
 async function handleQueryResponse(resp: Response): Promise<dm.QueryResponse> {
   if (resp.status === 200) {
     const bytes = await resp.arrayBuffer()
-    return dm.codecOf(dm.QueryResponse).decode(new Uint8Array(bytes))
+    return dm.getCodec(dm.QueryResponse).decode(new Uint8Array(bytes))
   } else if (resp.status >= 400 && resp.status < 500) {
     const bytes = await resp.arrayBuffer()
-    const error = dm.codecOf(dm.ValidationFail).decode(new Uint8Array(bytes))
+    const error = dm.getCodec(dm.ValidationFail).decode(new Uint8Array(bytes))
     throw new QueryValidationError(error)
   }
   throw new Error(`unexpected response from Iroha: ${resp.status} ${resp.statusText}`)
@@ -183,7 +183,7 @@ export class ApiTelemetry {
       headers: { accept: 'application/x-parity-scale' },
     })
     await ResponseError.assertStatus(response, 200)
-    return response.arrayBuffer().then((buffer) => dm.codecOf(dm.Status).decode(new Uint8Array(buffer)))
+    return response.arrayBuffer().then((buffer) => dm.getCodec(dm.Status).decode(new Uint8Array(buffer)))
   }
 
   public async peers(): Promise<PeerJson[]> {

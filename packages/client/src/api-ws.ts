@@ -39,14 +39,14 @@ export class WebSocketAPI {
 
     ee.on('open', () => {
       sendRaw(
-        dm.codecOf(dm.BlockSubscriptionRequest).encode({
+        dm.getCodec(dm.BlockSubscriptionRequest).encode({
           fromBlockHeight: params?.fromBlockHeight?.map(BigInt) ?? new dm.NonZero(1n),
         }).buffer,
       )
     })
 
     ee.on('message', (raw) => {
-      const block = dm.codecOf(dm.SignedBlock).decode(raw)
+      const block = dm.getCodec(dm.SignedBlock).decode(raw)
       ee.emit('block', block)
     })
 
@@ -76,11 +76,11 @@ export class WebSocketAPI {
     })
 
     ee.on('open', () => {
-      sendRaw(dm.codecOf(dm.EventSubscriptionRequest).encode({ filters: params?.filters ?? [] }).buffer)
+      sendRaw(dm.getCodec(dm.EventSubscriptionRequest).encode({ filters: params?.filters ?? [] }).buffer)
     })
 
     ee.on('message', (raw) => {
-      const event = dm.codecOf(dm.EventBox).decode(raw)
+      const event = dm.getCodec(dm.EventBox).decode(raw)
       ee.emit('event', event)
     })
 

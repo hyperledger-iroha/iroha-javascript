@@ -34,7 +34,7 @@ export async function createGenesis(params: {
 
   const instructionsJson = await irohaCodecToJson(
     'Vec<InstructionBox>',
-    dm.Vec.with(dm.codecOf(dm.InstructionBox)).encode([
+    dm.Vec.with(dm.getCodec(dm.InstructionBox)).encode([
       dm.InstructionBox.Register.Domain({ id: DOMAIN, metadata: [], logo: null }),
       dm.InstructionBox.Register.Account({ id: alice, metadata: [] }),
       dm.InstructionBox.Transfer.Domain({ source: genesis, object: DOMAIN, destination: alice }),
@@ -84,7 +84,7 @@ async function signGenesisWithKagami(json: unknown): Promise<dm.SignedBlock> {
     { encoding: 'buffer' },
   )
 
-  return dm.codecOf(dm.SignedBlock).decode(stdout)
+  return dm.getCodec(dm.SignedBlock).decode(stdout)
 }
 
 export const PEER_CONFIG_BASE = {

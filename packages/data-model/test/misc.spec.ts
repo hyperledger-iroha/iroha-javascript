@@ -16,8 +16,8 @@ describe('JSON/string serialisation', () => {
   test('AccountId (after being decoded)', () => {
     const pk = KeyPair.random().publicKey()
     const decoded = dm
-      .codecOf(dm.AccountId)
-      .decode(dm.codecOf(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyRepr.fromCrypto(pk), new dm.Name('test'))))
+      .getCodec(dm.AccountId)
+      .decode(dm.getCodec(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyRepr.fromCrypto(pk), new dm.Name('test'))))
 
     expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)
   })
@@ -117,12 +117,12 @@ describe('Status', () => {
     }
     const ENCODED = '10 14 7C 0C 14 40 7C D9 37 08 48'
 
-    expect(dm.codecOf(dm.Status).encode(STATUS)).toEqual(fromHexWithSpaces(ENCODED))
-    expect(dm.codecOf(dm.Status).decode(fromHexWithSpaces(ENCODED))).toEqual(STATUS)
+    expect(dm.getCodec(dm.Status).encode(STATUS)).toEqual(fromHexWithSpaces(ENCODED))
+    expect(dm.getCodec(dm.Status).decode(fromHexWithSpaces(ENCODED))).toEqual(STATUS)
   })
 
   test('From zeros', () => {
-    expect(dm.codecOf(dm.Status).decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00'))).toMatchInlineSnapshot(`
+    expect(dm.getCodec(dm.Status).decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00'))).toMatchInlineSnapshot(`
         {
           "blocks": 0n,
           "peers": 0n,
@@ -161,8 +161,8 @@ describe('construct pub key wrap', () => {
 
   test('by decoding', () => {
     const key = dm.PublicKeyRepr.fromHex('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
-    const bytes = dm.codecOf(dm.PublicKeyRepr).encode(key)
-    const key2 = dm.codecOf(dm.PublicKeyRepr).decode(bytes)
+    const bytes = dm.getCodec(dm.PublicKeyRepr).encode(key)
+    const key2 = dm.getCodec(dm.PublicKeyRepr).decode(bytes)
 
     assertMatches(key2)
   })

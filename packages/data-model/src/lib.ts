@@ -9,27 +9,26 @@
 
 import * as types from './items/index'
 import * as crypto from '@iroha2/crypto-core'
+import { getCodec } from './traits'
 
 export * from './items/index'
 export * from './query'
 export * from './transaction'
 export { type GenCodec as Codec } from './codec'
 export type { Variant, VariantUnit } from './util'
+export * from './traits'
 
-import { CodecContainer as CodecProvider, getCodec as codecOf, defineCodec } from './traits'
-
-export { codecOf, CodecProvider, defineCodec }
 
 /**
  * The one that is used for e.g. {@link types.TransactionEventFilter}
  */
 export function transactionHash(tx: types.SignedTransaction): crypto.Hash {
-  const bytes = codecOf(types.SignedTransaction).encode(tx)
+  const bytes = getCodec(types.SignedTransaction).encode(tx)
   return crypto.Hash.hash(crypto.Bytes.array(bytes))
 }
 
 export function signQuery(payload: types.QueryRequestWithAuthority, privateKey: crypto.PrivateKey): types.SignedQuery {
-  const payloadBytes = codecOf(types.QueryRequestWithAuthority).encode(payload)
+  const payloadBytes = getCodec(types.QueryRequestWithAuthority).encode(payload)
   const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).payload()))
   return {
     kind: 'V1',
@@ -44,7 +43,7 @@ export function signTransaction(
   payload: types.TransactionPayload,
   privateKey: crypto.PrivateKey,
 ): types.SignedTransaction {
-  const payloadBytes = codecOf(types.TransactionPayload).encode(payload)
+  const payloadBytes = getCodec(types.TransactionPayload).encode(payload)
   const signature = privateKey.sign(crypto.Bytes.array(crypto.Hash.hash(crypto.Bytes.array(payloadBytes)).payload()))
   return {
     kind: 'V1',
@@ -57,6 +56,6 @@ export function signTransaction(
 
 // TODO test
 export function blockHash(header: types.BlockHeader): crypto.Hash {
-  const encoded = codecOf(types.BlockHeader).encode(header)
+  const encoded = getCodec(types.BlockHeader).encode(header)
   return crypto.Hash.hash(crypto.Bytes.array(encoded))
 }

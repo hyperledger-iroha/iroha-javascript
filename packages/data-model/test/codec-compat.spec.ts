@@ -12,7 +12,7 @@ function toHex(bytes: Uint8Array) {
 
 interface Case<T> {
   type: keyof typeof SCHEMA
-  codec: dm.CodecProvider<T>
+  codec: dm.CodecContainer<T>
   value: T
   json: JsonValue
 }
@@ -97,7 +97,7 @@ function casesTxPayload() {
 function casesCompoundPredicates() {
   const base = {
     type: 'CompoundPredicate<Asset>',
-    codec: dm.defineCodec(dm.CompoundPredicate.with(dm.codecOf(dm.AssetProjectionPredicate))),
+    codec: dm.defineCodec(dm.CompoundPredicate.with(dm.getCodec(dm.AssetProjectionPredicate))),
   } as const
   const atom = defCase({
     ...base,
@@ -259,13 +259,13 @@ test.each([
   // TODO: add SignedBlock
 ])(`Check encoding against iroha_codec of type $type: $value`, async <T>(data: Case<T>) => {
   const referenceEncoded = await irohaCodecToScale(data.type, data.json)
-  const actualEncoded = dm.codecOf(data.codec).encode(data.value)
+  const actualEncoded = dm.getCodec(data.codec).encode(data.value)
   expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
 })
 
 describe('BTree{Set/Map}', () => {
   test('Metadata encoding matches with iroha_codec', async () => {
-    const CODEC = dm.codecOf(dm.Metadata)
+    const CODEC = dm.getCodec(dm.Metadata)
     const reference = await irohaCodecToScale('Metadata', { foo: 'bar', bar: [1, 2, 3], '1': 2, 12: 1, 2: false })
 
     const value: dm.Metadata = [
@@ -281,7 +281,7 @@ describe('BTree{Set/Map}', () => {
   })
 
   test('Metadata encoding is the same with and without duplicate entries', () => {
-    const CODEC = dm.codecOf(dm.Metadata)
+    const CODEC = dm.getCodec(dm.Metadata)
 
     const withDuplicate: dm.Metadata = [
       { key: new dm.Name('foo'), value: dm.Json.fromValue('bar') },
@@ -308,11 +308,11 @@ describe('BTree{Set/Map}', () => {
       ids.map((x) => x.toJSON()),
     )
 
-    expect(dm.BTreeSet.with(dm.codecOf(dm.AccountId)).encode(ids)).toEqual(reference)
+    expect(dm.BTreeSet.with(dm.getCodec(dm.AccountId)).encode(ids)).toEqual(reference)
   })
 
   test('BTreeSet<Permission> - encoding matches', async () => {
-    const codec = dm.codecOf(dm.PermissionsSet)
+    const codec = dm.getCodec(dm.PermissionsSet)
     const reference = await irohaCodecToScale('SortedVec<Permission>', [
       { name: 'foo', payload: [1, 2, 3] },
       { name: 'foo', payload: [3, 2, 1] },

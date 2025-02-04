@@ -92,7 +92,7 @@ export async function startPeer(params: {
 
   let configGenesisPart = {}
   if (params?.genesis) {
-    await fs.writeFile(path.join(TMP_DIR, 'genesis.scale'), dm.codecOf(dm.SignedBlock).encode(params.genesis))
+    await fs.writeFile(path.join(TMP_DIR, 'genesis.scale'), dm.getCodec(dm.SignedBlock).encode(params.genesis))
     configGenesisPart = {
       genesis: {
         file: './genesis.scale',
