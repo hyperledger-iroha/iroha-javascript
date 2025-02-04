@@ -216,6 +216,9 @@ importers:
       '@iroha2/crypto-core':
         specifier: workspace:^2.0.0
         version: link:../../../../crypto/packages/core
+      '@iroha2/crypto-target-node':
+        specifier: workspace:*
+        version: link:../../../../crypto/packages/target-node
       '@iroha2/crypto-target-web':
         specifier: workspace:^2.0.0
         version: link:../../../../crypto/packages/target-web
@@ -410,13 +413,19 @@ importers:
         specifier: ^2.2.5
         version: 2.2.5
       '@iroha2/client':
-        specifier: workspace:^7.0.0
+        specifier: workspace:*
         version: link:../client
+      '@iroha2/crypto-core':
+        specifier: workspace:*
+        version: link:../crypto/packages/core
+      '@iroha2/data-model':
+        specifier: workspace:*
+        version: link:../data-model
       '@iroha2/iroha-source':
-        specifier: workspace:^0.0.0
+        specifier: workspace:*
         version: link:../iroha-source
       '@iroha2/test-configuration':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../test-configuration
       '@types/debug':
         specifier: ^4.1.7

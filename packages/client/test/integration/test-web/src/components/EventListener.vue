@@ -1,23 +1,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, shallowReactive, shallowRef } from 'vue'
 import type { SetupEventsReturn } from '@iroha2/client'
-import { datamodel } from '@iroha2/data-model'
+import * as datamodel from '@iroha2/data-model'
 import { P, match } from 'ts-pattern'
 import { client } from '../client'
-
-function bytesToHex(bytes: Pick<Array<number>, 'map'>): string {
-  return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
-}
 
 const events = shallowReactive<string[]>([])
 const currentListener = shallowRef<null | SetupEventsReturn>(null)
 const isListening = computed(() => !!currentListener.value)
 
 async function startListening() {
-  currentListener.value = await client.eventsStream({
+  currentListener.value = await client.events({
     filters: [
-      datamodel.EventFilterBox({ t: 'Pipeline', value: { t: 'Block', value: {} } }),
-      datamodel.EventFilterBox({ t: 'Pipeline', value: { t: 'Transaction', value: {} } }),
+      datamodel.EventFilterBox.Pipeline.Block({ height: null, status: null }),
+      datamodel.EventFilterBox.Pipeline.Transaction({ status: null, hash: null, blockHeight: null }),
     ],
   })
 
@@ -26,15 +22,15 @@ async function startListening() {
       match(event)
         .returnType<string>()
         .with(
-          { t: 'Pipeline', value: { t: 'Block', value: P.select() } },
-          ({ status, header }) => `Block (height=${header.height}): ${status.t}`,
+          { kind: 'Pipeline', value: { kind: 'Block', value: P.select() } },
+          ({ status, header }) => `Block (height=${header.height}): ${status.kind}`,
         )
         .with(
-          { t: 'Pipeline', value: { t: 'Transaction', value: P.select() } },
-          ({ hash, status }) => `Transaction (${bytesToHex([...hash.slice(0, 5)])}...): ${status.t}`,
+          { kind: 'Pipeline', value: { kind: 'Transaction', value: P.select() } },
+          ({ hash, status }) => `Transaction (${hash.asHex().slice(0, 6)}...): ${status.kind}`,
         )
-        .otherwise(({ t }) => {
-          throw new Error(`This should not appear with given filters: ${t}`)
+        .otherwise(({ kind }) => {
+          throw new Error(`This should not appear with given filters: ${kind}`)
         }),
     )
   })
@@ -61,10 +57,7 @@ onBeforeUnmount(stopListening)
     <p>Events:</p>
 
     <ul class="events-list">
-      <li
-        v-for="(event, i) in events"
-        :key="i"
-      >
+      <li v-for="(event, i) in events" :key="i">
         {{ event }}
       </li>
     </ul>

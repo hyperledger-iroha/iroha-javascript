@@ -59,7 +59,7 @@ export class ResponseError extends Error {
  */
 export class HttpTransport {
   public readonly toriiBaseURL: URL
-  public readonly fetch: Fetch
+  private readonly fetch: Fetch
 
   /**
    * @param toriiBaseURL URL of Torii (Iroha API Gateway)
@@ -69,6 +69,11 @@ export class HttpTransport {
   public constructor(toriiBaseURL: URL, fetch?: Fetch) {
     this.toriiBaseURL = toriiBaseURL
     this.fetch = fetch ?? globalThis.fetch
+  }
+
+  public getFetch() {
+    // this is needed to avoid an issue when `Window.fetch` is called with `this` object not being `Window`
+    return this.fetch
   }
 }
 
@@ -88,7 +93,7 @@ export class MainAPI {
   public async health(): Promise<HealthResult> {
     let response: Response
     try {
-      response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_HEALTH))
+      response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_HEALTH))
     } catch (err) {
       return { kind: 'error', value: err }
     }
@@ -105,7 +110,7 @@ export class MainAPI {
 
   public async transaction(transaction: dm.SignedTransaction): Promise<void> {
     const body = dm.getCodec(dm.SignedTransaction).encode(transaction)
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_TRANSACTION), {
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_TRANSACTION), {
       body,
       method: 'POST',
     })
@@ -114,7 +119,7 @@ export class MainAPI {
 
   public async query(query: dm.SignedQuery): Promise<dm.QueryResponse> {
     return this.http
-      .fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_QUERY), {
+      .getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_QUERY), {
         method: 'POST',
         body: dm.getCodec(dm.SignedQuery).encode(query),
       })
@@ -122,13 +127,13 @@ export class MainAPI {
   }
 
   public async getConfig(): Promise<PeerConfig> {
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_CONFIGURATION))
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_CONFIGURATION))
     await ResponseError.assertStatus(response, 200)
     return response.json()
   }
 
   public async setConfig(config: PeerConfig): Promise<void> {
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_CONFIGURATION), {
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_CONFIGURATION), {
       method: 'POST',
       body: JSON.stringify(config),
       headers: {
@@ -142,7 +147,7 @@ export class MainAPI {
    * Will only work if Iroha is compiled with `schema` feature enabled.
    */
   public async schema(): Promise<DataModelSchema> {
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_SCHEMA))
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_SCHEMA))
     await ResponseError.assertStatus(response, 200)
     return response.json()
   }
@@ -180,7 +185,7 @@ export class ApiTelemetry {
   }
 
   public async status(): Promise<dm.Status> {
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_STATUS), {
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_STATUS), {
       headers: { accept: 'application/x-parity-scale' },
     })
     await ResponseError.assertStatus(response, 200)
@@ -188,7 +193,7 @@ export class ApiTelemetry {
   }
 
   public async peers(): Promise<PeerJson[]> {
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_PEERS))
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_PEERS))
     await ResponseError.assertStatus(response, 200)
     return response.json().then(
       // array of strings in format `<pub key multihash>@<socket addr>`
@@ -204,7 +209,7 @@ export class ApiTelemetry {
   }
 
   public async metrics(): Promise<string> {
-    const response = await this.http.fetch(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_METRICS))
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_METRICS))
     await ResponseError.assertStatus(response, 200)
     return response.text()
   }

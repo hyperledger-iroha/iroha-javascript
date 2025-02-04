@@ -3,7 +3,7 @@ import { listen } from 'listhen'
 
 import * as lib from '../lib'
 import { KeyPair } from '@iroha2/crypto-core'
-import { createGenesis } from '@iroha2/test-configuration'
+import { createGenesis } from '@iroha2/test-configuration/src/node'
 
 export async function run(port = 8765) {
   let peer: lib.StartPeerReturn | undefined

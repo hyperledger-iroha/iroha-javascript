@@ -17,9 +17,9 @@ const HOST = window.location.host
 
 export const client = new Client({
   // proxified with vite
-  toriiURL: `http://${HOST}/torii`,
+  toriiBaseURL: new URL(`http://${HOST}/torii`),
+
   ws: WS,
-  http: fetch.bind(window),
   chain: CHAIN,
   accountDomain: DOMAIN,
   accountKeyPair: keyPair,

@@ -3,7 +3,7 @@ import { hideBin } from 'yargs/helpers'
 import consola from 'consola'
 import { startPeer } from '../src/lib'
 import { KeyPair } from '@iroha2/crypto-core'
-import { createGenesis } from '@iroha2/test-configuration'
+import { createGenesis } from '@iroha2/test-configuration/src/node'
 
 yargs(hideBin(process.argv))
   .command(

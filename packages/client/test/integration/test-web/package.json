@@ -14,6 +14,7 @@
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.0",
     "@iroha2/client": "workspace:^7.1.0",
     "@iroha2/crypto-core": "workspace:^2.0.0",
+    "@iroha2/crypto-target-node": "workspace:*",
     "@iroha2/crypto-target-web": "workspace:^2.0.0",
     "@iroha2/data-model": "workspace:^7.1.0",
     "@iroha2/test-configuration": "workspace:^",

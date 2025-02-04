@@ -3,7 +3,7 @@ import { useIntervalFn } from '@vueuse/core'
 import { useStaleState, useTask } from '@vue-kakuyaku/core'
 import { client } from '../client'
 
-const { state, run } = useTask(() => client.getStatus(), { immediate: true })
+const { state, run } = useTask(() => client.api.telemetry.status(), { immediate: true })
 const stale = useStaleState(state)
 useIntervalFn(run, 1000)
 </script>
@@ -16,5 +16,7 @@ useIntervalFn(run, 1000)
       <li>Blocks: {{ stale.fulfilled.value.blocks }}</li>
       <li>Uptime (sec): {{ stale.fulfilled.value.uptime.secs }}</li>
     </ul>
+
+    <div v-else-if="stale.rejected">{{ stale.rejected.reason }}</div>
   </div>
 </template>

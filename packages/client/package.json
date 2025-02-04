@@ -6,19 +6,19 @@
   "types": "dist/lib.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/lib.d.ts",
       "import": "./dist/lib.mjs",
-      "require": "./dist/lib.cjs",
-      "types": "./dist/lib.d.ts"
+      "require": "./dist/lib.cjs"
     },
     "./web-socket/native": {
+      "types": "./dist/web-socket/native.d.ts",
       "import": "./dist/web-socket/native.mjs",
-      "require": "./dist/web-socket/native.cjs",
-      "types": "./dist/web-socket/native.d.ts"
+      "require": "./dist/web-socket/native.cjs"
     },
     "./web-socket/node": {
+      "types": "./dist/web-socket/node.d.ts",
       "import": "./dist/web-socket/node.mjs",
-      "require": "./dist/web-socket/node.cjs",
-      "types": "./dist/web-socket/node.d.ts"
+      "require": "./dist/web-socket/node.cjs"
     }
   },
   "files": [
