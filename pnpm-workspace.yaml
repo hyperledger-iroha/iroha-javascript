@@ -1,4 +1,7 @@
 packages:
   - "packages/**"
-  - "!packages/crypto-rs/**"
+  - "tests/support/*"
+  - "tests/browser"
+  - "tests/node"
+  - "!crypto-wasm/**"
   - "!packages/client-isomorphic-*"

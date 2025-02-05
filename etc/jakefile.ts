@@ -1,10 +1,17 @@
 import 'jake'
 import del from 'del'
-import { $, cd } from 'zx'
+import { $, cd, fs } from 'zx'
 import path from 'path'
-import { ROOT, preserveCwd, reportDeleted } from './util'
+import { ROOT, preserveCwd, reportDeleted, resolve } from './util'
 import { PACKAGES_TO_BUILD_WITH_TSC, PACKAGES_TO_PUBLISH, artifactsToClean, packageRoot, scopePackage } from './meta'
-import { WASM_PACK_CRATE_DIR, WASM_PACK_OUT_NAME, WASM_PACK_TARGETS, wasmPackOutDirForTarget } from './meta-crypto'
+import {
+  IROHA_CRYPTO_TARGETS,
+  IrohaCryptoTarget,
+  WASM_PACK_CRATE_DIR,
+  WASM_PACK_OUT_NAME,
+  WASM_PACK_TARGETS,
+} from './meta-crypto'
+import { mkdir } from 'fs/promises'
 
 desc('Clean all build artifacts')
 task('clean', async () => {
@@ -18,10 +25,10 @@ task('build-iroha-binaries', async () => {
 })
 
 namespace('crypto-wasm', () => {
-  task('clean-wasm-pkgs', async () => {
-    const deleted = await del(WASM_PACK_TARGETS.map((a) => wasmPackOutDirForTarget(a)).toArray())
-    reportDeleted(deleted)
-  })
+  // // task('clean-wasm-pkgs', async () => {
+  // //   const deleted = await del(WASM_PACK_TARGETS.map((a) => wasmPackOutDirForTarget(a)).toArray())
+  // //   reportDeleted(deleted)
+  // })
 
   task('cargo-test', async () => {
     await preserveCwd(async () => {
@@ -35,24 +42,29 @@ namespace('crypto-wasm', () => {
       cd(WASM_PACK_CRATE_DIR)
 
       for (const target of WASM_PACK_TARGETS) {
-        const outDir = wasmPackOutDirForTarget(target)
+        const outDir = resolve(`crypto-wasm/target/pkg-${target}`)
+        // const outDir = wasmPackOutDirForTarget(target)
         await $`wasm-pack build --target ${target} --out-dir ${outDir} --out-name ${WASM_PACK_OUT_NAME}`
       }
     })
   })
 
-  task('keep-only-necessary', async () => {
-    function* patterns() {
-      for (const target of WASM_PACK_TARGETS) {
-        const root = wasmPackOutDirForTarget(target)
-        yield path.join(root, '*')
-        yield path.join(root, '.*') // hidden files
-        yield '!' + path.join(root, WASM_PACK_OUT_NAME + '{.js,.d.ts,_bg.wasm,_bg.js,_bg.wasm.d.ts}')
+  task('copy-targets', async () => {
+    for (const target of IROHA_CRYPTO_TARGETS) {
+      const wasmTarget = IrohaCryptoTarget.toWasmPackTarget(target)
+      const wasmOutDir = resolve(`crypto-wasm/target/pkg-${wasmTarget}`)
+      const packageOutDir = resolve(`packages/crypto-target-${target}/src/wasm-target/`)
+      await mkdir(packageOutDir, { recursive: true })
+      await $`cp ${wasmOutDir}/iroha_crypto* ${packageOutDir}`
+      if (wasmTarget === 'nodejs') {
+        // to make it work in Deno
+        await fs.writeFile(path.join(packageOutDir, 'package.json'), JSON.stringify({ type: 'commonjs' }))
       }
     }
 
-    const deleted = await del([...patterns()])
-    reportDeleted(deleted)
+    await mkdir(resolve('packages/crypto-core/src/wasm-target'), { recursive: true })
+    const wasmPkgDeclaration = resolve('crypto-wasm/target/pkg-nodejs/iroha_crypto.d.ts')
+    await $`cp ${wasmPkgDeclaration} ${resolve(`packages/crypto-core/src/wasm-target/wasm-pkg.d.ts`)}`
   })
 
   desc('Rebuild')
@@ -86,9 +98,9 @@ namespace('test', () => {
     await $`pnpm vitest run`
   })
 
-  task('crypto', ['build:all'], async () => {
-    await $`pnpm --filter monorepo-crypto test:integration`
-  })
+  // task('crypto', ['build:all'], async () => {
+  //   await $`pnpm --filter monorepo-crypto test:integration`
+  // })
 
   task('prepare-client-integration', ['build-iroha-binaries', 'build:all'])
 

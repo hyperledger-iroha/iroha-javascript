@@ -2,7 +2,8 @@
   "name": "@iroha2/data-model-schema",
   "version": "7.1.0",
   "description": "The schema of the data model",
-  "main": "src/lib.ts",
+  "type": "module",
+  "exports": "./src/lib.ts",
   "files": [
     "src"
   ],

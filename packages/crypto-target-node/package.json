@@ -1,0 +1,9 @@
+{
+  "name": "@iroha2/crypto-target-node",
+  "version": "2.0.0",
+  "type": "module",
+  "exports": "./src/lib.ts",
+  "dependencies": {
+    "@iroha2/crypto": "workspace:*"
+  }
+}

@@ -2,7 +2,7 @@
   "name": "@iroha2/monorepo",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.1",
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "format:fix": "prettier-eslint \"**/*.{ts,js,vue,json}\" --write",
@@ -18,8 +18,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.26.2",
-    "@iroha2/test-peer": "workspace:^0.0.1",
-    "@rollup/plugin-replace": "^5.0.2",
+    "@iroha2/crypto-target-node": "workspace:*",
+    "@iroha2/test-peer": "workspace:*",
     "@tinkoff/utils": "^2.6.2",
     "@types/jake": "^0.0.36",
     "@typescript-eslint/eslint-plugin": "^7.13.1",
@@ -42,8 +42,6 @@
     "prettier": "^3.3.2",
     "prettier-eslint": "^16.3.0",
     "prettier-eslint-cli": "^8.0.1",
-    "rollup": "^3.26.2",
-    "rollup-plugin-dts": "^5.3.0",
     "ts-pattern": "^5.0.1",
     "tsx": "^4.19.2",
     "type-fest": "^3.9.0",

@@ -1,7 +1,9 @@
 {
-  "name": "@iroha2/monorepo-crypto",
-  "private": true,
-  "scripts": {
-    "test:integration": "pnpm --parallel --filter \"@iroha2/crypto-test-*\" run test"
+  "name": "@iroha2/crypto",
+  "version": "2.0.0",
+  "type": "module",
+  "exports": "./src/lib.ts",
+  "dependencies": {
+    "@iroha2/crypto-util": "workspace:*"
   }
 }

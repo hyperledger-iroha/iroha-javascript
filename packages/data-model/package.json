@@ -1,23 +1,11 @@
 {
   "name": "@iroha2/data-model",
   "version": "7.1.0",
-  "module": "dist/esm/lib.mjs",
-  "main": "dist/cjs/lib.cjs",
-  "types": "dist/types/lib.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/esm/lib.mjs",
-      "require": "./dist/cjs/lib.cjs",
-      "types": "./dist/types/lib.d.ts"
-    }
-  },
-  "files": [
-    "dist",
-    "CHANGELOG.md"
-  ],
+  "type": "module",
+  "exports": "./src/lib.ts",
   "license": "Apache 2.0",
   "dependencies": {
-    "@iroha2/crypto-core": "workspace:^",
+    "@iroha2/crypto": "workspace:*",
     "@scale-codec/core": "^2.0.1",
     "type-fest": "^4.23.0"
   },

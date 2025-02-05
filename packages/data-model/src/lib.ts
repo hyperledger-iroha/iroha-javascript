@@ -8,7 +8,7 @@
  */
 
 import * as types from './items/index'
-import * as crypto from '@iroha2/crypto-core'
+import * as crypto from '@iroha2/crypto'
 import { getCodec } from './traits'
 
 export * from './items/index'

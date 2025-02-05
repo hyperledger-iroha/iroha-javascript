@@ -3,7 +3,7 @@ import { GenCodec, enumCodec, lazyCodec, structCodec } from '../codec'
 import type { JsonValue } from 'type-fest'
 import type { CompareFn } from '../util'
 import { type Variant, type VariantUnit, hexDecode, hexEncode, toSortedSet } from '../util'
-import * as crypto from '@iroha2/crypto-core'
+import * as crypto from '@iroha2/crypto'
 import * as traits from '../traits'
 
 export type U8 = number
@@ -415,7 +415,7 @@ export class PublicKeyRepr implements traits.Ord {
       const checked = crypto.PublicKey.fromMultihash(hex)
       return new PublicKeyRepr(null, hex, checked)
     } catch (err) {
-      throw new SyntaxError(`Bad PublicKey syntax in "${hex}": ${err.message}`)
+      throw new SyntaxError(`Cannot parse PublicKey from "${hex}": ${err.message}`)
     }
   }
 

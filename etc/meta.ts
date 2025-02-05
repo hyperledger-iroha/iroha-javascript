@@ -6,24 +6,19 @@ import { P, match } from 'ts-pattern'
 import type { SetEntry } from './util'
 import { resolve } from './util'
 
-function predicateStartsWith<S extends string>(prefix: S): (x: string) => x is `${S}${string}` {
-  return (x): x is `${S}` => x.startsWith(prefix)
-}
+// function predicateStartsWith<S extends string>(prefix: S): (x: string) => x is `${S}${string}` {
+//   return (x): x is `${S}` => x.startsWith(prefix)
+// }
 
-function trimPrefixTypeSafe<Prefix extends string, T extends `${Prefix}${string}`>(
-  value: T,
-  prefix: Prefix,
-): T extends `${Prefix}${infer V}` ? V : never {
-  return value.slice(prefix.length) as any
-}
+// function trimPrefixTypeSafe<Prefix extends string, T extends `${Prefix}${string}`>(
+//   value: T,
+//   prefix: Prefix,
+// ): T extends `${Prefix}${infer V}` ? V : never {
+//   return value.slice(prefix.length) as any
+// }
 
 export function packageRoot(pkg: PackageAny, kind: 'root' | 'ts-build' | 'dist' = 'root'): string {
-  const root = match(pkg)
-    .with('client', 'data-model', 'data-model-schema', 'i64-fixnum', (a) => resolve('packages', a))
-    .with(P.when(predicateStartsWith('crypto-')), (a) =>
-      resolve('packages/crypto/packages', trimPrefixTypeSafe(a, 'crypto-')),
-    )
-    .exhaustive()
+  const root = resolve(`packages`, pkg)
 
   return match(kind)
     .with('root', () => root)
@@ -68,5 +63,5 @@ export function scopePackage<T extends PackageAny>(name: T) {
 }
 
 export function artifactsToClean(): string[] {
-  return ['**/dist', '**/dist-tsc']
+  return ['**/dist', '**/dist-tsc', 'packages/crypto-*/src/wasm-target']
 }

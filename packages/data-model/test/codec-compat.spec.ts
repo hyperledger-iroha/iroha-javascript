@@ -4,7 +4,7 @@ import type { SCHEMA } from '@iroha2/data-model-schema'
 import { irohaCodecToScale } from '@iroha2/iroha-source'
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_ACCOUNT_ID } from './util'
-import { Bytes, KeyPair } from '@iroha2/crypto-core'
+import { Bytes, KeyPair } from '@iroha2/crypto'
 
 function toHex(bytes: Uint8Array) {
   return [...bytes].map((x) => x.toString(16).padStart(2, '0')).join('')

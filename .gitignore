@@ -10,3 +10,5 @@ v8-compile-cache-0
 .pnpm-debug.log
 .idea
 .vscode
+/.iroha
+/packages/crypto-*/src/wasm-target

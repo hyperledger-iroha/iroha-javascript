@@ -9,7 +9,7 @@
  * Events, Status & Health check.
  */
 
-import type { KeyPair, PrivateKey } from '@iroha2/crypto-core'
+import type { KeyPair, PrivateKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
 import defer from 'p-defer'
 import type { Except } from 'type-fest'

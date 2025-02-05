@@ -1,4 +1,4 @@
-import type { PrivateKey } from '@iroha2/crypto-core'
+import type { PrivateKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
 import type { MainAPI } from './api'
