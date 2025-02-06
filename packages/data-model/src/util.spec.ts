@@ -1,24 +1,24 @@
 import { describe, expect, test } from 'vitest'
-import { toSortedSet } from './util'
-import type { Ord, OrdKnown } from './traits'
-import { ordCompare } from './traits'
+import { toSortedSet } from './util.ts'
+import type { Ord, OrdKnown } from './traits.ts'
+import { ordCompare } from './traits.ts'
 
 interface Entry<K, V> {
   key: K
   value: V
 }
 
-const compareEntries = <K extends Ord | OrdKnown>(a: Entry<K, unknown>, b: Entry<K, unknown>): number =>
+const compareEntries = <K extends Ord<K> | OrdKnown>(a: Entry<K, unknown>, b: Entry<K, unknown>): number =>
   ordCompare(a.key, b.key)
 
-class NumHolder implements Ord {
+class NumHolder implements Ord<NumHolder> {
   public readonly value: number
 
   public constructor(value: number) {
     this.value = value
   }
 
-  public compare(other: this): number {
+  public compare(other: NumHolder): number {
     const a = this.value
     const b = other.value
     return a - b

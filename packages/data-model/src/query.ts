@@ -1,5 +1,5 @@
-import * as types from './items/index'
-import type { VariantUnit } from './util'
+import * as types from './data-model.ts'
+import type { VariantUnit } from './util.ts'
 
 /**
  * Type map, defining relation between the variants of {@link types.SingularQueryBox} and its outputs in
@@ -18,28 +18,26 @@ export type SingularQueryKind = keyof SingularQueryOutputMap & types.SingularQue
 /**
  * Type function to map a singular query kind into the value of its output box.
  */
-export type GetSingularQueryOutput<K extends SingularQueryKind> =
-  SingularQueryOutputMap[K] extends infer OutputKind extends types.SingularQueryOutputBox['kind']
-    ? (types.SingularQueryOutputBox & { kind: OutputKind })['value']
-    : never
+export type GetSingularQueryOutput<K extends SingularQueryKind> = SingularQueryOutputMap[K] extends
+  infer OutputKind extends types.SingularQueryOutputBox['kind']
+  ? (types.SingularQueryOutputBox & { kind: OutputKind })['value']
+  : never
 
 /**
  * Type function to map the selector of arbitrary shape to the corresponding output value.
- *
  */
 export type GetSelectorOutput<K extends keyof types.SelectorOutputMap, S> = S extends { kind: 'Atom' }
   ? types.SelectorOutputMap[K]['Atom'] extends infer OutputKind extends types.QueryOutputBatchBox['kind']
-    ? (types.QueryOutputBatchBox & { kind: OutputKind })['value'] extends (infer Output)[]
-      ? Output
-      : never
+    ? (types.QueryOutputBatchBox & { kind: OutputKind })['value'] extends (infer Output)[] ? Output
     : never
+  : never
   : [K, S] extends ['Metadata', { kind: 'Key'; value: { key: types.Name; projection: infer NextS } }]
     ? GetSelectorOutput<'Json', NextS>
-    : S extends { kind: infer SKind extends keyof types.SelectorOutputMap[K]; value: infer NextS }
-      ? types.SelectorOutputMap[K][SKind] extends infer NextK extends keyof types.SelectorOutputMap
-        ? GetSelectorOutput<NextK, NextS>
-        : never
-      : never
+  : S extends { kind: infer SKind extends keyof types.SelectorOutputMap[K]; value: infer NextS }
+    ? types.SelectorOutputMap[K][SKind] extends infer NextK extends keyof types.SelectorOutputMap
+      ? GetSelectorOutput<NextK, NextS>
+    : never
+  : never
 
 /**
  * Kinds of _iterable_ queries.
@@ -54,14 +52,11 @@ export type QueryKind = types.QueryBox['kind'] & keyof types.QuerySelectorMap
 export type GetSelectorTupleOutput<K extends keyof types.SelectorOutputMap, Tuple> = Tuple extends [
   infer Head,
   ...infer Tail,
-]
-  ? [GetSelectorOutput<K, Head>, ...GetSelectorTupleOutput<K, Tail>]
-  : Tuple extends []
-    ? []
-    : // Not as ergonomic (lost `const` somewhere?), but still works and is correct
-      Tuple extends Array<infer T>
-      ? GetSelectorOutput<K, T>[]
-      : never
+] ? [GetSelectorOutput<K, Head>, ...GetSelectorTupleOutput<K, Tail>]
+  : Tuple extends [] ? []
+  // Not as ergonomic (lost `const` somewhere?), but still works and is correct
+  : Tuple extends Array<infer T> ? GetSelectorOutput<K, T>[]
+  : never
 
 /**
  * Maps a query kind and a selector to the corresponding output of this query and this selector.
@@ -75,13 +70,10 @@ export type SelectorToOutput<
   Q extends QueryKind & keyof types.QuerySelectorMap,
   Selection,
 > = types.QuerySelectorMap[Q] extends infer Selector extends keyof types.SelectorOutputMap
-  ? Selection extends readonly [infer S]
-    ? GetSelectorOutput<Selector, S>
-    : Selection extends readonly []
-      ? never
-      : Selection extends readonly [...infer S]
-        ? GetSelectorTupleOutput<Selector, S>
-        : GetSelectorOutput<Selector, Selection>
+  ? Selection extends readonly [infer S] ? GetSelectorOutput<Selector, S>
+  : Selection extends readonly [] ? never
+  : Selection extends readonly [...infer S] ? GetSelectorTupleOutput<Selector, S>
+  : GetSelectorOutput<Selector, Selection>
   : never
 
 /**
@@ -89,9 +81,8 @@ export type SelectorToOutput<
  */
 export type DefaultQueryOutput<Q extends QueryKind> = GetSelectorOutput<
   Q extends keyof types.QuerySelectorMap
-    ? types.QuerySelectorMap[Q] extends infer Selector extends keyof types.SelectorOutputMap
-      ? Selector
-      : never
+    ? types.QuerySelectorMap[Q] extends infer Selector extends keyof types.SelectorOutputMap ? Selector
+    : never
     : never,
   VariantUnit<'Atom'>
 >
@@ -101,10 +92,9 @@ const DEFAULT_SELECTOR = [{ kind: 'Atom' }]
 /**
  * Maps query kind to its corresponding predicate type.
  */
-export type PredicateFor<Q extends QueryKind> =
-  (types.QueryBox & { kind: Q })['value'] extends types.QueryWithFilter<any, types.CompoundPredicate<infer P>, any>
-    ? P
-    : never
+export type PredicateFor<Q extends QueryKind> = (types.QueryBox & { kind: Q })['value'] extends
+  types.QueryWithFilter<any, types.CompoundPredicate<infer P>, any> ? P
+  : never
 
 /**
  * Utility to build a query in a type-safe way.
@@ -130,9 +120,7 @@ export function buildQuery<K extends QueryKind, const P extends BuildQueryParams
           query: payload,
           predicate: params?.predicate || types.CompoundPredicate.PASS,
           selector: params?.selector
-            ? Array.isArray(params?.selector)
-              ? params.selector
-              : [params.selector]
+            ? Array.isArray(params?.selector) ? params.selector : [params.selector]
             : DEFAULT_SELECTOR,
         } as types.QueryWithFilter<unknown, types.CompoundPredicate<unknown>, unknown>,
       } as types.QueryBox,
@@ -188,8 +176,8 @@ export interface BuildQueryParams<K extends QueryKind> {
   }
 }
 
-export type GetQueryPayload<K extends QueryKind> =
-  (types.QueryBox & { kind: K })['value'] extends types.QueryWithFilter<infer Payload, any, any> ? Payload : never
+export type GetQueryPayload<K extends QueryKind> = (types.QueryBox & { kind: K })['value'] extends
+  types.QueryWithFilter<infer Payload, any, any> ? Payload : never
 
 /**
  * Result of {@link buildQuery}
@@ -204,8 +192,7 @@ export interface BuildQueryResult<Output> {
  */
 export type GetQueryOutput<K extends QueryKind, P extends BuildQueryParams<K>> = P extends {
   selector: infer S
-}
-  ? SelectorToOutput<K, S>
+} ? SelectorToOutput<K, S>
   : SelectorToOutput<K, VariantUnit<'Atom'>>
 
 function* generateOutputTuples<Output>(response: types.QueryOutputBatchBoxTuple): Generator<Output> {

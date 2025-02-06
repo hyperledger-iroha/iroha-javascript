@@ -1,4 +1,4 @@
-import type { GenCodec } from './codec'
+import type { GenCodec } from './codec.ts'
 
 export const SYMBOL_CODEC = '$codec'
 
@@ -26,7 +26,7 @@ export interface CodecContainer<T> {
 /**
  * Ordering "trait". Tells how to compare values of the same type with each other.
  */
-export interface Ord {
+export interface Ord<T> {
   /**
    * Compares `this` with `that`.
    *
@@ -35,7 +35,7 @@ export interface Ord {
    * a positive number if `this` is greater than `that`;
    * zero if they are equal. Same behaviour as with {@link Array.sort}
    */
-  compare: (that: this) => number
+  compare: (that: T) => number
 }
 
 /**
@@ -57,10 +57,10 @@ function ordCompareNum<T extends number | bigint>(a: T, b: T): number {
  *
  * See {@link Ord.compare}.
  */
-export function ordCompare<T extends OrdKnown | Ord>(a: T, b: T): number {
+export function ordCompare<T extends OrdKnown | Ord<T>>(a: T, b: T): number {
   if (typeof a === 'string') return ordCompareString(a, b as string)
   if (typeof a === 'bigint' || typeof a === 'number') return ordCompareNum(a, b as number | bigint)
-  return a.compare(b as Ord)
+  return a.compare(b as T)
 }
 
 /**

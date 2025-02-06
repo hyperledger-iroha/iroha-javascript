@@ -3,13 +3,26 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/lib.ts",
+  "exports": "./src/lib.ts",
   "scripts": {
     "cli": "tsx etc/cli",
     "build-all-binaries": "pnpm cli build-all"
   },
   "devDependencies": {
     "@types/yargs": "^17.0.22",
-    "yargs": "^17.6.2"
+    "chalk": "^5.4.1",
+    "consola": "^3.4.0",
+    "ts-pattern": "^5.6.2",
+    "type-fest": "^4.33.0",
+    "yargs": "^17.6.2",
+    "zx": "^8.3.2"
+  },
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
+  "dependencies": {
+    "@std/assert": "npm:@jsr/std__assert@^1.0.11",
+    "@std/fmt": "npm:@jsr/std__fmt@^1.0.5",
+    "@types/cross-spawn": "^6.0.6",
+    "cross-spawn": "^7.0.6",
+    "remeda": "^2.20.1"
   }
 }

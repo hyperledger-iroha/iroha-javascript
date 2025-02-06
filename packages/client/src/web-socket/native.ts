@@ -1,4 +1,4 @@
-import type { IncomingData, IsomorphicWebSocketAdapter } from './types'
+import type { IncomingData, IsomorphicWebSocketAdapter } from './types.ts'
 
 async function handleIncomingData(data: any): Promise<IncomingData> {
   if (data instanceof Blob) {

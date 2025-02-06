@@ -2,7 +2,7 @@
  * @module @iroha2/crypto-util
  */
 
-export * from './free'
+export * from './free.ts'
 export type WasmBytes = { t: 'array'; c: Uint8Array } | { t: 'hex'; c: string }
 
 /**

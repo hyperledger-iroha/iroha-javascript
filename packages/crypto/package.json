@@ -1,9 +1,6 @@
 {
   "name": "@iroha2/crypto",
-  "version": "2.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "exports": "./src/lib.ts",
-  "dependencies": {
-    "@iroha2/crypto-util": "workspace:*"
-  }
+  "exports": "./src/lib.ts"
 }

@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, shallowReactive, shallowRef } from 'vue'
 import type { SetupEventsReturn } from '@iroha2/client'
 import * as datamodel from '@iroha2/data-model'
 import { P, match } from 'ts-pattern'
-import { client } from '../client'
+import { client } from '../client.ts'
 
 const events = shallowReactive<string[]>([])
 const currentListener = shallowRef<null | SetupEventsReturn>(null)

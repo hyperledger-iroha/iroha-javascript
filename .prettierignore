@@ -1,8 +1,0 @@
-dist
-dist-tsc
-node_modules
-
-packages/data-model/src/items/generated.ts
-packages/client/src/generated/find-api.ts
-
-/crypto-wasm

@@ -1,4 +1,4 @@
-import * as dm from './items/index'
+import * as dm from './data-model.ts'
 
 export interface TransactionPayloadParams {
   chain: dm.ChainId

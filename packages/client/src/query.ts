@@ -1,7 +1,7 @@
 import type { PrivateKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
 import invariant from 'tiny-invariant'
-import type { MainAPI } from './api'
+import type { MainAPI } from './api.ts'
 
 export class QueryExecutor {
   private readonly api: MainAPI

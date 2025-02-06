@@ -14,7 +14,7 @@ export default defineConfig({
       '**/dist',
       '**/dist-tsc',
     ],
-    includeSource: ['packages/i64-fixnum/src/**/*.ts', 'packages/client/src/**/*.ts'],
+    // includeSource: ['packages/i64-fixnum/src/**/*.ts', 'packages/client/src/**/*.ts'],
     setupFiles: [resolve('etc/vitest-setup-crypto-node.ts')],
   },
 })

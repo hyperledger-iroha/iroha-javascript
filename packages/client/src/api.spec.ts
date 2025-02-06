@@ -1,5 +1,5 @@
 import { describe, vi, test, expect } from 'vitest'
-import { HttpTransport, MainAPI } from './api'
+import { HttpTransport, MainAPI } from './api.ts'
 
 describe('HTTP Transport', () => {
   test('when fetch is used, its "this" is undefined', async () => {

@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "debug": "npm:debug@^4.4.0",
+    "emittery": "npm:emittery@^1.1.0",
+    "p-defer": "npm:p-defer@^4.0.1",
+    "type-fest": "npm:type-fest@^4.33.0",
+    "ws": "npm:ws@^8.18.0"
+  }
+}

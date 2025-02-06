@@ -1,7 +1,0 @@
-packages:
-  - "packages/**"
-  - "tests/support/*"
-  - "tests/browser"
-  - "tests/node"
-  - "!crypto-wasm/**"
-  - "!packages/client-isomorphic-*"

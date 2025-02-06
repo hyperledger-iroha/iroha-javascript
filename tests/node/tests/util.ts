@@ -9,8 +9,7 @@ import { createGenesis } from '@iroha2/test-configuration/node'
 import { Bytes, KeyPair, PrivateKey, PublicKey } from '@iroha2/crypto'
 import type * as dm from '@iroha2/data-model'
 import * as TestPeer from '@iroha2/test-peer'
-
-import { delay } from '../../support/util'
+import { delay } from '@std/async'
 
 async function waitForGenesisCommitted(f: () => Promise<dm.Status>) {
   while (true) {

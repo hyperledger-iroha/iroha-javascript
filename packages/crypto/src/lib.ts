@@ -1,14 +1,14 @@
 /**
  * @module @iroha2/crypto
  */
-export * from './types'
-export * from './singleton'
+export * from './types.ts'
+export * from './singleton.ts'
 export * from '@iroha2/crypto-util'
 
 import type { Free, GetInnerTrackObject } from '@iroha2/crypto-util'
 import { type Bytes, FreeGuard, FreeScope } from '@iroha2/crypto-util'
-import { getWASM } from './singleton'
-import type { wasmPkg } from './types'
+import { getWASM } from './singleton.ts'
+import type { wasmPkg } from './types.ts'
 
 /**
  * Crypto alrogithms supported by Iroha.

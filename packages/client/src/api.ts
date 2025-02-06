@@ -1,5 +1,5 @@
 import * as dm from '@iroha2/data-model'
-import type { Schema as DataModelSchema } from '@iroha2/data-model-schema'
+import type { Schema as DataModelSchema } from '../../data-model/src/schema/lib.ts'
 import {
   ENDPOINT_CONFIGURATION,
   ENDPOINT_HEALTH,
@@ -10,8 +10,8 @@ import {
   ENDPOINT_STATUS,
   ENDPOINT_TRANSACTION,
   HEALTHY_RESPONSE,
-} from './const'
-import { urlJoinPath } from './util'
+} from './const.ts'
+import { urlJoinPath } from './util.ts'
 import invariant from 'tiny-invariant'
 
 /**

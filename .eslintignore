@@ -1,4 +1,0 @@
-dist
-dist-tsc
-/crypto-wasm
-/packages/crypto-*/src/wasm-target

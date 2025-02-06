@@ -1,7 +1,7 @@
 import { KeyPair, PublicKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
 import { describe, expect, test } from 'vitest'
-import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util'
+import { SAMPLE_ACCOUNT_ID, fromHexWithSpaces, toHex } from './util.ts'
 
 describe('JSON/string serialisation', () => {
   test('AccountId', () => {
@@ -91,7 +91,7 @@ test('Parse AssetId with different domains', () => {
 
 test('Fails to parse invalid account id with bad signatory', () => {
   expect(() => console.log(dm.AccountId.parse('test@test'))).toThrowErrorMatchingInlineSnapshot(
-    `[SyntaxError: Cannot parse PublicKey from "test": Invalid character 't' at position 0]`,
+    `[SyntaxError: Cannot parse PublicKey from "test": Error: Invalid character 't' at position 0]`,
   )
 })
 

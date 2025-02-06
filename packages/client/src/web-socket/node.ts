@@ -1,7 +1,10 @@
-import type { IncomingData, IsomorphicWebSocketAdapter } from './types'
+import type { IncomingData, IsomorphicWebSocketAdapter } from './types.ts'
 import WebSocket from 'ws'
+import { Buffer } from 'node:buffer'
 
-function handleIncomingData(data: string | Buffer | ArrayBuffer | Buffer[]): IncomingData {
+function handleIncomingData(
+  data: string | Buffer | ArrayBuffer | Buffer[],
+): IncomingData {
   if (Buffer.isBuffer(data)) {
     return new Uint8Array(data)
   }
@@ -16,7 +19,7 @@ export const adapter: IsomorphicWebSocketAdapter = {
 
     socket.onopen = params.onopen
     socket.onclose = params.onclose
-    socket.onmessage = (msg) => {
+    socket.onmessage = (msg: any) => {
       params.onmessage({
         data: handleIncomingData(msg.data),
       })

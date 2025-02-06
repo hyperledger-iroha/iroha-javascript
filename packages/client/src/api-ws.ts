@@ -1,18 +1,13 @@
 import type Emittery from 'emittery'
 import Debug from 'debug'
 import * as dm from '@iroha2/data-model'
-import { ENDPOINT_BLOCKS_STREAM, ENDPOINT_EVENTS } from './const'
-import type { SocketEmitMapBase } from './util'
-import { setupWebSocket } from './util'
-import type { IsomorphicWebSocketAdapter } from './web-socket/types'
+import { ENDPOINT_BLOCKS_STREAM, ENDPOINT_EVENTS } from './const.ts'
+import type { SocketEmitMapBase } from './util.ts'
+import { setupWebSocket } from './util.ts'
+import type { IsomorphicWebSocketAdapter } from './web-socket/types.ts'
 
 const debugBlocksStream = Debug('@iroha2/client:blocks-stream')
 const debugEvents = Debug('@iroha2/client:events')
-
-export class WsTransport {
-  public readonly toriiBaseURL: URL
-  public readonly ws: IsomorphicWebSocketAdapter
-}
 
 export class WebSocketAPI {
   public readonly toriiBaseURL: URL

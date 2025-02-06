@@ -1,10 +1,10 @@
 import * as scale from '@scale-codec/core'
-import { hexDecode } from './util'
-import type { Variant, VariantUnit } from './util'
+import { hexDecode } from './util.ts'
+import type { Variant, VariantUnit } from './util.ts'
 
-export interface RawScaleCodec<Output, Input = Output> {
-  encode: scale.Encode<Input>
-  decode: scale.Decode<Output>
+export interface RawScaleCodec<T> {
+  encode: scale.Encode<T>
+  decode: scale.Decode<T>
 }
 
 /**
@@ -60,11 +60,9 @@ export class GenCodec<T> {
 export class EnumCodec<E extends scale.EnumRecord> extends GenCodec<scale.Enumerate<E>> {
   public discriminated<
     T extends {
-      [Tag in keyof E]: E[Tag] extends []
-        ? VariantUnit<Tag>
-        : E[Tag] extends [infer Value]
-          ? Variant<Tag, Value>
-          : never
+      [Tag in keyof E]: E[Tag] extends [] ? VariantUnit<Tag>
+        : E[Tag] extends [infer Value] ? Variant<Tag, Value>
+        : never
     }[keyof E],
   >(): GenCodec<T> {
     return this.wrap<{ kind: string; value?: any }>({
@@ -107,11 +105,9 @@ export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): 
   })
 }
 
-type TupleFromCodecs<T> = T extends [GenCodec<infer Head>, ...infer Tail]
-  ? [Head, ...TupleFromCodecs<Tail>]
-  : T extends []
-    ? []
-    : never
+type TupleFromCodecs<T> = T extends [GenCodec<infer Head>, ...infer Tail] ? [Head, ...TupleFromCodecs<Tail>]
+  : T extends [] ? []
+  : never
 
 export function tupleCodec<T extends [GenCodec<any>, ...GenCodec<any>[]]>(codecs: T): GenCodec<TupleFromCodecs<T>> {
   return new GenCodec({

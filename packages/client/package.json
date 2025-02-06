@@ -1,39 +1,11 @@
 {
-  "name": "@iroha2/client",
-  "version": "7.1.0",
-  "type": "module",
-  "exports": {
-    ".": "./src/lib.ts",
-    "./web-socket/native": "./src/web-socket/native.ts",
-    "./web-socket/node": "./src/web-socket/node.ts"
-  },
-  "license": "Apache 2.0",
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "scripts": {
-    "test:integration": "run-s test:build-iroha test:node test:web",
-    "test:build-iroha": "pnpm --filter iroha-source cli build irohad",
-    "test:node": "pnpm --filter client-test-node test",
-    "test:web": "pnpm --filter client-test-web test"
-  },
-  "dependencies": {
-    "@iroha2/crypto": "workspace:*",
-    "@iroha2/data-model": "workspace:*",
-    "@iroha2/data-model-schema": "workspace:*",
-    "debug": "^4.3.4",
-    "emittery": "^1.0.3",
-    "p-defer": "^4.0.1",
-    "tiny-invariant": "^1.3.1",
-    "type-fest": "^3.6.1"
-  },
-  "devDependencies": {
-    "@types/debug": "^4.1.7",
-    "@types/ws": "^8.5.3",
-    "ws": "^8.8.1"
-  },
-  "peerDependencies": {
-    "@types/ws": "^8.5.3",
-    "ws": "^8.8.1"
+    "name": "@iroha2/client",
+    "version": "0.1.0",
+    "type": "module",
+    "exports": {
+      ".": "./src/lib.ts",
+      "./web-socket/native": "./src/web-socket/native.ts",
+      "./web-socket/node": "./src/web-socket/node.ts"
+    }
   }
-}
+  

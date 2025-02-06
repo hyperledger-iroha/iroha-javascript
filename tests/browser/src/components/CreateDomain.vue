@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useTask } from '@vue-kakuyaku/core'
-import { client } from '../client'
+import { client } from '../client.ts'
 import * as dm from '@iroha2/data-model'
 
 const domainName = ref('')

@@ -1,4 +1,4 @@
-import type { WasmPkg } from './types'
+import type { WasmPkg } from './types.ts'
 
 let __WASM: WasmPkg | null = null
 

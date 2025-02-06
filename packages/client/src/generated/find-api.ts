@@ -1,4 +1,4 @@
-import * as client from '../find-api-internal'
+import * as client from './find-api.prelude.ts'
 import type * as dm from '@iroha2/data-model'
 export class FindAPI {
   private _executor: client.QueryExecutor

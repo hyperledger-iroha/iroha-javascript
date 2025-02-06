@@ -14,11 +14,11 @@ import * as dm from '@iroha2/data-model'
 import defer from 'p-defer'
 import type { Except } from 'type-fest'
 
-import { MainAPI, type Fetch, HttpTransport } from './api'
-import { type SetupBlocksStreamParams, type SetupEventsParams, WebSocketAPI } from './api-ws'
-import type { IsomorphicWebSocketAdapter } from './web-socket/types'
-import { FindAPI } from './generated/find-api'
-import { QueryExecutor } from './query'
+import { MainAPI, type Fetch, HttpTransport } from './api.ts'
+import { type SetupBlocksStreamParams, type SetupEventsParams, WebSocketAPI } from './api-ws.ts'
+import type { IsomorphicWebSocketAdapter } from './web-socket/types.ts'
+import { FindAPI } from './generated/find-api.ts'
+import { QueryExecutor } from './query.ts'
 
 export interface CreateClientParams {
   fetch?: Fetch

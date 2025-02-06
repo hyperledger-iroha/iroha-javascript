@@ -1,24 +1,6 @@
 {
   "name": "@iroha2/data-model",
-  "version": "7.1.0",
+  "version": "0.1.0",
   "type": "module",
-  "exports": "./src/lib.ts",
-  "license": "Apache 2.0",
-  "dependencies": {
-    "@iroha2/crypto": "workspace:*",
-    "@scale-codec/core": "^2.0.1",
-    "type-fest": "^4.23.0"
-  },
-  "devDependencies": {
-    "@iroha2/crypto-target-node": "workspace:*",
-    "@iroha2/data-model-schema": "workspace:*",
-    "@iroha2/iroha-source": "workspace:*",
-    "@scale-codec/util": "^1.1.2",
-    "@types/debug": "^4.1.7",
-    "camelcase": "^7.0.1",
-    "change-case": "^5.4.4",
-    "debug": "^4.3.4",
-    "fast-equals": "^5.0.1",
-    "tiny-invariant": "^1.3.1"
-  }
+  "exports": "./src/lib.ts"
 }

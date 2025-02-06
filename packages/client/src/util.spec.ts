@@ -1,4 +1,4 @@
-import { transformProtocolInUrlFromHttpToWs, urlJoinPath } from './util'
+import { transformProtocolInUrlFromHttpToWs, urlJoinPath } from './util.ts'
 import { describe, expect, test } from 'vitest'
 
 describe('transform URL protocol to WS', () => {

@@ -8,10 +8,10 @@
     "./node": "./src/node.ts"
   },
   "devDependencies": {
-    "@iroha2/data-model": "workspace:^",
-    "@iroha2/iroha-source": "workspace:^",
-    "pino-pretty": "^10.0.0",
-    "tempy": "^3.1.0",
-    "type-fest": "^3.9.0"
+    "tempy": "^3.1.0"
+  },
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
+  "dependencies": {
+    "@std/assert": "npm:@jsr/std__assert@^1.0.11"
   }
 }

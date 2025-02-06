@@ -16,7 +16,7 @@ import type {
   SignedBlock,
   SingularQueryBox,
   SingularQueryOutputBox,
-} from './items'
+} from './data-model.ts'
 import type {
   DefaultQueryOutput,
   GetQueryOutput,
@@ -24,8 +24,8 @@ import type {
   GetSingularQueryOutput,
   SelectorToOutput,
   SingularQueryOutputMap,
-} from './query'
-import type { Variant, VariantUnit } from './util'
+} from './query.ts'
+import type { Variant, VariantUnit } from './util.ts'
 
 type Expect<T extends true> = T
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
@@ -119,7 +119,8 @@ type test_singular_query_output_map_matches_with_output_box = Expect<
 type test_singular_query_output_dm = Expect<Equal<GetSingularQueryOutput<'FindExecutorDataModel'>, ExecutorDataModel>>
 type test_singular_query_output_params = Expect<Equal<GetSingularQueryOutput<'FindParameters'>, Parameters>>
 
-type test_query_outputs = Expect<Equal<GetQueryOutput<'FindAccounts', {}>, Account>> &
-  Expect<Equal<GetQueryOutput<'FindAccounts', { predicate: undefined }>, Account>>
+type test_query_outputs =
+  & Expect<Equal<GetQueryOutput<'FindAccounts', {}>, Account>>
+  & Expect<Equal<GetQueryOutput<'FindAccounts', { predicate: undefined }>, Account>>
 
 type test_selector_as_array_not_tuple = Expect<Equal<SelectorToOutput<'FindAssets', VariantUnit<'Atom'>[]>, Asset[]>>

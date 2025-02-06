@@ -1,9 +1,9 @@
 import type { Set } from 'immutable'
-import path from 'path'
+import path from 'node:path'
 import consola from 'consola'
 import chalk from 'chalk'
 import { cd } from 'zx'
-import url from 'url'
+import url from 'node:url'
 
 export type SetEntry<T> = T extends Set<infer V> ? V : never
 

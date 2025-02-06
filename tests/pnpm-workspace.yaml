@@ -1,0 +1,4 @@
+packages:
+  - "./support/*"
+  - "./node"
+  - "./browser"

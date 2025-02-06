@@ -6,7 +6,8 @@
     "skipLibCheck": true,
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true
   },
   "include": ["./src/**/*.ts", "./src/**/*.vue"]
 }

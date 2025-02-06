@@ -1,6 +1,6 @@
 /* eslint-disable max-nested-callbacks,no-new */
 import { describe, expect, test, vi } from 'vitest'
-import { FreeGuard, FreeScope, freeScope } from './free'
+import { FreeGuard, FreeScope, freeScope } from './free.ts'
 
 function dummyFree() {
   return {

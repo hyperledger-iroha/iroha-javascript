@@ -1,17 +1,17 @@
 import 'jake'
-import del from 'del'
-import { $, cd, fs } from 'zx'
-import path from 'path'
-import { ROOT, preserveCwd, reportDeleted, resolve } from './util'
-import { PACKAGES_TO_BUILD_WITH_TSC, PACKAGES_TO_PUBLISH, artifactsToClean, packageRoot, scopePackage } from './meta'
+import { deleteAsync as del } from 'del'
+import { $, cd } from 'zx'
+import path from 'node:path'
+import { preserveCwd, reportDeleted, resolve, ROOT } from './util.ts'
+import { artifactsToClean, packageRoot, PACKAGES_TO_BUILD_WITH_TSC, PACKAGES_TO_PUBLISH, scopePackage } from './meta.ts'
 import {
   IROHA_CRYPTO_TARGETS,
   IrohaCryptoTarget,
   WASM_PACK_CRATE_DIR,
   WASM_PACK_OUT_NAME,
   WASM_PACK_TARGETS,
-} from './meta-crypto'
-import { mkdir } from 'fs/promises'
+} from './meta-crypto.ts'
+// import fs from 'node:fs/promises'
 
 desc('Clean all build artifacts')
 task('clean', async () => {
@@ -53,26 +53,43 @@ namespace('crypto-wasm', () => {
     for (const target of IROHA_CRYPTO_TARGETS) {
       const wasmTarget = IrohaCryptoTarget.toWasmPackTarget(target)
       const wasmOutDir = resolve(`crypto-wasm/target/pkg-${wasmTarget}`)
-      const packageOutDir = resolve(`packages/crypto-target-${target}/src/wasm-target/`)
-      await mkdir(packageOutDir, { recursive: true })
+      const packageOutDir = resolve(
+        `packages/crypto-target-${target}/src/wasm-target/`,
+      )
+
+      await Deno.mkdir(packageOutDir, { recursive: true })
       await $`cp ${wasmOutDir}/iroha_crypto* ${packageOutDir}`
       if (wasmTarget === 'nodejs') {
-        // to make it work in Deno
-        await fs.writeFile(path.join(packageOutDir, 'package.json'), JSON.stringify({ type: 'commonjs' }))
+        // to make it work in Deno, need to add `commonjs` type
+        await Deno.writeTextFile(
+          path.join(packageOutDir, 'package.json'),
+          JSON.stringify({ type: 'commonjs' }),
+        )
       }
     }
 
-    await mkdir(resolve('packages/crypto-core/src/wasm-target'), { recursive: true })
-    const wasmPkgDeclaration = resolve('crypto-wasm/target/pkg-nodejs/iroha_crypto.d.ts')
-    await $`cp ${wasmPkgDeclaration} ${resolve(`packages/crypto-core/src/wasm-target/wasm-pkg.d.ts`)}`
+    await Deno.mkdir(resolve('packages/crypto-core/src/wasm-target'), {
+      recursive: true,
+    })
+    const wasmPkgDeclaration = resolve(
+      'crypto-wasm/target/pkg-nodejs/iroha_crypto.d.ts',
+    )
+    await $`cp ${wasmPkgDeclaration} ${resolve(`packages/crypto/src/wasm-target/wasm-pkg.d.ts`)}`
   })
 
-  desc('Rebuild')
-  task('rebuild', ['clean-wasm-pkgs', 'cargo-test', 'build-targets', 'keep-only-necessary'])
+  desc('Build')
+  task('build', [
+    'clean',
+    // "cargo-test",
+    'build-targets',
+    'copy-targets',
+  ])
 })
 
 namespace('build', () => {
-  desc('Build TypeScript of the whole project and put corresponding artifacts near the packages')
+  desc(
+    'Build TypeScript of the whole project and put corresponding artifacts near the packages',
+  )
   task('tsc', ['clean'], async () => {
     await $`pnpm tsc`
 
@@ -116,7 +133,9 @@ task('lint', async () => {
   await $`pnpm lint`
 })
 
-desc('Performs all kinds of checks from artifacts compilation and linting to end-2-end tests')
+desc(
+  'Performs all kinds of checks from artifacts compilation and linting to end-2-end tests',
+)
 task('run-all-checks', ['lint', 'build:all', 'test:all'])
 
 desc('Publish all public packages')

@@ -1,17 +1,17 @@
 import { resolveBinary } from '@iroha2/iroha-source'
-import { execa } from 'execa'
-import path from 'path'
+import path from 'node:path'
 import { fs } from 'zx'
 import { PEER_CONFIG_BASE } from '@iroha2/test-configuration'
-import TOML from '@iarna/toml'
+import * as TOML from '@std/toml'
 import * as dm from '@iroha2/data-model'
 import { temporaryDirectory } from 'tempy'
-import { MainAPI, HttpTransport } from '@iroha2/client'
-import mergeDeep from '@tinkoff/utils/object/mergeDeep'
-import readline from 'readline'
+import { HttpTransport, MainAPI } from '@iroha2/client'
+import { mergeDeep } from 'remeda'
+import { spawn } from 'node:child_process'
 
 import Debug from 'debug'
 import type { KeyPair } from '@iroha2/crypto'
+import { assert } from '@std/assert'
 
 const debug = Debug('@iroha2/test-peer')
 
@@ -64,6 +64,20 @@ export interface StartPeerReturn {
    * Check for alive status
    */
   isAlive: () => boolean
+}
+
+function fileWriteStream(path: string): WritableStream<Uint8Array> {
+  const write = fs.createWriteStream(path)
+
+  return new WritableStream({
+    write(chunk) {
+      write.write(chunk)
+    },
+    close: () => write.close(),
+    abort: (reason) => {
+      console.error('Sink error:', reason)
+    },
+  })
 }
 
 /**
@@ -120,51 +134,38 @@ export async function startPeer(params: {
     ),
   )
 
-  // state
-  let isAlive = false
-
-  // starting peer
-  const subprocess = execa(irohad.path, ['--config', './config.toml'], {
+  const child = spawn(irohad.path, ['--config', './config.toml'], {
     cwd: TMP_DIR,
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
+  let isAlive = true
 
-  subprocess.pipeStdout!(fs.createWriteStream(path.join(TMP_DIR, 'stdout.json')))
-  subprocess.pipeStderr!(fs.createWriteStream(path.join(TMP_DIR, 'stderr')))
-  readline.createInterface(subprocess.stderr!).on('line', (line) => {
-    debug.extend('stderr')(line)
-  })
-
-  subprocess.once('spawn', () => {
-    isAlive = true
-    debug('Subprocess spawned')
-  })
-
-  subprocess.on('error', (err) => {
-    debug('Subprocess error:', err)
-  })
+  // child.stdout.pipe
+  child.stdout.pipe(fs.createWriteStream(path.join(TMP_DIR, 'stdout.json')))
+  child.stderr.pipe(fs.createWriteStream(path.join(TMP_DIR, 'stderr')))
 
   const healthCheckAbort = new AbortController()
 
-  const exitPromise = new Promise<void>((resolve) => {
-    subprocess.once('exit', (...args) => {
-      debug('Peer exited:', args)
+  const exitPromise = new Promise<{ code: number }>((resolve) => {
+    child.on('close', (code) => {
       isAlive = false
-      resolve()
+      debug('Peer exited')
+      assert(typeof code === 'number')
+      resolve({ code })
     })
   })
 
   const kill = async function () {
     if (!isAlive) throw new Error('Already dead')
     debug('Killing peer...')
-    subprocess.kill('SIGTERM')
+    child.kill('SIGTERM')
     await exitPromise
-    debug('Peer is killed')
   }
 
   await Promise.race([
-    exitPromise.then(() => {
+    exitPromise.then(({ code }) => {
       healthCheckAbort.abort()
-      throw new Error('Iroha has exited already, maybe something went wrong')
+      throw new Error(`Iroha exited with code ${code}, something went wrong`)
     }),
     waitForGenesis(API_URL, healthCheckAbort.signal),
   ])

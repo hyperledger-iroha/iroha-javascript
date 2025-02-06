@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@scale-codec/core": "npm:@scale-codec/core@^2.0.1",
+    "type-fest": "npm:type-fest@^4.33.0"
+  }
+}

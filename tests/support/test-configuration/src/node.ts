@@ -1,11 +1,13 @@
 import * as dm from '@iroha2/data-model'
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { temporaryDirectory } from 'tempy'
 import { EXECUTOR_WASM_PATH, irohaCodecToJson, resolveBinary } from '@iroha2/iroha-source'
-import { execa } from 'execa'
 import type { PublicKey } from '@iroha2/crypto'
-import { ACCOUNT_KEY_PAIR, CHAIN, GENESIS_KEY_PAIR } from './lib'
+import { ACCOUNT_KEY_PAIR, CHAIN, GENESIS_KEY_PAIR } from './lib.ts'
+import { assert } from '@std/assert'
+import { spawn } from 'node:child_process'
+import { Buffer } from 'node:buffer'
 
 const BLOCK_TIME_MS = 0
 const COMMIT_TIME_MS = 0
@@ -57,9 +59,8 @@ async function signGenesisWithKagami(json: unknown): Promise<dm.SignedBlock> {
   const dir = temporaryDirectory()
   await fs.writeFile(path.join(dir, 'genesis.json'), JSON.stringify(json))
 
-  const { stdout } = await execa(
-    kagami.path,
-    [
+  const encoded = await new Promise<Buffer>((resolve, reject) => {
+    const child = spawn(kagami.path, [
       `genesis`,
       `sign`,
       path.join(dir, 'genesis.json'),
@@ -69,9 +70,16 @@ async function signGenesisWithKagami(json: unknown): Promise<dm.SignedBlock> {
       GENESIS_KEY_PAIR.privateKey,
       // '--out-file',
       // path.join(dir, 'genesis.scale'),
-    ],
-    { encoding: 'buffer' },
-  )
+    ], { stdio: ['ignore', 'pipe', 'inherit'] })
 
-  return dm.getCodec(dm.SignedBlock).decode(stdout)
+    const outputChunks: Uint8Array[] = []
+    child.stdout.on('data', (chunk) => outputChunks.push(chunk))
+
+    child.on('close', (code) => {
+      if (code !== 0) reject(new Error(`non-zero exit code: ${code}`))
+      resolve(Buffer.concat(outputChunks))
+    })
+  })
+
+  return dm.getCodec(dm.SignedBlock).decode(encoded)
 }

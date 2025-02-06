@@ -4,7 +4,7 @@ import { Client } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/native'
 
 // it must resolve first, before using core crypto exports
-import './setup-crypto'
+import './setup-crypto.ts'
 
 import { KeyPair, PrivateKey, PublicKey } from '@iroha2/crypto'
 

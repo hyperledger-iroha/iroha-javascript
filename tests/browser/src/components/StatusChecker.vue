@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useIntervalFn } from '@vueuse/core'
 import { useStaleState, useTask } from '@vue-kakuyaku/core'
-import { client } from '../client'
+import { client } from '../client.ts'
 
 const { state, run } = useTask(() => client.api.telemetry.status(), { immediate: true })
 const stale = useStaleState(state)

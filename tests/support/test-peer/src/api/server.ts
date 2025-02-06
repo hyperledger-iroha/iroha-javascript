@@ -1,7 +1,7 @@
 import * as h3 from 'h3'
 import { listen } from 'listhen'
 
-import * as lib from '../lib'
+import * as lib from '../lib.ts'
 import { KeyPair } from '@iroha2/crypto'
 import { createGenesis } from '@iroha2/test-configuration/node'
 

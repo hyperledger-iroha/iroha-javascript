@@ -1,14 +1,14 @@
+.vite
 node_modules
 .DS_Store
-dist
-dist-tsc
-/docs/api
-/docs/.vitepress/cache
+
 esbuild-kit
 v8-compile-cache-0
 
 .pnpm-debug.log
 .idea
 .vscode
+
 /.iroha
 /packages/crypto-*/src/wasm-target
+

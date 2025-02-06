@@ -1,11 +1,15 @@
-import chalk from 'chalk'
-import consola from 'consola'
+// import chalk from 'chalk'
+// import consola from 'consola'
 import { fs, path } from 'zx'
-import { IROHA_DIR } from '../etc/meta'
-import { execa } from 'execa'
+import { IROHA_DIR } from '../etc/meta.ts'
 import { match } from 'ts-pattern'
-import type { SCHEMA } from '@iroha2/data-model-schema'
+import type { SCHEMA } from '@iroha2/data-model'
 import type { JsonValue } from 'type-fest'
+import { assert } from '@std/assert'
+import * as colors from '@std/fmt/colors'
+import * as R from 'remeda'
+import { spawn } from 'node:child_process'
+import { Buffer } from 'node:buffer'
 
 export type Binary = 'irohad' | 'iroha_kagami' | 'iroha_codec'
 
@@ -28,12 +32,17 @@ export async function resolveBinary(bin: Binary): Promise<{ path: string }> {
 }
 
 export async function buildBinaries(bin: Binary[]): Promise<void> {
-  consola.info(`Building binaries ${bin.map((x) => chalk.magenta.bold(x)).join(', ')}...`)
+  console.info(
+    `Building binaries: ${bin.map((x) => R.pipe(x, colors.bold, colors.magenta)).join(', ')}...`,
+  )
   await runCargoBuild(bin)
-  consola.success(`Binaries are built`)
+  console.info(`Binaries are built`)
 }
 
-export const EXECUTOR_WASM_PATH = path.join(IROHA_DIR, 'defaults/executor.wasm')
+export const EXECUTOR_WASM_PATH = path.join(
+  IROHA_DIR,
+  'defaults/executor.wasm',
+)
 
 function resolveBinaryPath(bin: Binary): string {
   return path.join(
@@ -46,39 +55,82 @@ function resolveBinaryPath(bin: Binary): string {
 }
 
 async function runCargoBuild(crates: string[]): Promise<void> {
-  await execa('cargo', ['build', '--release', ...crates.flatMap((x) => ['-p', x])], {
-    stdio: 'inherit',
+  const packages = crates.flatMap((x) => ['-p', x])
+  const child = spawn('cargo', ['build', '--release', ...packages], {
     cwd: IROHA_DIR,
+  })
+  await new Promise<void>((resolve, reject) => {
+    child.on('close', (code) => {
+      assert(code === 0, 'non-zero cargo exit code')
+      resolve()
+    })
+    child.on('error', (reason) => {
+      reject(reason)
+    })
   })
 }
 
 async function isAccessible(path: string, mode?: number): Promise<boolean> {
-  return fs
-    .access(path, mode)
-    .then(() => true)
-    .catch(() => false)
-}
-
-export async function irohaCodecToScale(type: keyof typeof SCHEMA, json: JsonValue): Promise<Uint8Array> {
-  const tool = await resolveBinary('iroha_codec')
-  const input = JSON.stringify(json, undefined, 2)
   try {
-    const result = await execa(tool.path, ['json-to-scale', '--type', type], {
-      input,
-      encoding: null,
-    })
-    return new Uint8Array(result.stdout)
-  } catch (err) {
-    console.error(input)
-    throw err
+    await fs
+      .access(path, mode)
+    return true
+  } catch {
+    return false
   }
 }
 
-export async function irohaCodecToJson(type: keyof typeof SCHEMA, scale: Uint8Array): Promise<JsonValue> {
+export async function irohaCodecToScale(
+  type: keyof typeof SCHEMA,
+  json: JsonValue,
+): Promise<Uint8Array> {
   const tool = await resolveBinary('iroha_codec')
-  const result = await execa(tool.path, ['scale-to-json', '--type', type], {
-    input: Buffer.from(scale),
-    encoding: 'utf8',
+  const input = JSON.stringify(json, undefined, 2)
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(tool.path, ['json-to-scale', '--type', type], {
+      stdio: ['pipe', 'pipe', 'inherit'],
+    })
+
+    const chunks: Uint8Array[] = []
+
+    child.stdout.on('data', (chunk) => {
+      chunks.push(chunk)
+    })
+
+    child.on('close', (code) => {
+      assert(code === 0, 'non-zero exit code of iroha_codec')
+      resolve(Uint8Array.from(Buffer.concat(chunks)))
+    })
+
+    child.stdin.write(new TextEncoder().encode(input))
+    child.stdin.end()
   })
-  return JSON.parse(result.stdout)
+}
+
+export async function irohaCodecToJson(
+  type: keyof typeof SCHEMA,
+  scale: Uint8Array,
+): Promise<JsonValue> {
+  const tool = await resolveBinary('iroha_codec')
+
+  return new Promise<JsonValue>((resolve, reject) => {
+    const child = spawn(tool.path, ['scale-to-json', '--type', type], {
+      stdio: ['pipe', 'pipe', 'inherit'],
+    })
+
+    const chunks: Uint8Array[] = []
+    child.stdout.on('data', (chunk) => {
+      chunks.push(chunk)
+    })
+
+    child.on('close', (code) => {
+      if (code !== 0) reject(new Error(`non-zero exit code: ${code}`))
+      const text = new TextDecoder().decode(Buffer.concat(chunks))
+      resolve(JSON.parse(text))
+    })
+
+    child.stdin.write(scale)
+    child.stdin.end()
+  })
 }
