@@ -1,5 +1,6 @@
+import { assert } from '@std/assert'
 import * as dm from '@iroha2/data-model'
-import type { Schema as DataModelSchema } from '../../data-model/src/schema/lib.ts'
+import type { Schema as DataModelSchema } from '@iroha2/data-model'
 import {
   ENDPOINT_CONFIGURATION,
   ENDPOINT_HEALTH,
@@ -12,7 +13,6 @@ import {
   HEALTHY_RESPONSE,
 } from './const.ts'
 import { urlJoinPath } from './util.ts'
-import invariant from 'tiny-invariant'
 
 /**
  * Peer information returned from {@link ApiTelemetry.peers}
@@ -198,9 +198,9 @@ export class ApiTelemetry {
     return response.json().then(
       // array of strings in format `<pub key multihash>@<socket addr>`
       (ids: string[]) => {
-        invariant(Array.isArray(ids))
+        assert(Array.isArray(ids))
         return ids.map((id) => {
-          invariant(typeof id === 'string')
+          assert(typeof id === 'string')
           const [pubkey, address] = id.split('@')
           return { id: dm.PublicKeyRepr.fromHex(pubkey), address }
         })

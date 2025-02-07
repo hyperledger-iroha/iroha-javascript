@@ -88,15 +88,17 @@ export function lazyCodec<T>(f: () => GenCodec<T>): GenCodec<T> {
   return GenCodec.lazy(f)
 }
 
-export type EnumCodecSchema = [discriminant: number, tag: string, codec?: GenCodec<any>][]
+export type EnumCodecSchema<E extends scale.EnumRecord> = {
+  [K in keyof E]: E[K] extends [infer V] ? [discriminant: number, codec: GenCodec<V>] : [discriminant: number]
+}
 
-export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema): EnumCodec<E> {
+export function enumCodec<E extends scale.EnumRecord>(schema: EnumCodecSchema<E>): EnumCodec<E> {
   const encoders: scale.EnumEncoders<any> = {} as any
   const decoders: scale.EnumDecoders<any> = {}
 
-  for (const [dis, tag, codec] of schema) {
-    ;(encoders as any)[tag] = codec ? [dis, codec.raw.encode] : dis
-    ;(decoders as any)[dis] = codec ? [tag, codec.raw.decode] : tag
+  for (const [tag, [dis, maybeCodec]] of Object.entries(schema) as [string, [number, GenCodec<any>?]][]) {
+    ;(encoders as any)[tag] = maybeCodec ? [dis, maybeCodec.raw.encode] : dis
+    ;(decoders as any)[dis] = maybeCodec ? [tag, maybeCodec.raw.decode] : tag
   }
 
   return new EnumCodec({

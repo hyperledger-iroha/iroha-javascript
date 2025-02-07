@@ -1,3 +1,4 @@
+import './install-crypto.ts'
 import * as dm from '@iroha2/data-model'
 
 function* hexes(hex: string): Generator<number> {

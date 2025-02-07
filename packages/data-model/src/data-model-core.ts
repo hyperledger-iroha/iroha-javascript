@@ -298,13 +298,15 @@ export const CompoundPredicate = {
       Not: [CompoundPredicate<Atom>]
       And: [CompoundPredicate<Atom>[]]
       Or: [CompoundPredicate<Atom>[]]
-    }>([
-      // magic discriminants from schema
-      [0, 'Atom', atomType],
-      [1, 'Not', lazySelf],
-      [2, 'And', Vec.with(lazySelf)],
-      [3, 'Or', Vec.with(lazySelf)],
-    ]).discriminated()
+    }>(
+      {
+        // magic discriminants from schema
+        Atom: [0, atomType],
+        Not: [1, lazySelf],
+        And: [2, Vec.with(lazySelf)],
+        Or: [3, Vec.with(lazySelf)],
+      },
+    ).discriminated()
 
     return codec
   },
@@ -324,12 +326,12 @@ export const Algorithm = {
       secp256k1: []
       bls_normal: []
       bls_small: []
-    }>([
-      [0, 'ed25519'],
-      [1, 'secp256k1'],
-      [2, 'bls_normal'],
-      [3, 'bls_small'],
-    ]).discriminated() satisfies GenCodec<Algorithm>,
+    }>({
+      ed25519: [0],
+      secp256k1: [1],
+      bls_normal: [2],
+      bls_small: [3],
+    }).discriminated() satisfies GenCodec<Algorithm>,
   ),
 }
 

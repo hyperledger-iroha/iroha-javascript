@@ -3,10 +3,11 @@
  */
 export * from './types.ts'
 export * from './singleton.ts'
-export * from '@iroha2/crypto-util'
+export * from './util.ts'
+export * from './free.ts'
 
-import type { Free, GetInnerTrackObject } from '@iroha2/crypto-util'
-import { type Bytes, FreeGuard, FreeScope } from '@iroha2/crypto-util'
+import { type Bytes } from './util.ts'
+import { type Free, FreeGuard, FreeScope, type GetInnerTrackObject } from './free.ts'
 import { getWASM } from './singleton.ts'
 import type { wasmPkg } from './types.ts'
 

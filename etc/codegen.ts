@@ -1062,10 +1062,10 @@ function renderBaseEnumCodec(variants: EmitEnumVariant[]): string {
   )
   const options = variants.map((variant) =>
     match(variant)
-      .with({ type: { t: 'null' } }, ({ tag, discriminant }) => `[${discriminant}, '${tag}']`)
-      .otherwise(({ tag, discriminant, type }) => `[${discriminant}, '${tag}', ${renderRef(type).codec}]`),
+      .with({ type: { t: 'null' } }, ({ tag, discriminant }) => `${tag}: [${discriminant}]`)
+      .otherwise(({ tag, discriminant, type }) => `${tag}: [${discriminant}, ${renderRef(type).codec}]`),
   )
-  return `lib.enumCodec<{ ${types.join(', ')} }>([${options.join(', ')}])`
+  return `lib.enumCodec<{ ${types.join(', ')} }>({ ${options.join(', ')} })`
 }
 
 function renderSumTypes(variants: EmitEnumVariant[]) {

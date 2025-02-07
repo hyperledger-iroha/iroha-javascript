@@ -66,11 +66,10 @@ export const AssetValue = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Numeric: [Numeric]; Store: [Metadata] }>([[
-      0,
-      'Numeric',
-      lib.getCodec(Numeric),
-    ], [1, 'Store', lib.getCodec(Metadata)]]).discriminated(),
+    lib.enumCodec<{ Numeric: [Numeric]; Store: [Metadata] }>({
+      Numeric: [0, lib.getCodec(Numeric)],
+      Store: [1, lib.getCodec(Metadata)],
+    }).discriminated(),
   ),
 }
 
@@ -198,14 +197,14 @@ export const AssetEvent = {
         MetadataInserted: [MetadataChanged<lib.AssetId>]
         MetadataRemoved: [MetadataChanged<lib.AssetId>]
       }
-    >([
-      [0, 'Created', lib.getCodec(Asset)],
-      [1, 'Deleted', lib.getCodec(lib.AssetId)],
-      [2, 'Added', lib.getCodec(AssetChanged)],
-      [3, 'Removed', lib.getCodec(AssetChanged)],
-      [4, 'MetadataInserted', MetadataChanged.with(lib.getCodec(lib.AssetId))],
-      [5, 'MetadataRemoved', MetadataChanged.with(lib.getCodec(lib.AssetId))],
-    ]).discriminated(),
+    >({
+      Created: [0, lib.getCodec(Asset)],
+      Deleted: [1, lib.getCodec(lib.AssetId)],
+      Added: [2, lib.getCodec(AssetChanged)],
+      Removed: [3, lib.getCodec(AssetChanged)],
+      MetadataInserted: [4, MetadataChanged.with(lib.getCodec(lib.AssetId))],
+      MetadataRemoved: [5, MetadataChanged.with(lib.getCodec(lib.AssetId))],
+    }).discriminated(),
   ),
 }
 
@@ -409,21 +408,17 @@ export const AccountEvent = {
         MetadataInserted: [MetadataChanged<lib.AccountId>]
         MetadataRemoved: [MetadataChanged<lib.AccountId>]
       }
-    >([
-      [0, 'Created', lib.getCodec(Account)],
-      [1, 'Deleted', lib.getCodec(lib.AccountId)],
-      [2, 'Asset', lib.getCodec(AssetEvent)],
-      [3, 'PermissionAdded', lib.getCodec(AccountPermissionChanged)],
-      [4, 'PermissionRemoved', lib.getCodec(AccountPermissionChanged)],
-      [5, 'RoleGranted', lib.getCodec(AccountRoleChanged)],
-      [6, 'RoleRevoked', lib.getCodec(AccountRoleChanged)],
-      [
-        7,
-        'MetadataInserted',
-        MetadataChanged.with(lib.getCodec(lib.AccountId)),
-      ],
-      [8, 'MetadataRemoved', MetadataChanged.with(lib.getCodec(lib.AccountId))],
-    ]).discriminated(),
+    >({
+      Created: [0, lib.getCodec(Account)],
+      Deleted: [1, lib.getCodec(lib.AccountId)],
+      Asset: [2, lib.getCodec(AssetEvent)],
+      PermissionAdded: [3, lib.getCodec(AccountPermissionChanged)],
+      PermissionRemoved: [4, lib.getCodec(AccountPermissionChanged)],
+      RoleGranted: [5, lib.getCodec(AccountRoleChanged)],
+      RoleRevoked: [6, lib.getCodec(AccountRoleChanged)],
+      MetadataInserted: [7, MetadataChanged.with(lib.getCodec(lib.AccountId))],
+      MetadataRemoved: [8, MetadataChanged.with(lib.getCodec(lib.AccountId))],
+    }).discriminated(),
   ),
 }
 
@@ -488,11 +483,9 @@ export const AccountIdPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.AccountId] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.AccountId),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.AccountId] }>({
+      Equals: [0, lib.getCodec(lib.AccountId)],
+    }).discriminated(),
   ),
 }
 
@@ -514,11 +507,9 @@ export const DomainIdPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.DomainId] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.DomainId),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.DomainId] }>({
+      Equals: [0, lib.getCodec(lib.DomainId)],
+    }).discriminated(),
   ),
 }
 
@@ -569,12 +560,12 @@ export const StringPredicateAtom = {
         StartsWith: [lib.String]
         EndsWith: [lib.String]
       }
-    >([
-      [0, 'Equals', lib.getCodec(lib.String)],
-      [1, 'Contains', lib.getCodec(lib.String)],
-      [2, 'StartsWith', lib.getCodec(lib.String)],
-      [3, 'EndsWith', lib.getCodec(lib.String)],
-    ]).discriminated(),
+    >({
+      Equals: [0, lib.getCodec(lib.String)],
+      Contains: [1, lib.getCodec(lib.String)],
+      StartsWith: [2, lib.getCodec(lib.String)],
+      EndsWith: [3, lib.getCodec(lib.String)],
+    }).discriminated(),
   ),
 }
 
@@ -627,11 +618,9 @@ export const NameProjectionPredicate = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [StringPredicateAtom] }>([[
-      0,
-      'Atom',
-      lib.getCodec(StringPredicateAtom),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: [StringPredicateAtom] }>({
+      Atom: [0, lib.getCodec(StringPredicateAtom)],
+    }).discriminated(),
   ),
 }
 
@@ -717,11 +706,10 @@ export const DomainIdProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [DomainIdPredicateAtom]; Name: [NameProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(DomainIdPredicateAtom)], [
-      1,
-      'Name',
-      lib.getCodec(NameProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(DomainIdPredicateAtom)],
+      Name: [1, lib.getCodec(NameProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -743,11 +731,9 @@ export const PublicKeyPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.PublicKeyRepr] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.PublicKeyRepr),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.PublicKeyRepr] }>({
+      Equals: [0, lib.getCodec(lib.PublicKeyRepr)],
+    }).discriminated(),
   ),
 }
 
@@ -779,11 +765,9 @@ export const PublicKeyProjectionPredicate = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [PublicKeyPredicateAtom] }>([[
-      0,
-      'Atom',
-      lib.getCodec(PublicKeyPredicateAtom),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: [PublicKeyPredicateAtom] }>({
+      Atom: [0, lib.getCodec(PublicKeyPredicateAtom)],
+    }).discriminated(),
   ),
 }
 
@@ -913,12 +897,11 @@ export const AccountIdProjectionPredicate = {
         Domain: [DomainIdProjectionPredicate]
         Signatory: [PublicKeyProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AccountIdPredicateAtom)], [
-      1,
-      'Domain',
-      lib.getCodec(DomainIdProjectionPredicate),
-    ], [2, 'Signatory', lib.getCodec(PublicKeyProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AccountIdPredicateAtom)],
+      Domain: [1, lib.getCodec(DomainIdProjectionPredicate)],
+      Signatory: [2, lib.getCodec(PublicKeyProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -938,7 +921,7 @@ export const NameProjectionSelector = {
    * Value of variant `NameProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -971,11 +954,10 @@ export const DomainIdProjectionSelector = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([[0, 'Atom'], [
-      1,
-      'Name',
-      lib.getCodec(NameProjectionSelector),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>({
+      Atom: [0],
+      Name: [1, lib.getCodec(NameProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -995,7 +977,7 @@ export const PublicKeyProjectionSelector = {
    * Value of variant `PublicKeyProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -1055,11 +1037,11 @@ export const AccountIdProjectionSelector = {
         Domain: [DomainIdProjectionSelector]
         Signatory: [PublicKeyProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Domain', lib.getCodec(DomainIdProjectionSelector)], [
-      2,
-      'Signatory',
-      lib.getCodec(PublicKeyProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Domain: [1, lib.getCodec(DomainIdProjectionSelector)],
+      Signatory: [2, lib.getCodec(PublicKeyProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -1109,11 +1091,9 @@ export const JsonPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.Json] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.Json),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.Json] }>({
+      Equals: [0, lib.getCodec(lib.Json)],
+    }).discriminated(),
   ),
 }
 
@@ -1142,11 +1122,9 @@ export const JsonProjectionPredicate = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [JsonPredicateAtom] }>([[
-      0,
-      'Atom',
-      lib.getCodec(JsonPredicateAtom),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: [JsonPredicateAtom] }>({
+      Atom: [0, lib.getCodec(JsonPredicateAtom)],
+    }).discriminated(),
   ),
 }
 
@@ -1192,11 +1170,10 @@ export const MetadataProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [MetadataPredicateAtom]; Key: [MetadataKeyProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(MetadataPredicateAtom)], [
-      1,
-      'Key',
-      lib.getCodec(MetadataKeyProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(MetadataPredicateAtom)],
+      Key: [1, lib.getCodec(MetadataKeyProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -1372,12 +1349,11 @@ export const AccountProjectionPredicate = {
         Id: [AccountIdProjectionPredicate]
         Metadata: [MetadataProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AccountPredicateAtom)], [
-      1,
-      'Id',
-      lib.getCodec(AccountIdProjectionPredicate),
-    ], [2, 'Metadata', lib.getCodec(MetadataProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AccountPredicateAtom)],
+      Id: [1, lib.getCodec(AccountIdProjectionPredicate)],
+      Metadata: [2, lib.getCodec(MetadataProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -1397,7 +1373,7 @@ export const JsonProjectionSelector = {
    * Value of variant `JsonProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -1444,11 +1420,10 @@ export const MetadataProjectionSelector = {
     value: T,
   ): lib.Variant<'Key', T> => ({ kind: 'Key', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Key: [MetadataKeyProjectionSelector] }>([[
-      0,
-      'Atom',
-    ], [1, 'Key', lib.getCodec(MetadataKeyProjectionSelector)]])
-      .discriminated(),
+    lib.enumCodec<{ Atom: []; Key: [MetadataKeyProjectionSelector] }>({
+      Atom: [0],
+      Key: [1, lib.getCodec(MetadataKeyProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -1537,11 +1512,11 @@ export const AccountProjectionSelector = {
         Id: [AccountIdProjectionSelector]
         Metadata: [MetadataProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Id', lib.getCodec(AccountIdProjectionSelector)], [
-      2,
-      'Metadata',
-      lib.getCodec(MetadataProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Id: [1, lib.getCodec(AccountIdProjectionSelector)],
+      Metadata: [2, lib.getCodec(MetadataProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -1576,11 +1551,13 @@ export const Executable = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Instructions: [lib.Vec<InstructionBox>]; Wasm: [WasmSmartContract] }
-    >([[
-      0,
-      'Instructions',
-      lib.Vec.with(lib.lazyCodec(() => lib.getCodec(InstructionBox))),
-    ], [1, 'Wasm', lib.getCodec(WasmSmartContract)]]).discriminated(),
+    >({
+      Instructions: [
+        0,
+        lib.Vec.with(lib.lazyCodec(() => lib.getCodec(InstructionBox))),
+      ],
+      Wasm: [1, lib.getCodec(WasmSmartContract)],
+    }).discriminated(),
   ),
 }
 
@@ -1611,10 +1588,10 @@ export const Repeats = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Indefinitely: []; Exactly: [lib.U32] }>([[
-      0,
-      'Indefinitely',
-    ], [1, 'Exactly', lib.getCodec(lib.U32)]]).discriminated(),
+    lib.enumCodec<{ Indefinitely: []; Exactly: [lib.U32] }>({
+      Indefinitely: [0],
+      Exactly: [1, lib.getCodec(lib.U32)],
+    }).discriminated(),
   ),
 }
 
@@ -1753,20 +1730,20 @@ export const FindError = {
         Permission: [Permission]
         PublicKey: [lib.PublicKeyRepr]
       }
-    >([
-      [0, 'Asset', lib.getCodec(lib.AssetId)],
-      [1, 'AssetDefinition', lib.getCodec(lib.AssetDefinitionId)],
-      [2, 'Account', lib.getCodec(lib.AccountId)],
-      [3, 'Domain', lib.getCodec(lib.DomainId)],
-      [4, 'MetadataKey', lib.getCodec(lib.Name)],
-      [5, 'Block', lib.getCodec(lib.HashRepr)],
-      [6, 'Transaction', lib.getCodec(lib.HashRepr)],
-      [7, 'Peer', lib.getCodec(PeerId)],
-      [8, 'Trigger', lib.getCodec(TriggerId)],
-      [9, 'Role', lib.getCodec(RoleId)],
-      [10, 'Permission', lib.getCodec(Permission)],
-      [11, 'PublicKey', lib.getCodec(lib.PublicKeyRepr)],
-    ]).discriminated(),
+    >({
+      Asset: [0, lib.getCodec(lib.AssetId)],
+      AssetDefinition: [1, lib.getCodec(lib.AssetDefinitionId)],
+      Account: [2, lib.getCodec(lib.AccountId)],
+      Domain: [3, lib.getCodec(lib.DomainId)],
+      MetadataKey: [4, lib.getCodec(lib.Name)],
+      Block: [5, lib.getCodec(lib.HashRepr)],
+      Transaction: [6, lib.getCodec(lib.HashRepr)],
+      Peer: [7, lib.getCodec(PeerId)],
+      Trigger: [8, lib.getCodec(TriggerId)],
+      Role: [9, lib.getCodec(RoleId)],
+      Permission: [10, lib.getCodec(Permission)],
+      PublicKey: [11, lib.getCodec(lib.PublicKeyRepr)],
+    }).discriminated(),
   ),
 }
 
@@ -1899,22 +1876,22 @@ export const InstructionType = {
         Log: []
         Custom: []
       }
-    >([
-      [0, 'Register'],
-      [1, 'Unregister'],
-      [2, 'Mint'],
-      [3, 'Burn'],
-      [4, 'Transfer'],
-      [5, 'SetKeyValue'],
-      [6, 'RemoveKeyValue'],
-      [7, 'Grant'],
-      [8, 'Revoke'],
-      [9, 'ExecuteTrigger'],
-      [10, 'SetParameter'],
-      [11, 'Upgrade'],
-      [12, 'Log'],
-      [13, 'Custom'],
-    ]).discriminated(),
+    >({
+      Register: [0],
+      Unregister: [1],
+      Mint: [2],
+      Burn: [3],
+      Transfer: [4],
+      SetKeyValue: [5],
+      RemoveKeyValue: [6],
+      Grant: [7],
+      Revoke: [8],
+      ExecuteTrigger: [9],
+      SetParameter: [10],
+      Upgrade: [11],
+      Log: [12],
+      Custom: [13],
+    }).discriminated(),
   ),
 }
 
@@ -1978,11 +1955,10 @@ export const AssetType = {
    */
   Store: Object.freeze<lib.VariantUnit<'Store'>>({ kind: 'Store' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Numeric: [NumericSpec]; Store: [] }>([[
-      0,
-      'Numeric',
-      lib.getCodec(NumericSpec),
-    ], [1, 'Store']]).discriminated(),
+    lib.enumCodec<{ Numeric: [NumericSpec]; Store: [] }>({
+      Numeric: [0, lib.getCodec(NumericSpec)],
+      Store: [1],
+    }).discriminated(),
   ),
 }
 
@@ -2029,11 +2005,10 @@ export const TypeError = {
         AssetType: [Mismatch<AssetType>]
         NumericAssetTypeExpected: [AssetType]
       }
-    >([[0, 'AssetType', Mismatch.with(lib.getCodec(AssetType))], [
-      1,
-      'NumericAssetTypeExpected',
-      lib.getCodec(AssetType),
-    ]]).discriminated(),
+    >({
+      AssetType: [0, Mismatch.with(lib.getCodec(AssetType))],
+      NumericAssetTypeExpected: [1, lib.getCodec(AssetType)],
+    }).discriminated(),
   ),
 }
 
@@ -2182,11 +2157,11 @@ export const InstructionEvaluationError = {
         PermissionParameter: [lib.String]
         Type: [TypeError]
       }
-    >([[0, 'Unsupported', lib.getCodec(InstructionType)], [
-      1,
-      'PermissionParameter',
-      lib.getCodec(lib.String),
-    ], [2, 'Type', lib.getCodec(TypeError)]]).discriminated(),
+    >({
+      Unsupported: [0, lib.getCodec(InstructionType)],
+      PermissionParameter: [1, lib.getCodec(lib.String)],
+      Type: [2, lib.getCodec(TypeError)],
+    }).discriminated(),
   ),
 }
 
@@ -2364,16 +2339,16 @@ export const QueryExecutionFail = {
         InvalidSingularParameters: []
         CapacityLimit: []
       }
-    >([
-      [0, 'Find', lib.getCodec(FindError)],
-      [1, 'Conversion', lib.getCodec(lib.String)],
-      [2, 'NotFound'],
-      [3, 'CursorMismatch'],
-      [4, 'CursorDone'],
-      [5, 'FetchSizeTooBig'],
-      [6, 'InvalidSingularParameters'],
-      [7, 'CapacityLimit'],
-    ]).discriminated(),
+    >({
+      Find: [0, lib.getCodec(FindError)],
+      Conversion: [1, lib.getCodec(lib.String)],
+      NotFound: [2],
+      CursorMismatch: [3],
+      CursorDone: [4],
+      FetchSizeTooBig: [5],
+      InvalidSingularParameters: [6],
+      CapacityLimit: [7],
+    }).discriminated(),
   ),
 }
 
@@ -2475,17 +2450,17 @@ export const IdBox = {
         Permission: [Permission]
         CustomParameterId: [CustomParameterId]
       }
-    >([
-      [0, 'DomainId', lib.getCodec(lib.DomainId)],
-      [1, 'AccountId', lib.getCodec(lib.AccountId)],
-      [2, 'AssetDefinitionId', lib.getCodec(lib.AssetDefinitionId)],
-      [3, 'AssetId', lib.getCodec(lib.AssetId)],
-      [4, 'PeerId', lib.getCodec(PeerId)],
-      [5, 'TriggerId', lib.getCodec(TriggerId)],
-      [6, 'RoleId', lib.getCodec(RoleId)],
-      [7, 'Permission', lib.getCodec(Permission)],
-      [8, 'CustomParameterId', lib.getCodec(CustomParameterId)],
-    ]).discriminated(),
+    >({
+      DomainId: [0, lib.getCodec(lib.DomainId)],
+      AccountId: [1, lib.getCodec(lib.AccountId)],
+      AssetDefinitionId: [2, lib.getCodec(lib.AssetDefinitionId)],
+      AssetId: [3, lib.getCodec(lib.AssetId)],
+      PeerId: [4, lib.getCodec(PeerId)],
+      TriggerId: [5, lib.getCodec(TriggerId)],
+      RoleId: [6, lib.getCodec(RoleId)],
+      Permission: [7, lib.getCodec(Permission)],
+      CustomParameterId: [8, lib.getCodec(CustomParameterId)],
+    }).discriminated(),
   ),
 }
 
@@ -2533,10 +2508,10 @@ export const MintabilityError = {
     kind: 'ForbidMintOnMintable',
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ MintUnmintable: []; ForbidMintOnMintable: [] }>([[
-      0,
-      'MintUnmintable',
-    ], [1, 'ForbidMintOnMintable']]).discriminated(),
+    lib.enumCodec<{ MintUnmintable: []; ForbidMintOnMintable: [] }>({
+      MintUnmintable: [0],
+      ForbidMintOnMintable: [1],
+    }).discriminated(),
   ),
 }
 
@@ -2612,15 +2587,15 @@ export const MathError = {
         Unknown: []
         FixedPointConversion: [lib.String]
       }
-    >([
-      [0, 'Overflow'],
-      [1, 'NotEnoughQuantity'],
-      [2, 'DivideByZero'],
-      [3, 'NegativeValue'],
-      [4, 'DomainViolation'],
-      [5, 'Unknown'],
-      [6, 'FixedPointConversion', lib.getCodec(lib.String)],
-    ]).discriminated(),
+    >({
+      Overflow: [0],
+      NotEnoughQuantity: [1],
+      DivideByZero: [2],
+      NegativeValue: [3],
+      DomainViolation: [4],
+      Unknown: [5],
+      FixedPointConversion: [6, lib.getCodec(lib.String)],
+    }).discriminated(),
   ),
 }
 
@@ -2651,11 +2626,10 @@ export const InvalidParameterError = {
     kind: 'TimeTriggerInThePast',
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Wasm: [lib.String]; TimeTriggerInThePast: [] }>([[
-      0,
-      'Wasm',
-      lib.getCodec(lib.String),
-    ], [1, 'TimeTriggerInThePast']]).discriminated(),
+    lib.enumCodec<{ Wasm: [lib.String]; TimeTriggerInThePast: [] }>({
+      Wasm: [0, lib.getCodec(lib.String)],
+      TimeTriggerInThePast: [1],
+    }).discriminated(),
   ),
 }
 
@@ -3281,17 +3255,17 @@ export const InstructionExecutionError = {
         InvalidParameter: [InvalidParameterError]
         InvariantViolation: [lib.String]
       }
-    >([
-      [0, 'Evaluate', lib.getCodec(InstructionEvaluationError)],
-      [1, 'Query', lib.getCodec(QueryExecutionFail)],
-      [2, 'Conversion', lib.getCodec(lib.String)],
-      [3, 'Find', lib.getCodec(FindError)],
-      [4, 'Repetition', lib.getCodec(RepetitionError)],
-      [5, 'Mintability', lib.getCodec(MintabilityError)],
-      [6, 'Math', lib.getCodec(MathError)],
-      [7, 'InvalidParameter', lib.getCodec(InvalidParameterError)],
-      [8, 'InvariantViolation', lib.getCodec(lib.String)],
-    ]).discriminated(),
+    >({
+      Evaluate: [0, lib.getCodec(InstructionEvaluationError)],
+      Query: [1, lib.getCodec(QueryExecutionFail)],
+      Conversion: [2, lib.getCodec(lib.String)],
+      Find: [3, lib.getCodec(FindError)],
+      Repetition: [4, lib.getCodec(RepetitionError)],
+      Mintability: [5, lib.getCodec(MintabilityError)],
+      Math: [6, lib.getCodec(MathError)],
+      InvalidParameter: [7, lib.getCodec(InvalidParameterError)],
+      InvariantViolation: [8, lib.getCodec(lib.String)],
+    }).discriminated(),
   ),
 }
 
@@ -4333,13 +4307,13 @@ export const ValidationFail = {
         TooComplex: []
         InternalError: []
       }
-    >([
-      [0, 'NotPermitted', lib.getCodec(lib.String)],
-      [1, 'InstructionFailed', lib.getCodec(InstructionExecutionError)],
-      [2, 'QueryFailed', lib.getCodec(QueryExecutionFail)],
-      [3, 'TooComplex'],
-      [4, 'InternalError'],
-    ]).discriminated(),
+    >({
+      NotPermitted: [0, lib.getCodec(lib.String)],
+      InstructionFailed: [1, lib.getCodec(InstructionExecutionError)],
+      QueryFailed: [2, lib.getCodec(QueryExecutionFail)],
+      TooComplex: [3],
+      InternalError: [4],
+    }).discriminated(),
   ),
 }
 
@@ -5846,13 +5820,13 @@ export const TransactionRejectionReason = {
         InstructionExecution: [InstructionExecutionFail]
         WasmExecution: [WasmExecutionFail]
       }
-    >([
-      [0, 'AccountDoesNotExist', lib.getCodec(FindError)],
-      [1, 'LimitCheck', lib.getCodec(TransactionLimitError)],
-      [2, 'Validation', lib.getCodec(ValidationFail)],
-      [3, 'InstructionExecution', lib.getCodec(InstructionExecutionFail)],
-      [4, 'WasmExecution', lib.getCodec(WasmExecutionFail)],
-    ]).discriminated(),
+    >({
+      AccountDoesNotExist: [0, lib.getCodec(FindError)],
+      LimitCheck: [1, lib.getCodec(TransactionLimitError)],
+      Validation: [2, lib.getCodec(ValidationFail)],
+      InstructionExecution: [3, lib.getCodec(InstructionExecutionFail)],
+      WasmExecution: [4, lib.getCodec(WasmExecutionFail)],
+    }).discriminated(),
   ),
 }
 
@@ -7756,11 +7730,12 @@ export const TransactionStatus = {
         Approved: []
         Rejected: [TransactionRejectionReason]
       }
-    >([[0, 'Queued'], [1, 'Expired'], [2, 'Approved'], [
-      3,
-      'Rejected',
-      lib.getCodec(TransactionRejectionReason),
-    ]]).discriminated(),
+    >({
+      Queued: [0],
+      Expired: [1],
+      Approved: [2],
+      Rejected: [3, lib.getCodec(TransactionRejectionReason)],
+    }).discriminated(),
   ),
 }
 
@@ -7805,10 +7780,9 @@ export const BlockRejectionReason = {
     lib.VariantUnit<'ConsensusBlockRejection'>
   >({ kind: 'ConsensusBlockRejection' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ ConsensusBlockRejection: [] }>([[
-      0,
-      'ConsensusBlockRejection',
-    ]]).discriminated(),
+    lib.enumCodec<{ ConsensusBlockRejection: [] }>({
+      ConsensusBlockRejection: [0],
+    }).discriminated(),
   ),
 }
 
@@ -7872,13 +7846,13 @@ export const BlockStatus = {
         Committed: []
         Applied: []
       }
-    >([
-      [0, 'Created'],
-      [1, 'Approved'],
-      [2, 'Rejected', lib.getCodec(BlockRejectionReason)],
-      [3, 'Committed'],
-      [4, 'Applied'],
-    ]).discriminated(),
+    >({
+      Created: [0],
+      Approved: [1],
+      Rejected: [2, lib.getCodec(BlockRejectionReason)],
+      Committed: [3],
+      Applied: [4],
+    }).discriminated(),
   ),
 }
 
@@ -7928,11 +7902,10 @@ export const PipelineEventFilterBox = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Transaction: [TransactionEventFilter]; Block: [BlockEventFilter] }
-    >([[0, 'Transaction', lib.getCodec(TransactionEventFilter)], [
-      1,
-      'Block',
-      lib.getCodec(BlockEventFilter),
-    ]]).discriminated(),
+    >({
+      Transaction: [0, lib.getCodec(TransactionEventFilter)],
+      Block: [1, lib.getCodec(BlockEventFilter)],
+    }).discriminated(),
   ),
 }
 
@@ -8288,18 +8261,18 @@ export const DataEventFilter = {
         Configuration: [ConfigurationEventFilter]
         Executor: [ExecutorEventFilter]
       }
-    >([
-      [0, 'Any'],
-      [1, 'Peer', lib.getCodec(PeerEventFilter)],
-      [2, 'Domain', lib.getCodec(DomainEventFilter)],
-      [3, 'Account', lib.getCodec(AccountEventFilter)],
-      [4, 'Asset', lib.getCodec(AssetEventFilter)],
-      [5, 'AssetDefinition', lib.getCodec(AssetDefinitionEventFilter)],
-      [6, 'Trigger', lib.getCodec(TriggerEventFilter)],
-      [7, 'Role', lib.getCodec(RoleEventFilter)],
-      [8, 'Configuration', lib.getCodec(ConfigurationEventFilter)],
-      [9, 'Executor', lib.getCodec(ExecutorEventFilter)],
-    ]).discriminated(),
+    >({
+      Any: [0],
+      Peer: [1, lib.getCodec(PeerEventFilter)],
+      Domain: [2, lib.getCodec(DomainEventFilter)],
+      Account: [3, lib.getCodec(AccountEventFilter)],
+      Asset: [4, lib.getCodec(AssetEventFilter)],
+      AssetDefinition: [5, lib.getCodec(AssetDefinitionEventFilter)],
+      Trigger: [6, lib.getCodec(TriggerEventFilter)],
+      Role: [7, lib.getCodec(RoleEventFilter)],
+      Configuration: [8, lib.getCodec(ConfigurationEventFilter)],
+      Executor: [9, lib.getCodec(ExecutorEventFilter)],
+    }).discriminated(),
   ),
 }
 
@@ -8346,11 +8319,10 @@ export const ExecutionTime = {
     value: T,
   ): lib.Variant<'Schedule', T> => ({ kind: 'Schedule', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ PreCommit: []; Schedule: [Schedule] }>([[0, 'PreCommit'], [
-      1,
-      'Schedule',
-      lib.getCodec(Schedule),
-    ]]).discriminated(),
+    lib.enumCodec<{ PreCommit: []; Schedule: [Schedule] }>({
+      PreCommit: [0],
+      Schedule: [1, lib.getCodec(Schedule)],
+    }).discriminated(),
   ),
 }
 
@@ -8400,10 +8372,8 @@ export const TriggerCompletedOutcomeType = {
    */
   Failure: Object.freeze<lib.VariantUnit<'Failure'>>({ kind: 'Failure' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Success: []; Failure: [] }>([[0, 'Success'], [
-      1,
-      'Failure',
-    ]]).discriminated(),
+    lib.enumCodec<{ Success: []; Failure: [] }>({ Success: [0], Failure: [1] })
+      .discriminated(),
   ),
 }
 
@@ -8591,13 +8561,13 @@ export const EventFilterBox = {
         ExecuteTrigger: [ExecuteTriggerEventFilter]
         TriggerCompleted: [TriggerCompletedEventFilter]
       }
-    >([
-      [0, 'Pipeline', lib.getCodec(PipelineEventFilterBox)],
-      [1, 'Data', lib.getCodec(DataEventFilter)],
-      [2, 'Time', lib.getCodec(TimeEventFilter)],
-      [3, 'ExecuteTrigger', lib.getCodec(ExecuteTriggerEventFilter)],
-      [4, 'TriggerCompleted', lib.getCodec(TriggerCompletedEventFilter)],
-    ]).discriminated(),
+    >({
+      Pipeline: [0, lib.getCodec(PipelineEventFilterBox)],
+      Data: [1, lib.getCodec(DataEventFilter)],
+      Time: [2, lib.getCodec(TimeEventFilter)],
+      ExecuteTrigger: [3, lib.getCodec(ExecuteTriggerEventFilter)],
+      TriggerCompleted: [4, lib.getCodec(TriggerCompletedEventFilter)],
+    }).discriminated(),
   ),
 }
 
@@ -8674,11 +8644,10 @@ export const ActionProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [ActionPredicateAtom]; Metadata: [MetadataProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(ActionPredicateAtom)], [
-      1,
-      'Metadata',
-      lib.getCodec(MetadataProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(ActionPredicateAtom)],
+      Metadata: [1, lib.getCodec(MetadataProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -8719,11 +8688,10 @@ export const ActionProjectionSelector = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Metadata: [MetadataProjectionSelector] }>([[
-      0,
-      'Atom',
-    ], [1, 'Metadata', lib.getCodec(MetadataProjectionSelector)]])
-      .discriminated(),
+    lib.enumCodec<{ Atom: []; Metadata: [MetadataProjectionSelector] }>({
+      Atom: [0],
+      Metadata: [1, lib.getCodec(MetadataProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -8756,10 +8724,11 @@ export const Mintable = {
    */
   Not: Object.freeze<lib.VariantUnit<'Not'>>({ kind: 'Not' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Infinitely: []; Once: []; Not: [] }>([[0, 'Infinitely'], [
-      1,
-      'Once',
-    ], [2, 'Not']]).discriminated(),
+    lib.enumCodec<{ Infinitely: []; Once: []; Not: [] }>({
+      Infinitely: [0],
+      Once: [1],
+      Not: [2],
+    }).discriminated(),
   ),
 }
 
@@ -8929,27 +8898,24 @@ export const AssetDefinitionEvent = {
         TotalQuantityChanged: [AssetDefinitionTotalQuantityChanged]
         OwnerChanged: [AssetDefinitionOwnerChanged]
       }
-    >([
-      [0, 'Created', lib.getCodec(AssetDefinition)],
-      [1, 'Deleted', lib.getCodec(lib.AssetDefinitionId)],
-      [
+    >({
+      Created: [0, lib.getCodec(AssetDefinition)],
+      Deleted: [1, lib.getCodec(lib.AssetDefinitionId)],
+      MetadataInserted: [
         2,
-        'MetadataInserted',
         MetadataChanged.with(lib.getCodec(lib.AssetDefinitionId)),
       ],
-      [
+      MetadataRemoved: [
         3,
-        'MetadataRemoved',
         MetadataChanged.with(lib.getCodec(lib.AssetDefinitionId)),
       ],
-      [4, 'MintabilityChanged', lib.getCodec(lib.AssetDefinitionId)],
-      [
+      MintabilityChanged: [4, lib.getCodec(lib.AssetDefinitionId)],
+      TotalQuantityChanged: [
         5,
-        'TotalQuantityChanged',
         lib.getCodec(AssetDefinitionTotalQuantityChanged),
       ],
-      [6, 'OwnerChanged', lib.getCodec(AssetDefinitionOwnerChanged)],
-    ]).discriminated(),
+      OwnerChanged: [6, lib.getCodec(AssetDefinitionOwnerChanged)],
+    }).discriminated(),
   ),
 }
 
@@ -8974,11 +8940,9 @@ export const AssetDefinitionIdPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.AssetDefinitionId] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.AssetDefinitionId),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.AssetDefinitionId] }>({
+      Equals: [0, lib.getCodec(lib.AssetDefinitionId)],
+    }).discriminated(),
   ),
 }
 
@@ -9141,11 +9105,11 @@ export const AssetDefinitionIdProjectionPredicate = {
         Domain: [DomainIdProjectionPredicate]
         Name: [NameProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AssetDefinitionIdPredicateAtom)], [
-      1,
-      'Domain',
-      lib.getCodec(DomainIdProjectionPredicate),
-    ], [2, 'Name', lib.getCodec(NameProjectionPredicate)]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AssetDefinitionIdPredicateAtom)],
+      Domain: [1, lib.getCodec(DomainIdProjectionPredicate)],
+      Name: [2, lib.getCodec(NameProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -9205,11 +9169,11 @@ export const AssetDefinitionIdProjectionSelector = {
         Domain: [DomainIdProjectionSelector]
         Name: [NameProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Domain', lib.getCodec(DomainIdProjectionSelector)], [
-      2,
-      'Name',
-      lib.getCodec(NameProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Domain: [1, lib.getCodec(DomainIdProjectionSelector)],
+      Name: [2, lib.getCodec(NameProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -9430,12 +9394,11 @@ export const AssetDefinitionProjectionPredicate = {
         Id: [AssetDefinitionIdProjectionPredicate]
         Metadata: [MetadataProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AssetDefinitionPredicateAtom)], [
-      1,
-      'Id',
-      lib.getCodec(AssetDefinitionIdProjectionPredicate),
-    ], [2, 'Metadata', lib.getCodec(MetadataProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AssetDefinitionPredicateAtom)],
+      Id: [1, lib.getCodec(AssetDefinitionIdProjectionPredicate)],
+      Metadata: [2, lib.getCodec(MetadataProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -9530,12 +9493,11 @@ export const AssetDefinitionProjectionSelector = {
         Id: [AssetDefinitionIdProjectionSelector]
         Metadata: [MetadataProjectionSelector]
       }
-    >([[0, 'Atom'], [
-      1,
-      'Id',
-      lib.getCodec(AssetDefinitionIdProjectionSelector),
-    ], [2, 'Metadata', lib.getCodec(MetadataProjectionSelector)]])
-      .discriminated(),
+    >({
+      Atom: [0],
+      Id: [1, lib.getCodec(AssetDefinitionIdProjectionSelector)],
+      Metadata: [2, lib.getCodec(MetadataProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -9557,11 +9519,9 @@ export const AssetIdPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.AssetId] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.AssetId),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.AssetId] }>({
+      Equals: [0, lib.getCodec(lib.AssetId)],
+    }).discriminated(),
   ),
 }
 
@@ -9910,12 +9870,11 @@ export const AssetIdProjectionPredicate = {
         Account: [AccountIdProjectionPredicate]
         Definition: [AssetDefinitionIdProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AssetIdPredicateAtom)], [
-      1,
-      'Account',
-      lib.getCodec(AccountIdProjectionPredicate),
-    ], [2, 'Definition', lib.getCodec(AssetDefinitionIdProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AssetIdPredicateAtom)],
+      Account: [1, lib.getCodec(AccountIdProjectionPredicate)],
+      Definition: [2, lib.getCodec(AssetDefinitionIdProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -10046,11 +10005,11 @@ export const AssetIdProjectionSelector = {
         Account: [AccountIdProjectionSelector]
         Definition: [AssetDefinitionIdProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Account', lib.getCodec(AccountIdProjectionSelector)], [
-      2,
-      'Definition',
-      lib.getCodec(AssetDefinitionIdProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Account: [1, lib.getCodec(AccountIdProjectionSelector)],
+      Definition: [2, lib.getCodec(AssetDefinitionIdProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -10092,10 +10051,10 @@ export const AssetValuePredicateAtom = {
    */
   IsStore: Object.freeze<lib.VariantUnit<'IsStore'>>({ kind: 'IsStore' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ IsNumeric: []; IsStore: [] }>([[0, 'IsNumeric'], [
-      1,
-      'IsStore',
-    ]]).discriminated(),
+    lib.enumCodec<{ IsNumeric: []; IsStore: [] }>({
+      IsNumeric: [0],
+      IsStore: [1],
+    }).discriminated(),
   ),
 }
 
@@ -10164,12 +10123,11 @@ export const AssetValueProjectionPredicate = {
         Numeric: [NumericProjectionPredicate]
         Store: [MetadataProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AssetValuePredicateAtom)], [
-      1,
-      'Numeric',
-      lib.getCodec(NumericProjectionPredicate),
-    ], [2, 'Store', lib.getCodec(MetadataProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AssetValuePredicateAtom)],
+      Numeric: [1, lib.getCodec(NumericProjectionPredicate)],
+      Store: [2, lib.getCodec(MetadataProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -10632,12 +10590,11 @@ export const AssetProjectionPredicate = {
         Id: [AssetIdProjectionPredicate]
         Value: [AssetValueProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(AssetPredicateAtom)], [
-      1,
-      'Id',
-      lib.getCodec(AssetIdProjectionPredicate),
-    ], [2, 'Value', lib.getCodec(AssetValueProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(AssetPredicateAtom)],
+      Id: [1, lib.getCodec(AssetIdProjectionPredicate)],
+      Value: [2, lib.getCodec(AssetValueProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -10657,7 +10614,7 @@ export const NumericProjectionSelector = {
    * Value of variant `NumericProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -10716,11 +10673,11 @@ export const AssetValueProjectionSelector = {
         Numeric: [NumericProjectionSelector]
         Store: [MetadataProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Numeric', lib.getCodec(NumericProjectionSelector)], [
-      2,
-      'Store',
-      lib.getCodec(MetadataProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Numeric: [1, lib.getCodec(NumericProjectionSelector)],
+      Store: [2, lib.getCodec(MetadataProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -10929,11 +10886,11 @@ export const AssetProjectionSelector = {
         Id: [AssetIdProjectionSelector]
         Value: [AssetValueProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Id', lib.getCodec(AssetIdProjectionSelector)], [
-      2,
-      'Value',
-      lib.getCodec(AssetValueProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Id: [1, lib.getCodec(AssetIdProjectionSelector)],
+      Value: [2, lib.getCodec(AssetValueProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -10995,23 +10952,24 @@ export const AssetTransferBox = {
         Numeric: [Transfer<lib.AssetId, Numeric, lib.AccountId>]
         Store: [Transfer<lib.AssetId, Metadata, lib.AccountId>]
       }
-    >([[
-      0,
-      'Numeric',
-      Transfer.with(
-        lib.getCodec(lib.AssetId),
-        lib.getCodec(Numeric),
-        lib.getCodec(lib.AccountId),
-      ),
-    ], [
-      1,
-      'Store',
-      Transfer.with(
-        lib.getCodec(lib.AssetId),
-        lib.getCodec(Metadata),
-        lib.getCodec(lib.AccountId),
-      ),
-    ]]).discriminated(),
+    >({
+      Numeric: [
+        0,
+        Transfer.with(
+          lib.getCodec(lib.AssetId),
+          lib.getCodec(Numeric),
+          lib.getCodec(lib.AccountId),
+        ),
+      ],
+      Store: [
+        1,
+        Transfer.with(
+          lib.getCodec(lib.AssetId),
+          lib.getCodec(Metadata),
+          lib.getCodec(lib.AccountId),
+        ),
+      ],
+    }).discriminated(),
   ),
 }
 
@@ -11079,11 +11037,9 @@ export const BlockHeaderHashPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.HashRepr] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.HashRepr),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.HashRepr] }>({
+      Equals: [0, lib.getCodec(lib.HashRepr)],
+    }).discriminated(),
   ),
 }
 
@@ -11115,11 +11071,9 @@ export const BlockHeaderHashProjectionPredicate = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [BlockHeaderHashPredicateAtom] }>([[
-      0,
-      'Atom',
-      lib.getCodec(BlockHeaderHashPredicateAtom),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: [BlockHeaderHashPredicateAtom] }>({
+      Atom: [0, lib.getCodec(BlockHeaderHashPredicateAtom)],
+    }).discriminated(),
   ),
 }
 
@@ -11139,7 +11093,7 @@ export const BlockHeaderHashProjectionSelector = {
    * Value of variant `BlockHeaderHashProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -11197,11 +11151,10 @@ export const BlockHeaderProjectionPredicate = {
         Atom: [BlockHeaderPredicateAtom]
         Hash: [BlockHeaderHashProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(BlockHeaderPredicateAtom)], [
-      1,
-      'Hash',
-      lib.getCodec(BlockHeaderHashProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(BlockHeaderPredicateAtom)],
+      Hash: [1, lib.getCodec(BlockHeaderHashProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -11234,11 +11187,10 @@ export const BlockHeaderProjectionSelector = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Hash: [BlockHeaderHashProjectionSelector] }>([[
-      0,
-      'Atom',
-    ], [1, 'Hash', lib.getCodec(BlockHeaderHashProjectionSelector)]])
-      .discriminated(),
+    lib.enumCodec<{ Atom: []; Hash: [BlockHeaderHashProjectionSelector] }>({
+      Atom: [0],
+      Hash: [1, lib.getCodec(BlockHeaderHashProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -11335,11 +11287,9 @@ export const SignedTransaction = {
     value: T,
   ): lib.Variant<'V1', T> => ({ kind: 'V1', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ V1: [SignedTransactionV1] }>([[
-      1,
-      'V1',
-      lib.getCodec(SignedTransactionV1),
-    ]]).discriminated(),
+    lib.enumCodec<{ V1: [SignedTransactionV1] }>({
+      V1: [1, lib.getCodec(SignedTransactionV1)],
+    }).discriminated(),
   ),
 }
 
@@ -11423,11 +11373,9 @@ export const SignedBlock = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ V1: [SignedBlockV1] }>([[
-      1,
-      'V1',
-      lib.getCodec(SignedBlockV1),
-    ]]).discriminated(),
+    lib.enumCodec<{ V1: [SignedBlockV1] }>({
+      V1: [1, lib.getCodec(SignedBlockV1)],
+    }).discriminated(),
   ),
 }
 
@@ -11455,11 +11403,9 @@ export const BlockParameter = {
     value: T,
   ): lib.Variant<'MaxTransactions', T> => ({ kind: 'MaxTransactions', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ MaxTransactions: [lib.NonZero<lib.U64>] }>([[
-      0,
-      'MaxTransactions',
-      lib.NonZero.with(lib.getCodec(lib.U64)),
-    ]]).discriminated(),
+    lib.enumCodec<{ MaxTransactions: [lib.NonZero<lib.U64>] }>({
+      MaxTransactions: [0, lib.NonZero.with(lib.getCodec(lib.U64))],
+    }).discriminated(),
   ),
 }
 
@@ -11554,15 +11500,13 @@ export const BurnBox = {
         Asset: [Burn<Numeric, lib.AssetId>]
         TriggerRepetitions: [Burn<lib.U32, TriggerId>]
       }
-    >([[
-      0,
-      'Asset',
-      Burn.with(lib.getCodec(Numeric), lib.getCodec(lib.AssetId)),
-    ], [
-      1,
-      'TriggerRepetitions',
-      Burn.with(lib.getCodec(lib.U32), lib.getCodec(TriggerId)),
-    ]]).discriminated(),
+    >({
+      Asset: [0, Burn.with(lib.getCodec(Numeric), lib.getCodec(lib.AssetId))],
+      TriggerRepetitions: [
+        1,
+        Burn.with(lib.getCodec(lib.U32), lib.getCodec(TriggerId)),
+      ],
+    }).discriminated(),
   ),
 }
 
@@ -12026,11 +11970,9 @@ export const TransactionHashPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [lib.HashRepr] }>([[
-      0,
-      'Equals',
-      lib.getCodec(lib.HashRepr),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [lib.HashRepr] }>({
+      Equals: [0, lib.getCodec(lib.HashRepr)],
+    }).discriminated(),
   ),
 }
 
@@ -12062,11 +12004,9 @@ export const TransactionHashProjectionPredicate = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [TransactionHashPredicateAtom] }>([[
-      0,
-      'Atom',
-      lib.getCodec(TransactionHashPredicateAtom),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: [TransactionHashPredicateAtom] }>({
+      Atom: [0, lib.getCodec(TransactionHashPredicateAtom)],
+    }).discriminated(),
   ),
 }
 
@@ -12252,12 +12192,11 @@ export const SignedTransactionProjectionPredicate = {
         Hash: [TransactionHashProjectionPredicate]
         Authority: [AccountIdProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(SignedTransactionPredicateAtom)], [
-      1,
-      'Hash',
-      lib.getCodec(TransactionHashProjectionPredicate),
-    ], [2, 'Authority', lib.getCodec(AccountIdProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(SignedTransactionPredicateAtom)],
+      Hash: [1, lib.getCodec(TransactionHashProjectionPredicate)],
+      Authority: [2, lib.getCodec(AccountIdProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -12277,7 +12216,7 @@ export const TransactionErrorPredicateAtom = {
    * Value of variant `TransactionErrorPredicateAtom.IsSome`
    */ IsSome: Object.freeze<lib.VariantUnit<'IsSome'>>({ kind: 'IsSome' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ IsSome: [] }>([[0, 'IsSome']]).discriminated(),
+    lib.enumCodec<{ IsSome: [] }>({ IsSome: [0] }).discriminated(),
   ),
 }
 
@@ -12307,11 +12246,9 @@ export const TransactionErrorProjectionPredicate = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [TransactionErrorPredicateAtom] }>([[
-      0,
-      'Atom',
-      lib.getCodec(TransactionErrorPredicateAtom),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: [TransactionErrorPredicateAtom] }>({
+      Atom: [0, lib.getCodec(TransactionErrorPredicateAtom)],
+    }).discriminated(),
   ),
 }
 
@@ -12568,12 +12505,12 @@ export const CommittedTransactionProjectionPredicate = {
         Value: [SignedTransactionProjectionPredicate]
         Error: [TransactionErrorProjectionPredicate]
       }
-    >([
-      [0, 'Atom', lib.getCodec(CommittedTransactionPredicateAtom)],
-      [1, 'BlockHash', lib.getCodec(BlockHeaderHashProjectionPredicate)],
-      [2, 'Value', lib.getCodec(SignedTransactionProjectionPredicate)],
-      [3, 'Error', lib.getCodec(TransactionErrorProjectionPredicate)],
-    ]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(CommittedTransactionPredicateAtom)],
+      BlockHash: [1, lib.getCodec(BlockHeaderHashProjectionPredicate)],
+      Value: [2, lib.getCodec(SignedTransactionProjectionPredicate)],
+      Error: [3, lib.getCodec(TransactionErrorProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -12593,7 +12530,7 @@ export const TransactionHashProjectionSelector = {
    * Value of variant `TransactionHashProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -12686,12 +12623,11 @@ export const SignedTransactionProjectionSelector = {
         Hash: [TransactionHashProjectionSelector]
         Authority: [AccountIdProjectionSelector]
       }
-    >([[0, 'Atom'], [
-      1,
-      'Hash',
-      lib.getCodec(TransactionHashProjectionSelector),
-    ], [2, 'Authority', lib.getCodec(AccountIdProjectionSelector)]])
-      .discriminated(),
+    >({
+      Atom: [0],
+      Hash: [1, lib.getCodec(TransactionHashProjectionSelector)],
+      Authority: [2, lib.getCodec(AccountIdProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -12711,7 +12647,7 @@ export const TransactionErrorProjectionSelector = {
    * Value of variant `TransactionErrorProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -12857,12 +12793,12 @@ export const CommittedTransactionProjectionSelector = {
         Value: [SignedTransactionProjectionSelector]
         Error: [TransactionErrorProjectionSelector]
       }
-    >([
-      [0, 'Atom'],
-      [1, 'BlockHash', lib.getCodec(BlockHeaderHashProjectionSelector)],
-      [2, 'Value', lib.getCodec(SignedTransactionProjectionSelector)],
-      [3, 'Error', lib.getCodec(TransactionErrorProjectionSelector)],
-    ]).discriminated(),
+    >({
+      Atom: [0],
+      BlockHash: [1, lib.getCodec(BlockHeaderHashProjectionSelector)],
+      Value: [2, lib.getCodec(SignedTransactionProjectionSelector)],
+      Error: [3, lib.getCodec(TransactionErrorProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -12984,12 +12920,11 @@ export const DomainProjectionPredicate = {
         Id: [DomainIdProjectionPredicate]
         Metadata: [MetadataProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(DomainPredicateAtom)], [
-      1,
-      'Id',
-      lib.getCodec(DomainIdProjectionPredicate),
-    ], [2, 'Metadata', lib.getCodec(MetadataProjectionPredicate)]])
-      .discriminated(),
+    >({
+      Atom: [0, lib.getCodec(DomainPredicateAtom)],
+      Id: [1, lib.getCodec(DomainIdProjectionPredicate)],
+      Metadata: [2, lib.getCodec(MetadataProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13044,11 +12979,10 @@ export const PeerIdProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [PeerIdPredicateAtom]; PublicKey: [PublicKeyProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(PeerIdPredicateAtom)], [
-      1,
-      'PublicKey',
-      lib.getCodec(PublicKeyProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(PeerIdPredicateAtom)],
+      PublicKey: [1, lib.getCodec(PublicKeyProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13099,7 +13033,7 @@ export const RoleIdPredicateAtom = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [RoleId] }>([[0, 'Equals', lib.getCodec(RoleId)]])
+    lib.enumCodec<{ Equals: [RoleId] }>({ Equals: [0, lib.getCodec(RoleId)] })
       .discriminated(),
   ),
 }
@@ -13186,11 +13120,10 @@ export const RoleIdProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [RoleIdPredicateAtom]; Name: [NameProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(RoleIdPredicateAtom)], [
-      1,
-      'Name',
-      lib.getCodec(NameProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(RoleIdPredicateAtom)],
+      Name: [1, lib.getCodec(NameProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13280,11 +13213,10 @@ export const RoleProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [RolePredicateAtom]; Id: [RoleIdProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(RolePredicateAtom)], [
-      1,
-      'Id',
-      lib.getCodec(RoleIdProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(RolePredicateAtom)],
+      Id: [1, lib.getCodec(RoleIdProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13346,11 +13278,10 @@ export const SignedBlockProjectionPredicate = {
         Atom: [SignedBlockPredicateAtom]
         Header: [BlockHeaderProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(SignedBlockPredicateAtom)], [
-      1,
-      'Header',
-      lib.getCodec(BlockHeaderProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(SignedBlockPredicateAtom)],
+      Header: [1, lib.getCodec(BlockHeaderProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13386,11 +13317,9 @@ export const TriggerIdPredicateAtom = {
     value: T,
   ): lib.Variant<'Equals', T> => ({ kind: 'Equals', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Equals: [TriggerId] }>([[
-      0,
-      'Equals',
-      lib.getCodec(TriggerId),
-    ]]).discriminated(),
+    lib.enumCodec<{ Equals: [TriggerId] }>({
+      Equals: [0, lib.getCodec(TriggerId)],
+    }).discriminated(),
   ),
 }
 
@@ -13476,11 +13405,10 @@ export const TriggerIdProjectionPredicate = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Atom: [TriggerIdPredicateAtom]; Name: [NameProjectionPredicate] }
-    >([[0, 'Atom', lib.getCodec(TriggerIdPredicateAtom)], [
-      1,
-      'Name',
-      lib.getCodec(NameProjectionPredicate),
-    ]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(TriggerIdPredicateAtom)],
+      Name: [1, lib.getCodec(NameProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13595,11 +13523,11 @@ export const TriggerProjectionPredicate = {
         Id: [TriggerIdProjectionPredicate]
         Action: [ActionProjectionPredicate]
       }
-    >([[0, 'Atom', lib.getCodec(TriggerPredicateAtom)], [
-      1,
-      'Id',
-      lib.getCodec(TriggerIdProjectionPredicate),
-    ], [2, 'Action', lib.getCodec(ActionProjectionPredicate)]]).discriminated(),
+    >({
+      Atom: [0, lib.getCodec(TriggerPredicateAtom)],
+      Id: [1, lib.getCodec(TriggerIdProjectionPredicate)],
+      Action: [2, lib.getCodec(ActionProjectionPredicate)],
+    }).discriminated(),
   ),
 }
 
@@ -13642,11 +13570,11 @@ export const SumeragiParameter = {
         CommitTime: [lib.Duration]
         MaxClockDrift: [lib.Duration]
       }
-    >([[0, 'BlockTime', lib.getCodec(lib.Duration)], [
-      1,
-      'CommitTime',
-      lib.getCodec(lib.Duration),
-    ], [2, 'MaxClockDrift', lib.getCodec(lib.Duration)]]).discriminated(),
+    >({
+      BlockTime: [0, lib.getCodec(lib.Duration)],
+      CommitTime: [1, lib.getCodec(lib.Duration)],
+      MaxClockDrift: [2, lib.getCodec(lib.Duration)],
+    }).discriminated(),
   ),
 }
 
@@ -13687,11 +13615,10 @@ export const TransactionParameter = {
         MaxInstructions: [lib.NonZero<lib.U64>]
         SmartContractSize: [lib.NonZero<lib.U64>]
       }
-    >([[0, 'MaxInstructions', lib.NonZero.with(lib.getCodec(lib.U64))], [
-      1,
-      'SmartContractSize',
-      lib.NonZero.with(lib.getCodec(lib.U64)),
-    ]]).discriminated(),
+    >({
+      MaxInstructions: [0, lib.NonZero.with(lib.getCodec(lib.U64))],
+      SmartContractSize: [1, lib.NonZero.with(lib.getCodec(lib.U64))],
+    }).discriminated(),
   ),
 }
 
@@ -13723,11 +13650,10 @@ export const SmartContractParameter = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Fuel: [lib.NonZero<lib.U64>]; Memory: [lib.NonZero<lib.U64>] }
-    >([[0, 'Fuel', lib.NonZero.with(lib.getCodec(lib.U64))], [
-      1,
-      'Memory',
-      lib.NonZero.with(lib.getCodec(lib.U64)),
-    ]]).discriminated(),
+    >({
+      Fuel: [0, lib.NonZero.with(lib.getCodec(lib.U64))],
+      Memory: [1, lib.NonZero.with(lib.getCodec(lib.U64))],
+    }).discriminated(),
   ),
 }
 
@@ -13887,14 +13813,14 @@ export const Parameter = {
         Executor: [SmartContractParameter]
         Custom: [CustomParameter]
       }
-    >([
-      [0, 'Sumeragi', lib.getCodec(SumeragiParameter)],
-      [1, 'Block', lib.getCodec(BlockParameter)],
-      [2, 'Transaction', lib.getCodec(TransactionParameter)],
-      [3, 'SmartContract', lib.getCodec(SmartContractParameter)],
-      [4, 'Executor', lib.getCodec(SmartContractParameter)],
-      [5, 'Custom', lib.getCodec(CustomParameter)],
-    ]).discriminated(),
+    >({
+      Sumeragi: [0, lib.getCodec(SumeragiParameter)],
+      Block: [1, lib.getCodec(BlockParameter)],
+      Transaction: [2, lib.getCodec(TransactionParameter)],
+      SmartContract: [3, lib.getCodec(SmartContractParameter)],
+      Executor: [4, lib.getCodec(SmartContractParameter)],
+      Custom: [5, lib.getCodec(CustomParameter)],
+    }).discriminated(),
   ),
 }
 
@@ -13934,11 +13860,9 @@ export const ConfigurationEvent = {
     value: T,
   ): lib.Variant<'Changed', T> => ({ kind: 'Changed', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Changed: [ParameterChanged] }>([[
-      0,
-      'Changed',
-      lib.getCodec(ParameterChanged),
-    ]]).discriminated(),
+    lib.enumCodec<{ Changed: [ParameterChanged] }>({
+      Changed: [0, lib.getCodec(ParameterChanged)],
+    }).discriminated(),
   ),
 }
 
@@ -13986,11 +13910,10 @@ export const PeerEvent = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Added: [PeerId]; Removed: [PeerId] }>([[
-      0,
-      'Added',
-      lib.getCodec(PeerId),
-    ], [1, 'Removed', lib.getCodec(PeerId)]]).discriminated(),
+    lib.enumCodec<{ Added: [PeerId]; Removed: [PeerId] }>({
+      Added: [0, lib.getCodec(PeerId)],
+      Removed: [1, lib.getCodec(PeerId)],
+    }).discriminated(),
   ),
 }
 
@@ -14292,15 +14215,15 @@ export const DomainEvent = {
         MetadataRemoved: [MetadataChanged<lib.DomainId>]
         OwnerChanged: [DomainOwnerChanged]
       }
-    >([
-      [0, 'Created', lib.getCodec(Domain)],
-      [1, 'Deleted', lib.getCodec(lib.DomainId)],
-      [2, 'AssetDefinition', lib.getCodec(AssetDefinitionEvent)],
-      [3, 'Account', lib.getCodec(AccountEvent)],
-      [4, 'MetadataInserted', MetadataChanged.with(lib.getCodec(lib.DomainId))],
-      [5, 'MetadataRemoved', MetadataChanged.with(lib.getCodec(lib.DomainId))],
-      [6, 'OwnerChanged', lib.getCodec(DomainOwnerChanged)],
-    ]).discriminated(),
+    >({
+      Created: [0, lib.getCodec(Domain)],
+      Deleted: [1, lib.getCodec(lib.DomainId)],
+      AssetDefinition: [2, lib.getCodec(AssetDefinitionEvent)],
+      Account: [3, lib.getCodec(AccountEvent)],
+      MetadataInserted: [4, MetadataChanged.with(lib.getCodec(lib.DomainId))],
+      MetadataRemoved: [5, MetadataChanged.with(lib.getCodec(lib.DomainId))],
+      OwnerChanged: [6, lib.getCodec(DomainOwnerChanged)],
+    }).discriminated(),
   ),
 }
 
@@ -14389,14 +14312,14 @@ export const TriggerEvent = {
         MetadataInserted: [MetadataChanged<TriggerId>]
         MetadataRemoved: [MetadataChanged<TriggerId>]
       }
-    >([
-      [0, 'Created', lib.getCodec(TriggerId)],
-      [1, 'Deleted', lib.getCodec(TriggerId)],
-      [2, 'Extended', lib.getCodec(TriggerNumberOfExecutionsChanged)],
-      [3, 'Shortened', lib.getCodec(TriggerNumberOfExecutionsChanged)],
-      [4, 'MetadataInserted', MetadataChanged.with(lib.getCodec(TriggerId))],
-      [5, 'MetadataRemoved', MetadataChanged.with(lib.getCodec(TriggerId))],
-    ]).discriminated(),
+    >({
+      Created: [0, lib.getCodec(TriggerId)],
+      Deleted: [1, lib.getCodec(TriggerId)],
+      Extended: [2, lib.getCodec(TriggerNumberOfExecutionsChanged)],
+      Shortened: [3, lib.getCodec(TriggerNumberOfExecutionsChanged)],
+      MetadataInserted: [4, MetadataChanged.with(lib.getCodec(TriggerId))],
+      MetadataRemoved: [5, MetadataChanged.with(lib.getCodec(TriggerId))],
+    }).discriminated(),
   ),
 }
 
@@ -14499,12 +14422,12 @@ export const RoleEvent = {
         PermissionAdded: [RolePermissionChanged]
         PermissionRemoved: [RolePermissionChanged]
       }
-    >([
-      [0, 'Created', lib.getCodec(Role)],
-      [1, 'Deleted', lib.getCodec(RoleId)],
-      [2, 'PermissionAdded', lib.getCodec(RolePermissionChanged)],
-      [3, 'PermissionRemoved', lib.getCodec(RolePermissionChanged)],
-    ]).discriminated(),
+    >({
+      Created: [0, lib.getCodec(Role)],
+      Deleted: [1, lib.getCodec(RoleId)],
+      PermissionAdded: [2, lib.getCodec(RolePermissionChanged)],
+      PermissionRemoved: [3, lib.getCodec(RolePermissionChanged)],
+    }).discriminated(),
   ),
 }
 
@@ -14572,11 +14495,9 @@ export const ExecutorEvent = {
     value: T,
   ): lib.Variant<'Upgraded', T> => ({ kind: 'Upgraded', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Upgraded: [ExecutorUpgrade] }>([[
-      0,
-      'Upgraded',
-      lib.getCodec(ExecutorUpgrade),
-    ]]).discriminated(),
+    lib.enumCodec<{ Upgraded: [ExecutorUpgrade] }>({
+      Upgraded: [0, lib.getCodec(ExecutorUpgrade)],
+    }).discriminated(),
   ),
 }
 
@@ -15045,14 +14966,14 @@ export const DataEvent = {
         Configuration: [ConfigurationEvent]
         Executor: [ExecutorEvent]
       }
-    >([
-      [0, 'Peer', lib.getCodec(PeerEvent)],
-      [1, 'Domain', lib.getCodec(DomainEvent)],
-      [2, 'Trigger', lib.getCodec(TriggerEvent)],
-      [3, 'Role', lib.getCodec(RoleEvent)],
-      [4, 'Configuration', lib.getCodec(ConfigurationEvent)],
-      [5, 'Executor', lib.getCodec(ExecutorEvent)],
-    ]).discriminated(),
+    >({
+      Peer: [0, lib.getCodec(PeerEvent)],
+      Domain: [1, lib.getCodec(DomainEvent)],
+      Trigger: [2, lib.getCodec(TriggerEvent)],
+      Role: [3, lib.getCodec(RoleEvent)],
+      Configuration: [4, lib.getCodec(ConfigurationEvent)],
+      Executor: [5, lib.getCodec(ExecutorEvent)],
+    }).discriminated(),
   ),
 }
 
@@ -15120,11 +15041,11 @@ export const DomainProjectionSelector = {
         Id: [DomainIdProjectionSelector]
         Metadata: [MetadataProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Id', lib.getCodec(DomainIdProjectionSelector)], [
-      2,
-      'Metadata',
-      lib.getCodec(MetadataProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Id: [1, lib.getCodec(DomainIdProjectionSelector)],
+      Metadata: [2, lib.getCodec(MetadataProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -15175,11 +15096,10 @@ export const PipelineEventBox = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Transaction: [TransactionEvent]; Block: [BlockEvent] }>([[
-      0,
-      'Transaction',
-      lib.getCodec(TransactionEvent),
-    ], [1, 'Block', lib.getCodec(BlockEvent)]]).discriminated(),
+    lib.enumCodec<{ Transaction: [TransactionEvent]; Block: [BlockEvent] }>({
+      Transaction: [0, lib.getCodec(TransactionEvent)],
+      Block: [1, lib.getCodec(BlockEvent)],
+    }).discriminated(),
   ),
 }
 
@@ -15261,11 +15181,10 @@ export const TriggerCompletedOutcome = {
     value: T,
   ): lib.Variant<'Failure', T> => ({ kind: 'Failure', value }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Success: []; Failure: [lib.String] }>([[0, 'Success'], [
-      1,
-      'Failure',
-      lib.getCodec(lib.String),
-    ]]).discriminated(),
+    lib.enumCodec<{ Success: []; Failure: [lib.String] }>({
+      Success: [0],
+      Failure: [1, lib.getCodec(lib.String)],
+    }).discriminated(),
   ),
 }
 
@@ -15881,13 +15800,13 @@ export const EventBox = {
         ExecuteTrigger: [ExecuteTriggerEvent]
         TriggerCompleted: [TriggerCompletedEvent]
       }
-    >([
-      [0, 'Pipeline', lib.getCodec(PipelineEventBox)],
-      [1, 'Data', lib.getCodec(DataEvent)],
-      [2, 'Time', lib.getCodec(TimeEvent)],
-      [3, 'ExecuteTrigger', lib.getCodec(ExecuteTriggerEvent)],
-      [4, 'TriggerCompleted', lib.getCodec(TriggerCompletedEvent)],
-    ]).discriminated(),
+    >({
+      Pipeline: [0, lib.getCodec(PipelineEventBox)],
+      Data: [1, lib.getCodec(DataEvent)],
+      Time: [2, lib.getCodec(TimeEvent)],
+      ExecuteTrigger: [3, lib.getCodec(ExecuteTriggerEvent)],
+      TriggerCompleted: [4, lib.getCodec(TriggerCompletedEvent)],
+    }).discriminated(),
   ),
 }
 
@@ -16118,19 +16037,17 @@ export const GrantBox = {
         Role: [Grant<RoleId, lib.AccountId>]
         RolePermission: [Grant<Permission, RoleId>]
       }
-    >([[
-      0,
-      'Permission',
-      Grant.with(lib.getCodec(Permission), lib.getCodec(lib.AccountId)),
-    ], [
-      1,
-      'Role',
-      Grant.with(lib.getCodec(RoleId), lib.getCodec(lib.AccountId)),
-    ], [
-      2,
-      'RolePermission',
-      Grant.with(lib.getCodec(Permission), lib.getCodec(RoleId)),
-    ]]).discriminated(),
+    >({
+      Permission: [
+        0,
+        Grant.with(lib.getCodec(Permission), lib.getCodec(lib.AccountId)),
+      ],
+      Role: [1, Grant.with(lib.getCodec(RoleId), lib.getCodec(lib.AccountId))],
+      RolePermission: [
+        2,
+        Grant.with(lib.getCodec(Permission), lib.getCodec(RoleId)),
+      ],
+    }).discriminated(),
   ),
 }
 
@@ -16313,15 +16230,15 @@ export const RegisterBox = {
         Role: [NewRole]
         Trigger: [Trigger]
       }
-    >([
-      [0, 'Peer', lib.getCodec(PeerId)],
-      [1, 'Domain', lib.getCodec(NewDomain)],
-      [2, 'Account', lib.getCodec(NewAccount)],
-      [3, 'AssetDefinition', lib.getCodec(NewAssetDefinition)],
-      [4, 'Asset', lib.getCodec(Asset)],
-      [5, 'Role', lib.getCodec(NewRole)],
-      [6, 'Trigger', lib.getCodec(Trigger)],
-    ]).discriminated(),
+    >({
+      Peer: [0, lib.getCodec(PeerId)],
+      Domain: [1, lib.getCodec(NewDomain)],
+      Account: [2, lib.getCodec(NewAccount)],
+      AssetDefinition: [3, lib.getCodec(NewAssetDefinition)],
+      Asset: [4, lib.getCodec(Asset)],
+      Role: [5, lib.getCodec(NewRole)],
+      Trigger: [6, lib.getCodec(Trigger)],
+    }).discriminated(),
   ),
 }
 
@@ -16402,15 +16319,15 @@ export const UnregisterBox = {
         Role: [RoleId]
         Trigger: [TriggerId]
       }
-    >([
-      [0, 'Peer', lib.getCodec(PeerId)],
-      [1, 'Domain', lib.getCodec(lib.DomainId)],
-      [2, 'Account', lib.getCodec(lib.AccountId)],
-      [3, 'AssetDefinition', lib.getCodec(lib.AssetDefinitionId)],
-      [4, 'Asset', lib.getCodec(lib.AssetId)],
-      [5, 'Role', lib.getCodec(RoleId)],
-      [6, 'Trigger', lib.getCodec(TriggerId)],
-    ]).discriminated(),
+    >({
+      Peer: [0, lib.getCodec(PeerId)],
+      Domain: [1, lib.getCodec(lib.DomainId)],
+      Account: [2, lib.getCodec(lib.AccountId)],
+      AssetDefinition: [3, lib.getCodec(lib.AssetDefinitionId)],
+      Asset: [4, lib.getCodec(lib.AssetId)],
+      Role: [5, lib.getCodec(RoleId)],
+      Trigger: [6, lib.getCodec(TriggerId)],
+    }).discriminated(),
   ),
 }
 
@@ -16472,15 +16389,13 @@ export const MintBox = {
         Asset: [Mint<Numeric, lib.AssetId>]
         TriggerRepetitions: [Mint<lib.U32, TriggerId>]
       }
-    >([[
-      0,
-      'Asset',
-      Mint.with(lib.getCodec(Numeric), lib.getCodec(lib.AssetId)),
-    ], [
-      1,
-      'TriggerRepetitions',
-      Mint.with(lib.getCodec(lib.U32), lib.getCodec(TriggerId)),
-    ]]).discriminated(),
+    >({
+      Asset: [0, Mint.with(lib.getCodec(Numeric), lib.getCodec(lib.AssetId))],
+      TriggerRepetitions: [
+        1,
+        Mint.with(lib.getCodec(lib.U32), lib.getCodec(TriggerId)),
+      ],
+    }).discriminated(),
   ),
 }
 
@@ -16550,23 +16465,25 @@ export const TransferBox = {
         ]
         Asset: [AssetTransferBox]
       }
-    >([[
-      0,
-      'Domain',
-      Transfer.with(
-        lib.getCodec(lib.AccountId),
-        lib.getCodec(lib.DomainId),
-        lib.getCodec(lib.AccountId),
-      ),
-    ], [
-      1,
-      'AssetDefinition',
-      Transfer.with(
-        lib.getCodec(lib.AccountId),
-        lib.getCodec(lib.AssetDefinitionId),
-        lib.getCodec(lib.AccountId),
-      ),
-    ], [2, 'Asset', lib.getCodec(AssetTransferBox)]]).discriminated(),
+    >({
+      Domain: [
+        0,
+        Transfer.with(
+          lib.getCodec(lib.AccountId),
+          lib.getCodec(lib.DomainId),
+          lib.getCodec(lib.AccountId),
+        ),
+      ],
+      AssetDefinition: [
+        1,
+        Transfer.with(
+          lib.getCodec(lib.AccountId),
+          lib.getCodec(lib.AssetDefinitionId),
+          lib.getCodec(lib.AccountId),
+        ),
+      ],
+      Asset: [2, lib.getCodec(AssetTransferBox)],
+    }).discriminated(),
   ),
 }
 
@@ -16651,17 +16568,16 @@ export const SetKeyValueBox = {
         Asset: [SetKeyValue<lib.AssetId>]
         Trigger: [SetKeyValue<TriggerId>]
       }
-    >([
-      [0, 'Domain', SetKeyValue.with(lib.getCodec(lib.DomainId))],
-      [1, 'Account', SetKeyValue.with(lib.getCodec(lib.AccountId))],
-      [
+    >({
+      Domain: [0, SetKeyValue.with(lib.getCodec(lib.DomainId))],
+      Account: [1, SetKeyValue.with(lib.getCodec(lib.AccountId))],
+      AssetDefinition: [
         2,
-        'AssetDefinition',
         SetKeyValue.with(lib.getCodec(lib.AssetDefinitionId)),
       ],
-      [3, 'Asset', SetKeyValue.with(lib.getCodec(lib.AssetId))],
-      [4, 'Trigger', SetKeyValue.with(lib.getCodec(TriggerId))],
-    ]).discriminated(),
+      Asset: [3, SetKeyValue.with(lib.getCodec(lib.AssetId))],
+      Trigger: [4, SetKeyValue.with(lib.getCodec(TriggerId))],
+    }).discriminated(),
   ),
 }
 
@@ -16744,17 +16660,16 @@ export const RemoveKeyValueBox = {
         Asset: [RemoveKeyValue<lib.AssetId>]
         Trigger: [RemoveKeyValue<TriggerId>]
       }
-    >([
-      [0, 'Domain', RemoveKeyValue.with(lib.getCodec(lib.DomainId))],
-      [1, 'Account', RemoveKeyValue.with(lib.getCodec(lib.AccountId))],
-      [
+    >({
+      Domain: [0, RemoveKeyValue.with(lib.getCodec(lib.DomainId))],
+      Account: [1, RemoveKeyValue.with(lib.getCodec(lib.AccountId))],
+      AssetDefinition: [
         2,
-        'AssetDefinition',
         RemoveKeyValue.with(lib.getCodec(lib.AssetDefinitionId)),
       ],
-      [3, 'Asset', RemoveKeyValue.with(lib.getCodec(lib.AssetId))],
-      [4, 'Trigger', RemoveKeyValue.with(lib.getCodec(TriggerId))],
-    ]).discriminated(),
+      Asset: [3, RemoveKeyValue.with(lib.getCodec(lib.AssetId))],
+      Trigger: [4, RemoveKeyValue.with(lib.getCodec(TriggerId))],
+    }).discriminated(),
   ),
 }
 
@@ -16821,19 +16736,17 @@ export const RevokeBox = {
         Role: [Revoke<RoleId, lib.AccountId>]
         RolePermission: [Revoke<Permission, RoleId>]
       }
-    >([[
-      0,
-      'Permission',
-      Revoke.with(lib.getCodec(Permission), lib.getCodec(lib.AccountId)),
-    ], [
-      1,
-      'Role',
-      Revoke.with(lib.getCodec(RoleId), lib.getCodec(lib.AccountId)),
-    ], [
-      2,
-      'RolePermission',
-      Revoke.with(lib.getCodec(Permission), lib.getCodec(RoleId)),
-    ]]).discriminated(),
+    >({
+      Permission: [
+        0,
+        Revoke.with(lib.getCodec(Permission), lib.getCodec(lib.AccountId)),
+      ],
+      Role: [1, Revoke.with(lib.getCodec(RoleId), lib.getCodec(lib.AccountId))],
+      RolePermission: [
+        2,
+        Revoke.with(lib.getCodec(Permission), lib.getCodec(RoleId)),
+      ],
+    }).discriminated(),
   ),
 }
 
@@ -16890,13 +16803,13 @@ export const Level = {
    */
   ERROR: Object.freeze<lib.VariantUnit<'ERROR'>>({ kind: 'ERROR' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ TRACE: []; DEBUG: []; INFO: []; WARN: []; ERROR: [] }>([
-      [0, 'TRACE'],
-      [1, 'DEBUG'],
-      [2, 'INFO'],
-      [3, 'WARN'],
-      [4, 'ERROR'],
-    ]).discriminated(),
+    lib.enumCodec<{ TRACE: []; DEBUG: []; INFO: []; WARN: []; ERROR: [] }>({
+      TRACE: [0],
+      DEBUG: [1],
+      INFO: [2],
+      WARN: [3],
+      ERROR: [4],
+    }).discriminated(),
   ),
 }
 
@@ -17493,22 +17406,22 @@ export const InstructionBox = {
         Log: [Log]
         Custom: [CustomInstruction]
       }
-    >([
-      [0, 'Register', lib.getCodec(RegisterBox)],
-      [1, 'Unregister', lib.getCodec(UnregisterBox)],
-      [2, 'Mint', lib.getCodec(MintBox)],
-      [3, 'Burn', lib.getCodec(BurnBox)],
-      [4, 'Transfer', lib.getCodec(TransferBox)],
-      [5, 'SetKeyValue', lib.getCodec(SetKeyValueBox)],
-      [6, 'RemoveKeyValue', lib.getCodec(RemoveKeyValueBox)],
-      [7, 'Grant', lib.getCodec(GrantBox)],
-      [8, 'Revoke', lib.getCodec(RevokeBox)],
-      [9, 'ExecuteTrigger', lib.getCodec(ExecuteTrigger)],
-      [10, 'SetParameter', lib.getCodec(SetParameter)],
-      [11, 'Upgrade', lib.getCodec(Upgrade)],
-      [12, 'Log', lib.getCodec(Log)],
-      [13, 'Custom', lib.getCodec(CustomInstruction)],
-    ]).discriminated(),
+    >({
+      Register: [0, lib.getCodec(RegisterBox)],
+      Unregister: [1, lib.getCodec(UnregisterBox)],
+      Mint: [2, lib.getCodec(MintBox)],
+      Burn: [3, lib.getCodec(BurnBox)],
+      Transfer: [4, lib.getCodec(TransferBox)],
+      SetKeyValue: [5, lib.getCodec(SetKeyValueBox)],
+      RemoveKeyValue: [6, lib.getCodec(RemoveKeyValueBox)],
+      Grant: [7, lib.getCodec(GrantBox)],
+      Revoke: [8, lib.getCodec(RevokeBox)],
+      ExecuteTrigger: [9, lib.getCodec(ExecuteTrigger)],
+      SetParameter: [10, lib.getCodec(SetParameter)],
+      Upgrade: [11, lib.getCodec(Upgrade)],
+      Log: [12, lib.getCodec(Log)],
+      Custom: [13, lib.getCodec(CustomInstruction)],
+    }).discriminated(),
   ),
 }
 
@@ -17670,11 +17583,11 @@ export const MultisigInstructionBox = {
         Propose: [MultisigPropose]
         Approve: [MultisigApprove]
       }
-    >([[0, 'Register', lib.getCodec(MultisigRegister)], [
-      1,
-      'Propose',
-      lib.getCodec(MultisigPropose),
-    ], [2, 'Approve', lib.getCodec(MultisigApprove)]]).discriminated(),
+    >({
+      Register: [0, lib.getCodec(MultisigRegister)],
+      Propose: [1, lib.getCodec(MultisigPropose)],
+      Approve: [2, lib.getCodec(MultisigApprove)],
+    }).discriminated(),
   ),
 }
 
@@ -17929,11 +17842,11 @@ export const SocketAddr = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Ipv4: [SocketAddrV4]; Ipv6: [SocketAddrV6]; Host: [SocketAddrHost] }
-    >([[0, 'Ipv4', lib.getCodec(SocketAddrV4)], [
-      1,
-      'Ipv6',
-      lib.getCodec(SocketAddrV6),
-    ], [2, 'Host', lib.getCodec(SocketAddrHost)]]).discriminated(),
+    >({
+      Ipv4: [0, lib.getCodec(SocketAddrV4)],
+      Ipv6: [1, lib.getCodec(SocketAddrV6)],
+      Host: [2, lib.getCodec(SocketAddrHost)],
+    }).discriminated(),
   ),
 }
 
@@ -17983,11 +17896,10 @@ export const PeerIdProjectionSelector = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; PublicKey: [PublicKeyProjectionSelector] }>([[
-      0,
-      'Atom',
-    ], [1, 'PublicKey', lib.getCodec(PublicKeyProjectionSelector)]])
-      .discriminated(),
+    lib.enumCodec<{ Atom: []; PublicKey: [PublicKeyProjectionSelector] }>({
+      Atom: [0],
+      PublicKey: [1, lib.getCodec(PublicKeyProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -18021,7 +17933,7 @@ export const PermissionProjectionSelector = {
    * Value of variant `PermissionProjectionSelector.Atom`
    */ Atom: Object.freeze<lib.VariantUnit<'Atom'>>({ kind: 'Atom' }),
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: [] }>([[0, 'Atom']]).discriminated(),
+    lib.enumCodec<{ Atom: [] }>({ Atom: [0] }).discriminated(),
   ),
 }
 
@@ -18081,11 +17993,10 @@ export const RoleIdProjectionSelector = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([[0, 'Atom'], [
-      1,
-      'Name',
-      lib.getCodec(NameProjectionSelector),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>({
+      Atom: [0],
+      Name: [1, lib.getCodec(NameProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -18127,11 +18038,10 @@ export const RoleProjectionSelector = {
     },
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Id: [RoleIdProjectionSelector] }>([[0, 'Atom'], [
-      1,
-      'Id',
-      lib.getCodec(RoleIdProjectionSelector),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: []; Id: [RoleIdProjectionSelector] }>({
+      Atom: [0],
+      Id: [1, lib.getCodec(RoleIdProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -18164,11 +18074,10 @@ export const TriggerIdProjectionSelector = {
     }),
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>([[0, 'Atom'], [
-      1,
-      'Name',
-      lib.getCodec(NameProjectionSelector),
-    ]]).discriminated(),
+    lib.enumCodec<{ Atom: []; Name: [NameProjectionSelector] }>({
+      Atom: [0],
+      Name: [1, lib.getCodec(NameProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -18248,11 +18157,11 @@ export const TriggerProjectionSelector = {
         Id: [TriggerIdProjectionSelector]
         Action: [ActionProjectionSelector]
       }
-    >([[0, 'Atom'], [1, 'Id', lib.getCodec(TriggerIdProjectionSelector)], [
-      2,
-      'Action',
-      lib.getCodec(ActionProjectionSelector),
-    ]]).discriminated(),
+    >({
+      Atom: [0],
+      Id: [1, lib.getCodec(TriggerIdProjectionSelector)],
+      Action: [2, lib.getCodec(ActionProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -18294,11 +18203,10 @@ export const SignedBlockProjectionSelector = {
     },
   },
   ...lib.defineCodec(
-    lib.enumCodec<{ Atom: []; Header: [BlockHeaderProjectionSelector] }>([[
-      0,
-      'Atom',
-    ], [1, 'Header', lib.getCodec(BlockHeaderProjectionSelector)]])
-      .discriminated(),
+    lib.enumCodec<{ Atom: []; Header: [BlockHeaderProjectionSelector] }>({
+      Atom: [0],
+      Header: [1, lib.getCodec(BlockHeaderProjectionSelector)],
+    }).discriminated(),
   ),
 }
 
@@ -18737,135 +18645,140 @@ export const QueryBox = {
           >,
         ]
       }
-    >([[
-      0,
-      'FindDomains',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(DomainProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(DomainProjectionSelector)),
-      ),
-    ], [
-      1,
-      'FindAccounts',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(AccountProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(AccountProjectionSelector)),
-      ),
-    ], [
-      2,
-      'FindAssets',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(AssetProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(AssetProjectionSelector)),
-      ),
-    ], [
-      3,
-      'FindAssetsDefinitions',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(
-          lib.getCodec(AssetDefinitionProjectionPredicate),
+    >({
+      FindDomains: [
+        0,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(DomainProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(DomainProjectionSelector)),
         ),
-        lib.Vec.with(lib.getCodec(AssetDefinitionProjectionSelector)),
-      ),
-    ], [
-      4,
-      'FindRoles',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(RoleProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(RoleProjectionSelector)),
-      ),
-    ], [
-      5,
-      'FindRoleIds',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(RoleIdProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(RoleIdProjectionSelector)),
-      ),
-    ], [
-      6,
-      'FindPermissionsByAccountId',
-      QueryWithFilter.with(
-        lib.getCodec(FindPermissionsByAccountId),
-        lib.CompoundPredicate.with(lib.getCodec(PermissionProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(PermissionProjectionSelector)),
-      ),
-    ], [
-      7,
-      'FindRolesByAccountId',
-      QueryWithFilter.with(
-        lib.getCodec(FindRolesByAccountId),
-        lib.CompoundPredicate.with(lib.getCodec(RoleIdProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(RoleIdProjectionSelector)),
-      ),
-    ], [
-      8,
-      'FindAccountsWithAsset',
-      QueryWithFilter.with(
-        lib.getCodec(FindAccountsWithAsset),
-        lib.CompoundPredicate.with(lib.getCodec(AccountProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(AccountProjectionSelector)),
-      ),
-    ], [
-      9,
-      'FindPeers',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(PeerIdProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(PeerIdProjectionSelector)),
-      ),
-    ], [
-      10,
-      'FindActiveTriggerIds',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(TriggerIdProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(TriggerIdProjectionSelector)),
-      ),
-    ], [
-      11,
-      'FindTriggers',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(lib.getCodec(TriggerProjectionPredicate)),
-        lib.Vec.with(lib.getCodec(TriggerProjectionSelector)),
-      ),
-    ], [
-      12,
-      'FindTransactions',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(
-          lib.getCodec(CommittedTransactionProjectionPredicate),
+      ],
+      FindAccounts: [
+        1,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(AccountProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(AccountProjectionSelector)),
         ),
-        lib.Vec.with(lib.getCodec(CommittedTransactionProjectionSelector)),
-      ),
-    ], [
-      13,
-      'FindBlocks',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(
-          lib.getCodec(SignedBlockProjectionPredicate),
+      ],
+      FindAssets: [
+        2,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(AssetProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(AssetProjectionSelector)),
         ),
-        lib.Vec.with(lib.getCodec(SignedBlockProjectionSelector)),
-      ),
-    ], [
-      14,
-      'FindBlockHeaders',
-      QueryWithFilter.with(
-        lib.nullCodec,
-        lib.CompoundPredicate.with(
-          lib.getCodec(BlockHeaderProjectionPredicate),
+      ],
+      FindAssetsDefinitions: [
+        3,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(
+            lib.getCodec(AssetDefinitionProjectionPredicate),
+          ),
+          lib.Vec.with(lib.getCodec(AssetDefinitionProjectionSelector)),
         ),
-        lib.Vec.with(lib.getCodec(BlockHeaderProjectionSelector)),
-      ),
-    ]]).discriminated(),
+      ],
+      FindRoles: [
+        4,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(RoleProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(RoleProjectionSelector)),
+        ),
+      ],
+      FindRoleIds: [
+        5,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(RoleIdProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(RoleIdProjectionSelector)),
+        ),
+      ],
+      FindPermissionsByAccountId: [
+        6,
+        QueryWithFilter.with(
+          lib.getCodec(FindPermissionsByAccountId),
+          lib.CompoundPredicate.with(
+            lib.getCodec(PermissionProjectionPredicate),
+          ),
+          lib.Vec.with(lib.getCodec(PermissionProjectionSelector)),
+        ),
+      ],
+      FindRolesByAccountId: [
+        7,
+        QueryWithFilter.with(
+          lib.getCodec(FindRolesByAccountId),
+          lib.CompoundPredicate.with(lib.getCodec(RoleIdProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(RoleIdProjectionSelector)),
+        ),
+      ],
+      FindAccountsWithAsset: [
+        8,
+        QueryWithFilter.with(
+          lib.getCodec(FindAccountsWithAsset),
+          lib.CompoundPredicate.with(lib.getCodec(AccountProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(AccountProjectionSelector)),
+        ),
+      ],
+      FindPeers: [
+        9,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(PeerIdProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(PeerIdProjectionSelector)),
+        ),
+      ],
+      FindActiveTriggerIds: [
+        10,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(
+            lib.getCodec(TriggerIdProjectionPredicate),
+          ),
+          lib.Vec.with(lib.getCodec(TriggerIdProjectionSelector)),
+        ),
+      ],
+      FindTriggers: [
+        11,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(lib.getCodec(TriggerProjectionPredicate)),
+          lib.Vec.with(lib.getCodec(TriggerProjectionSelector)),
+        ),
+      ],
+      FindTransactions: [
+        12,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(
+            lib.getCodec(CommittedTransactionProjectionPredicate),
+          ),
+          lib.Vec.with(lib.getCodec(CommittedTransactionProjectionSelector)),
+        ),
+      ],
+      FindBlocks: [
+        13,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(
+            lib.getCodec(SignedBlockProjectionPredicate),
+          ),
+          lib.Vec.with(lib.getCodec(SignedBlockProjectionSelector)),
+        ),
+      ],
+      FindBlockHeaders: [
+        14,
+        QueryWithFilter.with(
+          lib.nullCodec,
+          lib.CompoundPredicate.with(
+            lib.getCodec(BlockHeaderProjectionPredicate),
+          ),
+          lib.Vec.with(lib.getCodec(BlockHeaderProjectionSelector)),
+        ),
+      ],
+    }).discriminated(),
   ),
 }
 
@@ -19148,50 +19061,47 @@ export const QueryOutputBatchBox = {
         BlockHeader: [lib.Vec<BlockHeader>]
         BlockHeaderHash: [lib.Vec<lib.HashRepr>]
       }
-    >([
-      [0, 'PublicKey', lib.Vec.with(lib.getCodec(lib.PublicKeyRepr))],
-      [1, 'String', lib.Vec.with(lib.getCodec(lib.String))],
-      [2, 'Metadata', lib.Vec.with(lib.getCodec(Metadata))],
-      [3, 'Json', lib.Vec.with(lib.getCodec(lib.Json))],
-      [4, 'Numeric', lib.Vec.with(lib.getCodec(Numeric))],
-      [5, 'Name', lib.Vec.with(lib.getCodec(lib.Name))],
-      [6, 'DomainId', lib.Vec.with(lib.getCodec(lib.DomainId))],
-      [7, 'Domain', lib.Vec.with(lib.getCodec(Domain))],
-      [8, 'AccountId', lib.Vec.with(lib.getCodec(lib.AccountId))],
-      [9, 'Account', lib.Vec.with(lib.getCodec(Account))],
-      [10, 'AssetId', lib.Vec.with(lib.getCodec(lib.AssetId))],
-      [11, 'Asset', lib.Vec.with(lib.getCodec(Asset))],
-      [12, 'AssetValue', lib.Vec.with(lib.getCodec(AssetValue))],
-      [
+    >({
+      PublicKey: [0, lib.Vec.with(lib.getCodec(lib.PublicKeyRepr))],
+      String: [1, lib.Vec.with(lib.getCodec(lib.String))],
+      Metadata: [2, lib.Vec.with(lib.getCodec(Metadata))],
+      Json: [3, lib.Vec.with(lib.getCodec(lib.Json))],
+      Numeric: [4, lib.Vec.with(lib.getCodec(Numeric))],
+      Name: [5, lib.Vec.with(lib.getCodec(lib.Name))],
+      DomainId: [6, lib.Vec.with(lib.getCodec(lib.DomainId))],
+      Domain: [7, lib.Vec.with(lib.getCodec(Domain))],
+      AccountId: [8, lib.Vec.with(lib.getCodec(lib.AccountId))],
+      Account: [9, lib.Vec.with(lib.getCodec(Account))],
+      AssetId: [10, lib.Vec.with(lib.getCodec(lib.AssetId))],
+      Asset: [11, lib.Vec.with(lib.getCodec(Asset))],
+      AssetValue: [12, lib.Vec.with(lib.getCodec(AssetValue))],
+      AssetDefinitionId: [
         13,
-        'AssetDefinitionId',
         lib.Vec.with(lib.getCodec(lib.AssetDefinitionId)),
       ],
-      [14, 'AssetDefinition', lib.Vec.with(lib.getCodec(AssetDefinition))],
-      [15, 'Role', lib.Vec.with(lib.getCodec(Role))],
-      [16, 'Parameter', lib.Vec.with(lib.getCodec(Parameter))],
-      [17, 'Permission', lib.Vec.with(lib.getCodec(Permission))],
-      [
+      AssetDefinition: [14, lib.Vec.with(lib.getCodec(AssetDefinition))],
+      Role: [15, lib.Vec.with(lib.getCodec(Role))],
+      Parameter: [16, lib.Vec.with(lib.getCodec(Parameter))],
+      Permission: [17, lib.Vec.with(lib.getCodec(Permission))],
+      CommittedTransaction: [
         18,
-        'CommittedTransaction',
         lib.Vec.with(lib.getCodec(CommittedTransaction)),
       ],
-      [19, 'SignedTransaction', lib.Vec.with(lib.getCodec(SignedTransaction))],
-      [20, 'TransactionHash', lib.Vec.with(lib.getCodec(lib.HashRepr))],
-      [
+      SignedTransaction: [19, lib.Vec.with(lib.getCodec(SignedTransaction))],
+      TransactionHash: [20, lib.Vec.with(lib.getCodec(lib.HashRepr))],
+      TransactionRejectionReason: [
         21,
-        'TransactionRejectionReason',
         lib.Vec.with(lib.Option.with(lib.getCodec(TransactionRejectionReason))),
       ],
-      [22, 'Peer', lib.Vec.with(lib.getCodec(PeerId))],
-      [23, 'RoleId', lib.Vec.with(lib.getCodec(RoleId))],
-      [24, 'TriggerId', lib.Vec.with(lib.getCodec(TriggerId))],
-      [25, 'Trigger', lib.Vec.with(lib.getCodec(Trigger))],
-      [26, 'Action', lib.Vec.with(lib.getCodec(Action))],
-      [27, 'Block', lib.Vec.with(lib.getCodec(SignedBlock))],
-      [28, 'BlockHeader', lib.Vec.with(lib.getCodec(BlockHeader))],
-      [29, 'BlockHeaderHash', lib.Vec.with(lib.getCodec(lib.HashRepr))],
-    ]).discriminated(),
+      Peer: [22, lib.Vec.with(lib.getCodec(PeerId))],
+      RoleId: [23, lib.Vec.with(lib.getCodec(RoleId))],
+      TriggerId: [24, lib.Vec.with(lib.getCodec(TriggerId))],
+      Trigger: [25, lib.Vec.with(lib.getCodec(Trigger))],
+      Action: [26, lib.Vec.with(lib.getCodec(Action))],
+      Block: [27, lib.Vec.with(lib.getCodec(SignedBlock))],
+      BlockHeader: [28, lib.Vec.with(lib.getCodec(BlockHeader))],
+      BlockHeaderHash: [29, lib.Vec.with(lib.getCodec(lib.HashRepr))],
+    }).discriminated(),
   ),
 }
 
@@ -19279,10 +19189,10 @@ export const SingularQueryBox = {
     kind: 'FindParameters',
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ FindExecutorDataModel: []; FindParameters: [] }>([[
-      0,
-      'FindExecutorDataModel',
-    ], [1, 'FindParameters']]).discriminated(),
+    lib.enumCodec<{ FindExecutorDataModel: []; FindParameters: [] }>({
+      FindExecutorDataModel: [0],
+      FindParameters: [1],
+    }).discriminated(),
   ),
 }
 
@@ -19352,11 +19262,11 @@ export const QueryRequest = {
         Start: [QueryWithParams]
         Continue: [ForwardCursor]
       }
-    >([[0, 'Singular', lib.getCodec(SingularQueryBox)], [
-      1,
-      'Start',
-      lib.getCodec(QueryWithParams),
-    ], [2, 'Continue', lib.getCodec(ForwardCursor)]]).discriminated(),
+    >({
+      Singular: [0, lib.getCodec(SingularQueryBox)],
+      Start: [1, lib.getCodec(QueryWithParams)],
+      Continue: [2, lib.getCodec(ForwardCursor)],
+    }).discriminated(),
   ),
 }
 
@@ -19410,11 +19320,10 @@ export const SingularQueryOutputBox = {
   ...lib.defineCodec(
     lib.enumCodec<
       { ExecutorDataModel: [ExecutorDataModel]; Parameters: [Parameters] }
-    >([[0, 'ExecutorDataModel', lib.getCodec(ExecutorDataModel)], [
-      1,
-      'Parameters',
-      lib.getCodec(Parameters),
-    ]]).discriminated(),
+    >({
+      ExecutorDataModel: [0, lib.getCodec(ExecutorDataModel)],
+      Parameters: [1, lib.getCodec(Parameters)],
+    }).discriminated(),
   ),
 }
 
@@ -19461,11 +19370,10 @@ export const QueryResponse = {
   ...lib.defineCodec(
     lib.enumCodec<
       { Singular: [SingularQueryOutputBox]; Iterable: [QueryOutput] }
-    >([[0, 'Singular', lib.getCodec(SingularQueryOutputBox)], [
-      1,
-      'Iterable',
-      lib.getCodec(QueryOutput),
-    ]]).discriminated(),
+    >({
+      Singular: [0, lib.getCodec(SingularQueryOutputBox)],
+      Iterable: [1, lib.getCodec(QueryOutput)],
+    }).discriminated(),
   ),
 }
 
@@ -19543,11 +19451,9 @@ export const SignedQuery = {
     value,
   }),
   ...lib.defineCodec(
-    lib.enumCodec<{ V1: [SignedQueryV1] }>([[
-      1,
-      'V1',
-      lib.getCodec(SignedQueryV1),
-    ]]).discriminated(),
+    lib.enumCodec<{ V1: [SignedQueryV1] }>({
+      V1: [1, lib.getCodec(SignedQueryV1)],
+    }).discriminated(),
   ),
 }
 

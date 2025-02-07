@@ -1,4 +1,5 @@
-import { DomainProjectionSelector, buildQuery } from '@iroha2/data-model'
+import { buildQuery } from './query.ts'
+import { DomainProjectionSelector } from './data-model.ts'
 import { describe, expect, test } from 'vitest'
 
 describe('buildQuery()', () => {

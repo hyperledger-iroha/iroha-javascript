@@ -2,12 +2,14 @@
   "version": "4",
   "specifiers": {
     "jsr:@std/assert@^1.0.11": "1.0.11",
+    "jsr:@std/async@^1.0.10": "1.0.10",
     "jsr:@std/cli@*": "1.0.12",
     "jsr:@std/collections@^1.0.9": "1.0.10",
     "jsr:@std/fmt@*": "1.0.5",
     "jsr:@std/fmt@^1.0.5": "1.0.5",
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "jsr:@std/toml@^1.0.2": "1.0.2",
+    "npm:@deno/vite-plugin@^1.0.3": "1.0.3_vite@6.0.11__@types+node@22.5.4_@types+node@22.5.4",
     "npm:@iarna/toml@^2.2.5": "2.2.5",
     "npm:@scale-codec/core@^2.0.1": "2.0.1",
     "npm:@scale-codec/util@^1.1.2": "1.1.2",
@@ -26,7 +28,6 @@
     "npm:jake@10.9.2": "10.9.2",
     "npm:jake@^10.9.2": "10.9.2",
     "npm:p-defer@^4.0.1": "4.0.1",
-    "npm:tiny-invariant@^1.3.3": "1.3.3",
     "npm:ts-pattern@^5.6.2": "5.6.2",
     "npm:type-fest@^4.33.0": "4.33.0",
     "npm:vitest@*": "3.0.5_@types+node@22.5.4_vite@6.0.11__@types+node@22.5.4",
@@ -41,6 +42,9 @@
       "dependencies": [
         "jsr:@std/internal"
       ]
+    },
+    "@std/async@1.0.10": {
+      "integrity": "2ff1b1c7d33d1416159989b0f69e59ec7ee8cb58510df01e454def2108b3dbec"
     },
     "@std/cli@1.0.12": {
       "integrity": "e5cfb7814d189da174ecd7a34fbbd63f3513e24a1b307feb2fcd5da47a070d90"
@@ -62,6 +66,12 @@
     }
   },
   "npm": {
+    "@deno/vite-plugin@1.0.3_vite@6.0.11__@types+node@22.5.4_@types+node@22.5.4": {
+      "integrity": "sha512-As059Zjde6oaUw7+WXhu2WpnjnBzjUCs5+j21S1ilQRIorN+sCrArXpdSDsCXXnHQbCU1SHjVrjcca49YOuwIg==",
+      "dependencies": [
+        "vite@6.0.11_@types+node@22.5.4"
+      ]
+    },
     "@esbuild/aix-ppc64@0.24.2": {
       "integrity": "sha512-thpVCb/rhxE/BnMLQ7GReQLLN8q9qbHmI55F4489/ByVg2aQaQ6kbcLb6FHkocZzQhxc4gx0sCk0tJkKBFzDhA=="
     },
@@ -693,9 +703,6 @@
         "has-flag"
       ]
     },
-    "tiny-invariant@1.3.3": {
-      "integrity": "sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg=="
-    },
     "tinybench@2.9.0": {
       "integrity": "sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg=="
     },
@@ -867,6 +874,7 @@
       "jsr:@std/async@^1.0.10",
       "jsr:@std/fmt@^1.0.5",
       "jsr:@std/toml@^1.0.2",
+      "npm:@deno/vite-plugin@^1.0.3",
       "npm:chalk@^5.4.1",
       "npm:change-case@^5.4.4",
       "npm:consola@^3.4.0",
@@ -875,7 +883,6 @@
       "npm:fast-equals@^5.2.2",
       "npm:immutable@^5.0.3",
       "npm:jake@^10.9.2",
-      "npm:tiny-invariant@^1.3.3",
       "npm:ts-pattern@^5.6.2",
       "npm:type-fest@^4.33.0",
       "npm:vitest@^3.0.5",

@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config'
-import { resolve } from './etc/util'
+import deno from '@deno/vite-plugin'
 
 // Config for global monorepo unit-testing
 export default defineConfig({
+  plugins: [deno()],
   test: {
     include: ['**/*.spec.ts'],
     exclude: [
@@ -14,7 +15,5 @@ export default defineConfig({
       '**/dist',
       '**/dist-tsc',
     ],
-    // includeSource: ['packages/i64-fixnum/src/**/*.ts', 'packages/client/src/**/*.ts'],
-    setupFiles: [resolve('etc/vitest-setup-crypto-node.ts')],
   },
 })

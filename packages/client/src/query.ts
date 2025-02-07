@@ -1,6 +1,6 @@
 import type { PrivateKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
-import invariant from 'tiny-invariant'
+import { assert} from '@std/assert'
 import type { MainAPI } from './api.ts'
 
 export class QueryExecutor {
@@ -21,7 +21,7 @@ export class QueryExecutor {
         this.signQuery(continueCursor ? dm.QueryRequest.Continue(continueCursor) : dm.QueryRequest.Start(query)),
       )
 
-      invariant(response.kind === 'Iterable')
+      assert(response.kind === 'Iterable')
       yield response.value
 
       continueCursor = response.value.continueCursor
@@ -30,7 +30,7 @@ export class QueryExecutor {
 
   public async executeSingular(query: dm.SingularQueryBox): Promise<dm.SingularQueryOutputBox> {
     const response = await this.api.query(this.signQuery({ kind: 'Singular', value: query }))
-    invariant(response.kind === 'Singular')
+    assert(response.kind === 'Singular')
     return response.value
   }
 
