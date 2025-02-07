@@ -8,7 +8,6 @@ export function resolveFromRoot(...paths: (string)[]) {
   return path.resolve(dirname, '../', ...paths)
 }
 
-
 export async function glob(pattern: string): Promise<string[]> {
   const items: string[] = []
   for await (const entry of expandGlob(pattern)) {

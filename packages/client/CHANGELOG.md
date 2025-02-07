@@ -9,7 +9,8 @@
   The new implementation is available via `Client.query`, `Torii.queryWithParams`, and `doQuery` functions.
 
 - 787a198: **refactor:** handle the major update of `@iroha2/crypto-core`
-- a780a96: **feat:** soft-deprecate `computeTransactionHash`; add `computeTransactionPayloadHash` & `computeSignedTransactionHash` instead, with descriptions which one to use and when
+- a780a96: **feat:** soft-deprecate `computeTransactionHash`; add `computeTransactionPayloadHash` &
+  `computeSignedTransactionHash` instead, with descriptions which one to use and when
 
 ### Patch Changes
 
@@ -21,7 +22,8 @@
 
 ### Major Changes
 
-- e0459fa: **Target [Iroha `2.0.0-pre-rc.20`](https://github.com/hyperledger/iroha/tree/51d687607fad067fc855e266edc684d4fb33e7de)**
+- e0459fa: **Target
+  [Iroha `2.0.0-pre-rc.20`](https://github.com/hyperledger/iroha/tree/51d687607fad067fc855e266edc684d4fb33e7de)**
 
 ### Patch Changes
 
@@ -38,12 +40,14 @@
 
 ### Major Changes
 
-- 40516f1: Updated according to Iroha `2.0.0-pre-rc.14` (internal release, reference hash: `726f5eabf65a79ea618b4fce62a09cee7a5b13d1`)
+- 40516f1: Updated according to Iroha `2.0.0-pre-rc.14` (internal release, reference hash:
+  `726f5eabf65a79ea618b4fce62a09cee7a5b13d1`)
 
   Notable changes:
 
   - Renamed structure: ~~`QueryError`~~ `QueryExecutionFailure`
-  - Introduced new enum struct, `Algorithm`. Changed `digest_function: string` field in `PublicKey` and `PrivateKey` to `digest_function: Algorithm`:
+  - Introduced new enum struct, `Algorithm`. Changed `digest_function: string` field in `PublicKey` and `PrivateKey` to
+    `digest_function: Algorithm`:
     ```ts
     PublicKey({
       digest_function: Algorithm('Ed25519'),
@@ -63,7 +67,8 @@
 ### Major Changes
 
 - d1e5f68: **chore!**: remove deprecated `makeSignedTransaction` and `makeSignedQuery` helpers
-- d1e5f68: **refactor!**: remove `accepted` socket event due to the change in how WebSocket communication is now happening
+- d1e5f68: **refactor!**: remove `accepted` socket event due to the change in how WebSocket communication is now
+  happening
 
 ### Patch Changes
 
@@ -119,7 +124,9 @@
 
   ##### Why the change was made
 
-  This change was introduced to allow you to only provide the prerequisites each method actually needs. For example, you no longer need to provide `ws` when all you want to do is submit a transaction. Only `fetch` and `apiURL` are needed for transaction to be submitted.
+  This change was introduced to allow you to only provide the prerequisites each method actually needs. For example, you
+  no longer need to provide `ws` when all you want to do is submit a transaction. Only `fetch` and `apiURL` are needed
+  for transaction to be submitted.
 
   ##### How to update your code
 
@@ -167,17 +174,24 @@
 
   ##### What is the change
 
-  Previously, the `Client` class did everything: constructed transaction payloads, signed and submitted them, submitted queries, and so on. Now some of this functionality is handled by other classes.
+  Previously, the `Client` class did everything: constructed transaction payloads, signed and submitted them, submitted
+  queries, and so on. Now some of this functionality is handled by other classes.
 
-  `Torii` does everything related to HTTP/WebSocket communication with Iroha Peer. `Signer` makes signatures. `Client` only wraps `Torii` and `Signer` and combines them together to create convenient methods. Utilities (e.g. making payloads, signing them, wrapping into final containers) are exported from the library as separate functions.
+  `Torii` does everything related to HTTP/WebSocket communication with Iroha Peer. `Signer` makes signatures. `Client`
+  only wraps `Torii` and `Signer` and combines them together to create convenient methods. Utilities (e.g. making
+  payloads, signing them, wrapping into final containers) are exported from the library as separate functions.
 
   ##### Why the change
 
-  This change is based on a request to extend library functionality and make codebase more scalable. Separating crypto and transport functionality is a common practice for blockchain SDKs (e.g. take a look at [`ethers` project](https://docs.ethers.io/v5/)).
+  This change is based on a request to extend library functionality and make codebase more scalable. Separating crypto
+  and transport functionality is a common practice for blockchain SDKs (e.g. take a look at
+  [`ethers` project](https://docs.ethers.io/v5/)).
 
   ##### How to update your code
 
-  The changes you need to make to the code are rather straightforward. Here we provide a couple of examples for you to compare the code before and after this breaking change. You can refer to `Torii`, `Signer` and `Client` type definitions for details.
+  The changes you need to make to the code are rather straightforward. Here we provide a couple of examples for you to
+  compare the code before and after this breaking change. You can refer to `Torii`, `Signer` and `Client` type
+  definitions for details.
 
   `Client` used to be initialized like this:
 
@@ -199,7 +213,7 @@
   Now you need to initialize `Signer` and `Torii` separately before `Client` initialization:
 
   ```ts
-  import { Client, Torii, Signer } from '@iroha2/client'
+  import { Client, Signer, Torii } from '@iroha2/client'
 
   const signer = new Signer(accountId, keyPair)
 
@@ -278,21 +292,30 @@
 
 ### Major Changes
 
-- a99d219: **feat!**: move isomorphic http/ws adapters out of `Client` internals; expose `@iroha2/client/web-socket/native` and `@iroha2/client/web-socket/node` adapters
+- a99d219: **feat!**: move isomorphic http/ws adapters out of `Client` internals; expose
+  `@iroha2/client/web-socket/native` and `@iroha2/client/web-socket/node` adapters
 
   ##### Why the change
 
-  Previously, `@iroha2/client` used `@iroha2/client-isomorphic-ws` and `@iroha2/client-isomorphic-fetch` to seamlessly switch between environment-specific transports.
+  Previously, `@iroha2/client` used `@iroha2/client-isomorphic-ws` and `@iroha2/client-isomorphic-fetch` to seamlessly
+  switch between environment-specific transports.
 
-  The switching was done by `module` and `main` fields in `package.json` files due to how they work in CommonJS (CJS) and ESM contexts. In Node.js it was supposed to always be CJS context, and ESM was for browser context with its native APIs.
+  The switching was done by `module` and `main` fields in `package.json` files due to how they work in CommonJS (CJS)
+  and ESM contexts. In Node.js it was supposed to always be CJS context, and ESM was for browser context with its native
+  APIs.
 
-  However, Node.js is moving towards ESM, and our way to achieve isomorphism no longer works in this case. In ESM, our hack tries to use a browser's native `fetch` and `WebSocket`, which aren't available in Node.js. So we needed to find some other way.
+  However, Node.js is moving towards ESM, and our way to achieve isomorphism no longer works in this case. In ESM, our
+  hack tries to use a browser's native `fetch` and `WebSocket`, which aren't available in Node.js. So we needed to find
+  some other way.
 
   ##### What is the change
 
-  We looked at how [`isomorphic-git`](https://github.com/isomorphic-git/isomorphic-git/tree/main#getting-started) solves the same problem and decided to force the end users to inject `fetch` and `ws` by themselves.
+  We looked at how [`isomorphic-git`](https://github.com/isomorphic-git/isomorphic-git/tree/main#getting-started) solves
+  the same problem and decided to force the end users to inject `fetch` and `ws` by themselves.
 
-  Note that `fetch` injection is optional in the environment where Fetch API is available (i.e. in Browser or in Node > 17.5). Also, `@iroha2/client` exposes prepared adapters for WebSockets based on native `WebSocket` and on [`ws`](https://www.npmjs.com/package/ws) library.
+  Note that `fetch` injection is optional in the environment where Fetch API is available (i.e. in Browser or in Node >
+  17.5). Also, `@iroha2/client` exposes prepared adapters for WebSockets based on native `WebSocket` and on
+  [`ws`](https://www.npmjs.com/package/ws) library.
 
   ##### How to migrate
 
@@ -369,7 +392,8 @@
 - b86aa76: Target Iroha: `iroha v2.0.0-pre-rc.2` (`920e4d12754b0f3bf08cbaa5221d91c27863fcdc`)
 
   - Using updated Data Model
-  - Completely refactor client methods, extend them with new APIs - `setPeerConfig()`, `getMetrics()`, `listenForBlocksStream()`
+  - Completely refactor client methods, extend them with new APIs - `setPeerConfig()`, `getMetrics()`,
+    `listenForBlocksStream()`
   - New client configuration accepts account id and key pair
   - `Client.create()` -> `new Client()`
 
@@ -394,7 +418,8 @@
 - 98d3638: **feat**: add `status` endpoint implementation
 - 98d3638: **breaking**: update configuration format
 
-  - Now both Torii API URl & Torii Status URL are optional, so it is possible to use client partially, e.g. if you only need to check status.
+  - Now both Torii API URl & Torii Status URL are optional, so it is possible to use client partially, e.g. if you only
+    need to check status.
   - `crypto` injection is excluded from the config. Now it should be set globally with `setCrypto()` function.
 
 ### Patch Changes

@@ -7,9 +7,12 @@ The Iroha 2 JavaScript library includes the following packages:
 - [`@iroha2/client`](./packages/client/) submits requests to the Iroha peer
 - [`@iroha2/crypto-*`](./packages/crypto/):
   - [`@iroha2/crypto-core`](./packages/crypto/packages/core/) provides unified crypto interface for Iroha 2
-  - [`@iroha2/crypto-target-node`](./packages/crypto/packages/target-node/) provides compiled crypto WASM for the Node.js environment
-  - [`@iroha2/crypto-target-web`](./packages/crypto/packages/target-web/) provides compiled crypto WASM for native Web (ESM)
-  - [`@iroha2/crypto-target-bundler`](./packages/crypto/packages/target-bundler/) provides compiled crypto WASM to use with bundlers such as Webpack
+  - [`@iroha2/crypto-target-node`](./packages/crypto/packages/target-node/) provides compiled crypto WASM for the
+    Node.js environment
+  - [`@iroha2/crypto-target-web`](./packages/crypto/packages/target-web/) provides compiled crypto WASM for native Web
+    (ESM)
+  - [`@iroha2/crypto-target-bundler`](./packages/crypto/packages/target-bundler/) provides compiled crypto WASM to use
+    with bundlers such as Webpack
 - [`@iroha2/data-model`](./packages/data-model/) provides SCALE codecs for Iroha 2 data model
 
 Other packages you can find in this repository:
@@ -20,7 +23,8 @@ Other packages you can find in this repository:
 
 ## Installation
 
-The packages are published under the `@iroha2` scope into Iroha Nexus Registry. To install them using `npm`/`pnpm`, follow these steps:
+The packages are published under the `@iroha2` scope into Iroha Nexus Registry. To install them using `npm`/`pnpm`,
+follow these steps:
 
 1. Configure your package manager to fetch scoped packages from Nexus Registry:
 
@@ -39,11 +43,13 @@ The packages are published under the `@iroha2` scope into Iroha Nexus Registry. 
 
 ## Get Started
 
-Check out [Hyperledger Iroha 2 Tutorial](https://hyperledger.github.io/iroha-2-docs/) that introduces you to Iroha 2 concepts and features and provides you with a step-by-step guide for JavaScript/TypeScript.
+Check out [Hyperledger Iroha 2 Tutorial](https://hyperledger.github.io/iroha-2-docs/) that introduces you to Iroha 2
+concepts and features and provides you with a step-by-step guide for JavaScript/TypeScript.
 
 ## Maintenance
 
-Make sure you have installed **Node.js v16.17 or v18**. As for a package manager, this project uses [PNPM](https://pnpm.io/).
+Make sure you have installed **Node.js v16.17 or v18**. As for a package manager, this project uses
+[PNPM](https://pnpm.io/).
 
 Also make sure you have installed the following version of **Rust toolchain**:
 
@@ -59,7 +65,8 @@ pnpm install
 
 ### Scripts
 
-Most tasks are defined via [Jake](https://github.com/jakejs/jake), a JavaScript build tool. To explore available tasks, run:
+Most tasks are defined via [Jake](https://github.com/jakejs/jake), a JavaScript build tool. To explore available tasks,
+run:
 
 ```bash
 pnpm jake -t
@@ -80,7 +87,8 @@ However, some tasks are defined directly in `package.json` and could be run with
   pnpm format:fix
   ```
 
-Each monorepo package might have its own scripts and tasks. You can find the package details in a README for that package.
+Each monorepo package might have its own scripts and tasks. You can find the package details in a README for that
+package.
 
 ### Manually update reference Iroha version
 
@@ -101,14 +109,16 @@ Each monorepo package might have its own scripts and tasks. You can find the pac
 
 3. If something is broken, fix it!
 
-4. If you are going to publish updated SDK, update `packages/client/README.md` and `packages/data-model/README.md`. In the beginning they have the following note:
+4. If you are going to publish updated SDK, update `packages/client/README.md` and `packages/data-model/README.md`. In
+   the beginning they have the following note:
 
-   > This package targets `hyperledger/iroha` at current `iroha2-lts` branch, which has a hash `b783f10fa7de26ed1fdd4c526bd162f8636f1a65`.
+   > This package targets `hyperledger/iroha` at current `iroha2-lts` branch, which has a hash
+   > `b783f10fa7de26ed1fdd4c526bd162f8636f1a65`.
 
    Put here new Iroha 2 reference commit information.
 
 ### SDK Compatibility Matrix Tests
 
-There are certain integration tests
-that are part of the [Compatibility Matrix](https://hyperledger.github.io/iroha-2-docs/reference/compatibility-matrix.html) endeavour.
-To read more about it, follow the [client Node integration tests](./packages/client/test/integration/test-node).
+There are certain integration tests that are part of the
+[Compatibility Matrix](https://hyperledger.github.io/iroha-2-docs/reference/compatibility-matrix.html) endeavour. To
+read more about it, follow the [client Node integration tests](./packages/client/test/integration/test-node).

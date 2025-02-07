@@ -1,7 +1,7 @@
 /* eslint-disable max-nested-callbacks */
 import { describe, expect, test } from 'vitest'
 import { wasmPkg } from '@iroha2/crypto-target-node'
-import { Bytes, KeyPair, PrivateKey, PublicKey, Signature, setWASM } from '@iroha2/crypto'
+import { Bytes, KeyPair, PrivateKey, PublicKey, setWASM, Signature } from '@iroha2/crypto'
 
 setWASM(wasmPkg)
 
@@ -88,9 +88,8 @@ describe('Signature verification', () => {
   test('exception is thrown if input is invalid', () => {
     const signature = pairFactory().privateKey().sign(bytesHex('deadbeef'))
 
-    expect(() =>
-      signature.verify(pairFactory().publicKey(), bytesHex('not really a hex')),
-    ).toThrowErrorMatchingInlineSnapshot(`[Error: Invalid character 'n' at position 0]`)
+    expect(() => signature.verify(pairFactory().publicKey(), bytesHex('not really a hex')))
+      .toThrowErrorMatchingInlineSnapshot(`[Error: Invalid character 'n' at position 0]`)
   })
 })
 
@@ -137,7 +136,7 @@ describe('Raw conversion', () => {
         bytesHex(
           '01f2db2416255e79db67d5ac807e55459ed8754f07586864948aea00f6f81763f149bb4b59feb0ace3074f10c65e179880ea2c4fe4e0d6022b1e82c33c3278c7',
         ),
-      ),
+      )
     ).toThrowErrorMatchingInlineSnapshot(`[Error: crypto error]`)
   })
 

@@ -1,6 +1,6 @@
 import { KeyPair, PublicKey } from '@iroha2/crypto'
 import * as dm from '../src/data-model.ts'
-import { getCodec} from '../src/traits.ts'
+import { getCodec } from '../src/traits.ts'
 import { describe, expect, test } from 'vitest'
 import { fromHexWithSpaces, SAMPLE_ACCOUNT_ID, toHex } from './util.ts'
 
@@ -16,8 +16,7 @@ describe('JSON/string serialisation', () => {
 
   test('AccountId (after being decoded)', () => {
     const pk = KeyPair.random().publicKey()
-    const decoded = 
-      getCodec(dm.AccountId)
+    const decoded = getCodec(dm.AccountId)
       .decode(getCodec(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyRepr.fromCrypto(pk), new dm.Name('test'))))
 
     expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)

@@ -6,9 +6,12 @@
 
 - 787a198: **Breaking:** Complete rewrite of crypto WASM, and major update of the surrounding API.
 
-  - Now WASM is made from the original `iroha_crypto` from Iroha 2 repo. As one of the outcomes, binary blob size is reduced from 2mb to 600kb.
-  - Remove `KeyGenConfiguration`. Use `KeyPair.deriveFromSeed`, `KeyPair.deriveFromPrivateKey`, and `KeyPair.random` instead.
-  - Normalise API across `PublicKey`, `PrivateKey`, `KeyPair`, and `Signature` classes (JSON methods, raw conversion methods etc.)
+  - Now WASM is made from the original `iroha_crypto` from Iroha 2 repo. As one of the outcomes, binary blob size is
+    reduced from 2mb to 600kb.
+  - Remove `KeyGenConfiguration`. Use `KeyPair.deriveFromSeed`, `KeyPair.deriveFromPrivateKey`, and `KeyPair.random`
+    instead.
+  - Normalise API across `PublicKey`, `PrivateKey`, `KeyPair`, and `Signature` classes (JSON methods, raw conversion
+    methods etc.)
   - Introduce `Bytes` utility to accept binary input either as `Bytes.array([1, 2, 3])` or `Bytes.hex('001122')`
   - Export more types¡
 
@@ -35,7 +38,8 @@
 
 ### Minor Changes
 
-- 40516f1: **refactor**: combine new `Algorithm` type and codec from `data-model` with the crypto's `Algorithm` type, which is simply a string. Add `Algorithm.toDataModel` and `Algorithm.fromDataModel` methods.
+- 40516f1: **refactor**: combine new `Algorithm` type and codec from `data-model` with the crypto's `Algorithm` type,
+  which is simply a string. Add `Algorithm.toDataModel` and `Algorithm.fromDataModel` methods.
 
 ### Patch Changes
 
@@ -59,14 +63,17 @@
 
   #### What the braking change is
 
-  Each target now provides high-level wrappers around raw `wasm-pack` artifacts. These wrappers provide a better-designed interface with features like global `.free()`-objects tracking and integration with `@iroha2/data-model`.
+  Each target now provides high-level wrappers around raw `wasm-pack` artifacts. These wrappers provide a
+  better-designed interface with features like global `.free()`-objects tracking and integration with
+  `@iroha2/data-model`.
 
-  Moreover, the WASM itself is re-written and now provides more flexibility, such as working with JSON and HEX representations out of the box.
+  Moreover, the WASM itself is re-written and now provides more flexibility, such as working with JSON and HEX
+  representations out of the box.
 
   Here you can see how `@iroha2/crypto-core` and `@iroha2/crypto-target-*` are connected:
 
   ```ts
-  import { IrohaCryptoInterface, cryptoTypes } from '@iroha2/crypto-core'
+  import { cryptoTypes, IrohaCryptoInterface } from '@iroha2/crypto-core'
   import { crypto } from '@iroha2/crypto-target-node'
 
   // each target exports `crypto`, which is the `IrohaCryptoInterface` type from
@@ -78,10 +85,11 @@
   const hash: cryptoTypes.Hash = crypto.Hash.hash('hex', '00ff')
   ```
 
-  `@iroha2/crypto-core` re-exports `@iroha2/crypto-util`, a new library which contains (for now) only utilities to work with `.free()` tracking:
+  `@iroha2/crypto-core` re-exports `@iroha2/crypto-util`, a new library which contains (for now) only utilities to work
+  with `.free()` tracking:
 
   ```ts
-  import { freeScope, FREE_HEAP } from '@iroha2/crypto-util'
+  import { FREE_HEAP, freeScope } from '@iroha2/crypto-util'
   import { crypto } from '@iroha2/crypto-target-web'
 
   const keyPair = freeScope((scope) => {
@@ -109,15 +117,18 @@
 
   #### Why the change was made
 
-  Codegen of `wasm_bindgen` is very limited. This change is made to provide a better quality and safer API over crypto WASM.
+  Codegen of `wasm_bindgen` is very limited. This change is made to provide a better quality and safer API over crypto
+  WASM.
 
   #### How a consumer should update their code
 
   Unfortunately, the code should be updated completely. Here are some major points you should note.
 
-  `IrohaCryptoInterface` type from the core package is still the same as `crypto` export from target packages, but the content of the type is completely different.
+  `IrohaCryptoInterface` type from the core package is still the same as `crypto` export from target packages, but the
+  content of the type is completely different.
 
-  Previously, types such as `Hash`, `Signature`, `PublicKey` were separate exports from the core library. Now they are contained within the `cryptoTypes` namespace:
+  Previously, types such as `Hash`, `Signature`, `PublicKey` were separate exports from the core library. Now they are
+  contained within the `cryptoTypes` namespace:
 
   ```ts
   // doesn't work anymore

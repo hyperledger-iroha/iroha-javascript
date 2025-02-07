@@ -1,6 +1,6 @@
 import type { PrivateKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
-import { assert} from '@std/assert'
+import { assert } from '@std/assert'
 import type { MainAPI } from './api.ts'
 
 export class QueryExecutor {

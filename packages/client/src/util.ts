@@ -1,4 +1,4 @@
-import type { CloseEvent, IsomorphicWebSocketAdapter, SendData, Event as WsEvent } from './web-socket/types.ts'
+import type { CloseEvent, Event as WsEvent, IsomorphicWebSocketAdapter, SendData } from './web-socket/types.ts'
 import type { Debugger } from 'debug'
 import Emittery from 'emittery'
 

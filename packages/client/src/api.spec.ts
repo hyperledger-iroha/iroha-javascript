@@ -1,4 +1,4 @@
-import { describe, vi, test, expect } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { HttpTransport, MainAPI } from './api.ts'
 
 describe('HTTP Transport', () => {

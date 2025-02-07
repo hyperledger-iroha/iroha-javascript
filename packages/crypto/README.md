@@ -1,19 +1,22 @@
 # `@iroha2/crypto-core`
 
-The core package primary contains types, so you can base your code on them instead of relying on a particular target implementation. Compiled implementations for each target (`node`, `web`, `bundler`) are in their own packages:
+The core package primary contains types, so you can base your code on them instead of relying on a particular target
+implementation. Compiled implementations for each target (`node`, `web`, `bundler`) are in their own packages:
 
 - [`@iroha2/crypto-target-node`](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/target-node)
 - [`@iroha2/crypto-target-web`](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/target-web)
 - [`@iroha2/crypto-target-bundler`](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/target-bundler)
 
-You can learn more about targets in the [`wasm-bindgen` documentation](https://rustwasm.github.io/docs/wasm-bindgen/reference/deployment.html).
+You can learn more about targets in the
+[`wasm-bindgen` documentation](https://rustwasm.github.io/docs/wasm-bindgen/reference/deployment.html).
 
-Also, this package re-exports everything from [`@iroha2/crypto-util` package](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/util).
+Also, this package re-exports everything from
+[`@iroha2/crypto-util` package](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/util).
 
 ## Installation
 
-The packages are published under the `@iroha2` scope into Iroha Nexus Registry.
-To install the necessary packages with `npm`/`pnpm`:
+The packages are published under the `@iroha2` scope into Iroha Nexus Registry. To install the necessary packages with
+`npm`/`pnpm`:
 
 1. Configure your package manager to fetch scoped packages from Nexus Registry.
 
@@ -32,7 +35,8 @@ To install the necessary packages with `npm`/`pnpm`:
 
 ### Use target implementation
 
-Each target exports the same `crypto` namespace containing all the types and classes to work with hashes, keys, and signatures:
+Each target exports the same `crypto` namespace containing all the types and classes to work with hashes, keys, and
+signatures:
 
 ```ts
 import { crypto } from '@iroha2/crypto-target-node'
@@ -46,7 +50,8 @@ const signature: crypto.Signature = crypto.KeyGenConfiguration.default()
 
 ### Write target-agnostic logic
 
-`cryptoTypes` namespace export in `@iroha2/crypto-core` contains all the **types** you may find in `crypto` namespace export from `@iroha2/crypto-target-*`:
+`cryptoTypes` namespace export in `@iroha2/crypto-core` contains all the **types** you may find in `crypto` namespace
+export from `@iroha2/crypto-target-*`:
 
 ```ts
 import { cryptoTypes } from '@iroha2/crypto-core'
@@ -69,9 +74,11 @@ function printHexHash(data: Uint8Array, crypto: IrohaCryptoInterface) {
 
 ### Avoid memory leaks
 
-WASM objects are deallocated automatically on platforms with [Weak References support](https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html).
+WASM objects are deallocated automatically on platforms with
+[Weak References support](https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html).
 
-However, on platforms with no support for this feature, all WASM objects must be deallocated manually with `.free()` method. For example:
+However, on platforms with no support for this feature, all WASM objects must be deallocated manually with `.free()`
+method. For example:
 
 ```ts
 import { crypto } from '@iroha2/crypto-target-node'
@@ -85,7 +92,8 @@ for (const x of [hash, conf]) {
 }
 ```
 
-Fortunately, all such objects are wrapped and tracked so this process can be automated. The previous example can be re-written in a more _robust_ way that ensures every object is freed:
+Fortunately, all such objects are wrapped and tracked so this process can be automated. The previous example can be
+re-written in a more _robust_ way that ensures every object is freed:
 
 ```ts
 // re-export from `@iroha2/crypto-util`
@@ -101,4 +109,6 @@ const keypair = freeScope((scope) => {
 })
 ```
 
-Please refer to [`@iroha2/crypto-util`](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/util) package documentation for more details.
+Please refer to
+[`@iroha2/crypto-util`](https://github.com/hyperledger/iroha-javascript/tree/iroha2/packages/crypto/packages/util)
+package documentation for more details.

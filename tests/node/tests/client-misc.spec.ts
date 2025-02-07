@@ -2,9 +2,9 @@ import { describe, expect, test } from 'vitest'
 
 import { Bytes, KeyPair } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
-import { QueryValidationError, type Client } from '@iroha2/client'
+import { type Client, QueryValidationError } from '@iroha2/client'
 import { usePeer } from './util'
-import { P, match } from 'ts-pattern'
+import { match, P } from 'ts-pattern'
 import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha2/test-configuration'
 
 async function submitTestData(client: Client) {
@@ -20,8 +20,7 @@ async function submitTestData(client: Client) {
     dm.InstructionBox.Register.Domain({
       id: new dm.Name(`domains-multitude-${i}`),
       ...EMPTY_LOGO_META,
-    }),
-  )
+    }))
 
   const ALL_ISI = [
     dm.InstructionBox.Register.Domain({ id: new dm.Name('certainty'), ...EMPTY_LOGO_META }),
@@ -318,7 +317,7 @@ describe('Queries', () => {
             { value: { kind: 'Store', value: P.array({ key: { value: 'mewo?' }, value: P.select() }) } },
             ([val]) => val,
           )
-          .otherwise(() => null),
+          .otherwise(() => null)
       ),
     ).toMatchInlineSnapshot(`
       [

@@ -2,7 +2,7 @@ import './install-crypto.ts'
 import * as dm from '@iroha2/data-model'
 
 function* hexes(hex: string): Generator<number> {
-  for (let i = 0; i < hex.length; ) {
+  for (let i = 0; i < hex.length;) {
     if (/^[0-9a-fA-F]{2}/.test(hex.slice(i))) {
       yield Number.parseInt(hex.slice(i, i + 2), 0x10)
       i += 2

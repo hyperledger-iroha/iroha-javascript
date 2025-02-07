@@ -168,8 +168,8 @@ describe('Test `.free()` utilities', () => {
         freeScope((scope) => {
           const guard = new FreeGuard(target)
           scope.forget(guard, { adopt: false })
-        }),
-      ),
+        })
+      )
     )
 
     expect(target.free).not.toBeCalled()
