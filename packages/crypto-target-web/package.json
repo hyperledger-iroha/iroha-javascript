@@ -2,5 +2,8 @@
   "name": "@iroha2/crypto-target-web",
   "version": "0.1.0",
   "type": "module",
-  "exports": "./src/lib.ts"
+  "exports": {
+    ".": "./src/lib.ts",
+    "./install": "./src/install.ts"
+  }
 }

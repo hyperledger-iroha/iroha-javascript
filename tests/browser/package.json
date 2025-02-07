@@ -1,31 +1,17 @@
 {
-  "name": "@iroha2/tests-browser",
-  "private": true,
   "type": "module",
-  "scripts": {
-    "dev:app": "vite",
-    "dev:peer-server": "DEBUG=* tsx etc/run-peer-server",
-    "dev:cy": "cypress open",
-    "test": "run-s test:app:build test:run",
-    "test:app:build": "vue-tsc --noEmit && vite build",
-    "test:run": "DEBUG=@iroha2* tsx etc/test-run"
-  },
-  "devDependencies": {
+  "dependencies": {
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.0",
+    "@deno/vite-plugin": "^1.0.3",
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue-kakuyaku/core": "^0.4.3",
     "@vueuse/core": "^8.0.1",
-    "cross-env": "^7.0.3",
     "cypress": "^13.12.0",
     "esbuild": "^0.24.2",
-    "sass": "^1.52.1",
-    "vite": "^5.1.5",
-    "vue": "^3.2.47",
-    "vue-tsc": "^2.0.24"
-  },
-  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
-  "dependencies": {
     "npm-run-all": "^4.1.5",
-    "tsx": "^4.19.2"
-  }
+    "sass": "^1.52.1",
+    "vite": "^6.1.0",
+    "vue": "^3.2.47"
+  },
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
 }

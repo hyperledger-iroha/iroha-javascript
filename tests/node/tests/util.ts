@@ -1,7 +1,5 @@
 import { onTestFinished } from 'vitest'
-
-import getPort from 'get-port'
-
+import uniquePort from 'get-port'
 import { Client } from '@iroha2/client'
 import { adapter as WS } from '@iroha2/client/web-socket/node'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration'
@@ -17,10 +15,6 @@ async function waitForGenesisCommitted(f: () => Promise<dm.Status>) {
     if (blocks >= 1) return
     await delay(50)
   }
-}
-
-async function uniquePort() {
-  return getPort()
 }
 
 function getAccountKeyPair() {

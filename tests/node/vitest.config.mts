@@ -1,14 +1,9 @@
 import { defineConfig } from 'vitest/config'
-// import AllureReporter from 'allure-vitest/reporter'
+import deno from '@deno/vite-plugin'
 
 export default defineConfig({
+  plugins: [deno()],
   test: {
-    reporters: [
-      // 'basic',
-      // This is for Compatibility Matrix tests
-      // https://allurereport.org/docs/vitest-reference/
-      // new AllureReporter({}),
-    ],
     setupFiles: ['tests/setup.ts'],
   },
 })

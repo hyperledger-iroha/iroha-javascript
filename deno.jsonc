@@ -5,19 +5,50 @@
     "./packages/client",
     "./packages/crypto",
     "./packages/crypto-target-node",
-    "./packages/crypto-target-web"
+    "./packages/crypto-target-web",
     // Could be enabled for DX (i.e. Deno LSP will recognise and help), but Deno will fail at running
     // because of deps in `package.json`. They are specified with `pnpm dlx jsr add ...`, and Deno doesn't handle that.
-    // "./tests/support/iroha-source",
-    // "./tests/support/test-configuration",
-    // "./tests/support/test-peer",
-    // "./tests/node"
+    "./tests/support/iroha-source",
+    "./tests/support/test-configuration",
+    "./tests/support/test-peer",
+    "./tests/node",
+    "./tests/browser"
   ],
   "tasks": {
+    "prep:iroha": "deno run --allow-all ./etc/task-prep-iroha.ts",
+    "prep:iroha:check": {
+      "description": "Ensure that Iroha is linked",
+      "command": "deno task prep:iroha --check"
+    },
+    "prep:iroha:build": {
+      "description": "Build Iroha binaries (such as `irohad` or `iroha_codec`) and WASMs (`executor.wasm`)",
+      "command": "deno task prep:iroha --build",
+      "dependencies": ["prep:iroha:check"]
+    },
+    "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
     "check:all": "deno check packages/*",
-    "vitest": "vitest",
-    "prep:build-binaries": "deno run --allow-all ./tests/support/iroha-source/etc/build-bins.ts",
-    "dev:run-test-peer": "deno run --allow-all ./tests/support/test-peer/etc/run.ts"
+    "test:vitest": {
+      "dependencies": ["prep:iroha:check"],
+      "description": "Run Vitest",
+      "command": "vitest run"
+    },
+    "test:integration:node": {
+      "dependencies": ["prep:iroha:build"],
+      "command": "cd tests/node && deno task test"
+    },
+    "test:integration:browser": {
+      "dependencies": ["prep:iroha:build"],
+      "command": "cd tests/browser && deno task test"
+    },
+    "test": {
+      "description": "Run all tests, from unit to integration",
+      "command": "deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
+    },
+    "dev:run-test-peer": {
+      "dependencies": ["prep:iroha:check"],
+      // "description": "",
+      "command": "cd tests/support/test-peer && deno task run"
+    }
   },
   "fmt": {
     "semiColons": false,
@@ -36,14 +67,12 @@
     "@std/async": "jsr:@std/async@^1.0.10",
     "@std/fmt": "jsr:@std/fmt@^1.0.5",
     "@std/toml": "jsr:@std/toml@^1.0.2",
-    "chalk": "npm:chalk@^5.4.1",
     "change-case": "npm:change-case@^5.4.4",
-    "consola": "npm:consola@^3.4.0",
-    "del": "npm:del@^8.0.0",
     "dprint-node": "npm:dprint-node@^1.0.8",
     "fast-equals": "npm:fast-equals@^5.2.2",
     "immutable": "npm:immutable@^5.0.3",
     "jake": "npm:jake@^10.9.2",
+    "remeda": "npm:remeda@^2.20.1",
     "ts-pattern": "npm:ts-pattern@^5.6.2",
     "type-fest": "npm:type-fest@^4.33.0",
     "vitest": "npm:vitest@^3.0.5",

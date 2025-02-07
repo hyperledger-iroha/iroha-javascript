@@ -1,0 +1,5 @@
+{
+  "tasks": {
+    "run": "DEBUG=\"@iroha2*\" deno run --allow-all ./etc/run.ts"
+  }
+}

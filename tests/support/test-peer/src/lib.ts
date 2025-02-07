@@ -170,6 +170,8 @@ export async function startPeer(params: {
     waitForGenesis(API_URL, healthCheckAbort.signal),
   ])
 
+  debug('Peer is alive and genesis is committed')
+
   return {
     kill,
     isAlive: () => isAlive,

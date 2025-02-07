@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
 import { SCHEMA } from '@iroha2/data-model'
-import { MainAPI, HttpTransport } from '@iroha2/client'
+import { HttpTransport, MainAPI } from '@iroha2/client'
 
-import { useNetwork, usePeer } from './util'
+import { useNetwork, usePeer } from './util.ts'
+import { Buffer } from 'node:buffer'
 
 describe('Various API methods', () => {
   test('health check passes', async () => {
@@ -15,12 +16,7 @@ describe('Various API methods', () => {
   test('health check catches an error when there is no peer started', async () => {
     const result = await new MainAPI(new HttpTransport(new URL('http://localhost:8482'))).health()
 
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "kind": "error",
-        "value": [TypeError: fetch failed],
-      }
-    `)
+    expect(result.kind).toBe('error')
   })
 
   describe('configuration', () => {

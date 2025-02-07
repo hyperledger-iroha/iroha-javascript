@@ -71,7 +71,7 @@ export class HttpTransport {
     this.fetch = fetch ?? globalThis.fetch
   }
 
-  public getFetch() {
+  public getFetch(): Fetch {
     // this is needed to avoid an issue when `Window.fetch` is called with `this` object not being `Window`
     return this.fetch
   }

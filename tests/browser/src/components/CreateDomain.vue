@@ -24,5 +24,7 @@ const { state, run: registerDomain } = useTask(() =>
     <p>
       <button @click="registerDomain()">Register domain{{ state.pending ? '...' : '' }}</button>
     </p>
+
+  {{  state  }}
   </div>
 </template>

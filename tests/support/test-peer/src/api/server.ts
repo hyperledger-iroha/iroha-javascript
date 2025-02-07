@@ -5,7 +5,7 @@ import * as lib from '../lib.ts'
 import { KeyPair } from '@iroha2/crypto'
 import { createGenesis } from '@iroha2/test-configuration/node'
 
-export async function run(port = 8765) {
+export async function run(ports: { server: number; toriiApi: number; toriiP2p: number }) {
   let peer: lib.StartPeerReturn | undefined
 
   const app = h3.createApp({ debug: true })
@@ -22,7 +22,7 @@ export async function run(port = 8765) {
 
         const keypair = KeyPair.random()
         const genesis = await createGenesis({ topology: [keypair.publicKey()] })
-        peer = await lib.startPeer({ genesis, ports: { api: 8080, p2p: 1337 }, keypair })
+        peer = await lib.startPeer({ genesis, ports: { api: ports.toriiApi, p2p: ports.toriiP2p }, keypair })
 
         h3.setResponseStatus(event, 204)
         await h3.send(event)
@@ -51,5 +51,11 @@ export async function run(port = 8765) {
     )
 
   app.use(router)
-  await listen(h3.toNodeListener(app), { port })
+  const { server: port } = ports
+
+  try {
+    await listen(h3.toNodeListener(app), { port: { port, alternativePortRange: [port, port], random: false } })
+  } finally {
+    await peer?.kill()
+  }
 }

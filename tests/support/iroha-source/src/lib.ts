@@ -24,8 +24,7 @@ export async function resolveBinary(bin: Binary): Promise<{ path: string }> {
   if (!(await isAccessible(binaryPath))) {
     throw new Error(
       `Binary "${bin}" is not accessible on path "${binaryPath}".\n` +
-        `Make sure to call "buildBinary('${bin}')" first, or run in terminal:\n\n` +
-        `  pnpm --filter iroha-source cli build ${bin}`,
+        `Make sure to run "deno task prep:iroha:build"`,
     )
   }
   return { path: binaryPath }
@@ -58,6 +57,7 @@ async function runCargoBuild(crates: string[]): Promise<void> {
   const packages = crates.flatMap((x) => ['-p', x])
   const child = spawn('cargo', ['build', '--release', ...packages], {
     cwd: IROHA_DIR,
+    stdio: ['ignore', 'inherit', 'inherit'],
   })
   await new Promise<void>((resolve, reject) => {
     child.on('close', (code) => {

@@ -11,11 +11,17 @@
 
 import type { KeyPair, PrivateKey } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
-import defer from 'p-defer'
 import type { Except } from 'type-fest'
+import defer from 'p-defer'
 
-import { MainAPI, type Fetch, HttpTransport } from './api.ts'
-import { type SetupBlocksStreamParams, type SetupEventsParams, WebSocketAPI } from './api-ws.ts'
+import { type Fetch, HttpTransport, MainAPI } from './api.ts'
+import {
+  type SetupBlocksStreamParams,
+  type SetupBlocksStreamReturn,
+  type SetupEventsParams,
+  type SetupEventsReturn,
+  WebSocketAPI,
+} from './api-ws.ts'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types.ts'
 import { FindAPI } from './generated/find-api.ts'
 import { QueryExecutor } from './query.ts'
@@ -109,11 +115,11 @@ export class Client {
     return new TransactionHandle(tx, this)
   }
 
-  public async events(params?: SetupEventsParams) {
+  public async events(params?: SetupEventsParams): Promise<SetupEventsReturn> {
     return this.socket.events(params)
   }
 
-  public async blocks(params?: SetupBlocksStreamParams) {
+  public async blocks(params?: SetupBlocksStreamParams): Promise<SetupBlocksStreamReturn> {
     return this.socket.blocksStream(params)
   }
 }
@@ -150,15 +156,15 @@ export class TransactionHandle {
         ],
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+      // TODO: replace with Promise.withResolvers
       const confirmation = defer<void>()
       stream.ee.on('event', (event) => {
         if (event.kind === 'Pipeline' && event.value.kind === 'Transaction') {
           const txEvent = event.value.value
           if (txEvent.status.kind === 'Approved') confirmation.resolve()
-          else if (txEvent.status.kind === 'Rejected')
+          else if (txEvent.status.kind === 'Rejected') {
             confirmation.reject(new TransactionRejectedError(txEvent.status.value))
-          else if (txEvent.status.kind === 'Expired') confirmation.reject(new TransactionExpiredError())
+          } else if (txEvent.status.kind === 'Expired') confirmation.reject(new TransactionExpiredError())
         }
       })
       stream.ee.on('close', () => {

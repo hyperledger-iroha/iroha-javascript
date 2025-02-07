@@ -3,8 +3,8 @@
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model'
 import { camelCase } from 'change-case'
 import { deepEqual } from 'fast-equals'
-import invariant from 'tiny-invariant'
-import { P, match } from 'ts-pattern'
+import { assert as assert, fail } from '@std/assert'
+import { match, P } from 'ts-pattern'
 
 // TODO: return HashOf<..> ? Hard. Requires all hashable items to implement Hash on instances => why not all make all types as classes, finally...
 
@@ -26,7 +26,7 @@ function unreachable(message: string): never {
 
 export function generateClientFindAPI(resolver: Resolver, libClient: string): string {
   const queryBox = resolver.emits.get('QueryBox')
-  invariant(queryBox && queryBox.t === 'enum')
+  assert(queryBox && queryBox.t === 'enum')
 
   const iterableQueryMethods = queryBox.variants.map((x) => {
     const { payload, predicate, selector } = match(x.type)
@@ -50,7 +50,7 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
       )
       .otherwise(() => unreachable('unexpected query box variant'))
 
-    invariant(x.tag.startsWith('Find'))
+    assert(x.tag.startsWith('Find'))
     const methodName = camelCase(x.tag.slice('Find'.length))
 
     const payloadArg = payload ? `payload: dm.${payload}, ` : ''
@@ -67,10 +67,10 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
   })
 
   const singularQueryBox = resolver.emits.get('SingularQueryBox')
-  invariant(singularQueryBox && singularQueryBox.t === 'enum')
+  assert(singularQueryBox && singularQueryBox.t === 'enum')
 
   const singularQueryMethods = singularQueryBox.variants.map((x) => {
-    invariant(x.tag.startsWith('Find'))
+    assert(x.tag.startsWith('Find'))
     const methodName = camelCase(x.tag.slice('Find'.length))
 
     // const predicateType =
@@ -189,9 +189,9 @@ export class Resolver {
         const prevEmit = this.#emits.get(resolved.id)
         const newEmit = resolved.emit()
         if (prevEmit) {
-          invariant(
+          assert(
             deepEqual(newEmit, prevEmit),
-            () => `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
+            `Generic type emit differs for: ${resolved.id} (original id: ${originId})`,
           )
         } else {
           this.#emits.set(resolved.id, newEmit)
@@ -217,11 +217,12 @@ export class Resolver {
   }
 
   private resolve(refOrStr: string | SchemaId): TypeRefWithEmit {
-    const [ref, refStr] =
-      typeof refOrStr === 'string' ? [SchemaId.parse(refOrStr), refOrStr] : [refOrStr, refOrStr.toStr()]
+    const [ref, refStr] = typeof refOrStr === 'string'
+      ? [SchemaId.parse(refOrStr), refOrStr]
+      : [refOrStr, refOrStr.toStr()]
 
     if (!this.#resolved.has(refStr)) {
-      invariant(refStr in this.#schema, () => `Couldn't find schema for '${refStr}'`)
+      assert(refStr in this.#schema, `Couldn't find schema for '${refStr}'`)
       const schema = this.#schema[refStr]
       const resolved = this.resolveInner(ref, refStr, schema)
 
@@ -239,10 +240,8 @@ export class Resolver {
       match({ ref, refStr, schema })
         .returnType<TypeRefWithEmit>()
         .with({ refStr: '()' }, () => ({ t: 'null' }))
-
         // redundant unused type
         .with({ ref: { id: 'MerkleTree', items: [P._] } }, () => ({ t: 'null' }))
-
         .with({ refStr: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
         .with(
           {
@@ -269,7 +268,6 @@ export class Resolver {
             id: upcase(int),
           }),
         )
-
         .with(
           { refStr: 'BlockSignature', schema: { Tuple: [P.select('index').and('u64'), P.select('signature')] } },
           ({ index, signature }) => ({
@@ -373,7 +371,7 @@ export class Resolver {
             },
           },
           ({ id, generic, fields }): TypeRefWithEmit => {
-            invariant(generic.toStr() === fields[0].type)
+            assert(generic.toStr() === fields[0].type)
             return {
               t: 'local',
               id,
@@ -450,9 +448,9 @@ export class Resolver {
             },
           },
           (bindings): TypeRef => {
-            invariant(bindings.refStr === bindings.tyNot)
-            invariant(bindings.tyAnd === bindings.tyOr)
-            invariant(deepEqual(SchemaId.parse(bindings.tyAnd), new SchemaId('Vec', [bindings.ref])))
+            assert(bindings.refStr === bindings.tyNot)
+            assert(bindings.tyAnd === bindings.tyOr)
+            assert(deepEqual(SchemaId.parse(bindings.tyAnd), new SchemaId('Vec', [bindings.ref])))
             return { t: 'lib', id: 'CompoundPredicate', params: [this.resolve(bindings.tyAtom)] }
           },
         )
@@ -462,7 +460,7 @@ export class Resolver {
             schema: { Struct: P.select('fields', [{ name: 'expected' }, { name: 'actual' }]) },
           },
           ({ fields }) => {
-            invariant(fields[0].type === fields[1].type)
+            assert(fields[0].type === fields[1].type)
             return {
               t: 'local',
               id: 'Mismatch',
@@ -511,11 +509,10 @@ export class Resolver {
           t: 'lib',
           id: `${id}Repr`,
         }))
-
-        .with({ refStr: 'FetchSize', schema: { Struct: [{ name: 'fetch_size', type: P.select() }] } }, (type) =>
-          this.resolve(type),
+        .with(
+          { refStr: 'FetchSize', schema: { Struct: [{ name: 'fetch_size', type: P.select() }] } },
+          (type) => this.resolve(type),
         )
-
         .with({ refStr: 'BlockSubscriptionRequest', schema: 'NonZero<u64>' }, ({ refStr, schema }) => ({
           t: 'local',
           id: refStr,
@@ -526,7 +523,7 @@ export class Resolver {
         }))
         .with({ refStr: 'EventSubscriptionRequest', schema: P.string }, ({ refStr, schema }) => {
           const filters = this.resolve(schema)
-          invariant(filters.t === 'lib' && filters.id === 'Vec')
+          assert(filters.t === 'lib' && filters.id === 'Vec')
 
           return {
             t: 'local',
@@ -555,7 +552,6 @@ export class Resolver {
           },
           ({ id }) => ({ t: 'local', id, emit: () => ({ t: 'alias', to: { t: 'lib', id: 'Name' } }) }),
         )
-
         .with(
           { ref: { id: P.select('id'), items: [] }, schema: { Bitmap: { repr: 'u32', masks: P.select('masks') } } },
           ({ id, masks }) => ({
@@ -568,12 +564,10 @@ export class Resolver {
             }),
           }),
         )
-
         .with(
           { ref: { id: 'Option', items: [P._] }, schema: { Option: P.string.select() } },
           (type): TypeRef => ({ t: 'lib', id: 'Option', params: [this.resolve(type)] }),
         )
-
         .with({ ref: { id: 'SortedVec', items: [{ id: 'Permission' }] } }, () => ({
           t: 'local',
           id: 'PermissionsSet',
@@ -605,7 +599,6 @@ export class Resolver {
             params: [this.resolve(type)],
           }),
         )
-
         .with(
           {
             ref: { id: 'Array', items: [P._, P._] },
@@ -617,7 +610,6 @@ export class Resolver {
             type: this.resolve(type),
           }),
         )
-
         // maps
         .with(
           {
@@ -630,7 +622,6 @@ export class Resolver {
             params: [key, value].map((x) => this.resolve(x)),
           }),
         )
-
         // non-specific structures without generics
         .with(
           { ref: { id: P.select('id'), items: [] }, schema: { Struct: P.select('fields') } },
@@ -643,7 +634,6 @@ export class Resolver {
             }),
           }),
         )
-
         // non-specific enums without generics
         .with(
           { ref: { id: P.select('id'), items: [] }, schema: { Enum: P.select('variants') } },
@@ -656,11 +646,10 @@ export class Resolver {
             }),
           }),
         )
-
         .with(
           { ref: { id: 'NonZero', items: [{ id: P.select('int'), items: [] }] }, schema: P.string.select('int2') },
           ({ int, int2 }) => {
-            invariant(int === int2)
+            assert(int === int2)
             return {
               t: 'lib',
               id: 'NonZero',
@@ -668,7 +657,6 @@ export class Resolver {
             }
           },
         )
-
         // lightweight aliases
         .with({ ref: { id: P.select('id'), items: [] }, schema: P.string.select('target') }, ({ id, target }) => ({
           t: 'local',
@@ -678,10 +666,8 @@ export class Resolver {
             to: this.resolve(target),
           }),
         }))
-
         // null types - useless?
         .with({ schema: null }, () => ({ t: 'null' }))
-
         .otherwise(({ refStr }) => {
           throw new Error(`Could not resolve "${refStr}"`)
         })
@@ -798,7 +784,7 @@ export class Resolver {
   private mapVariants(items: EnumDefinition['Enum']): EmitEnumVariant[] {
     return items.map((x) => {
       if (x.tag.endsWith('Ms')) {
-        invariant(x.type === 'u64')
+        assert(x.type === 'u64')
         return { ...x, tag: x.tag.slice(0, -2), type: { t: 'lib', id: 'Duration' } }
       }
 
@@ -819,13 +805,13 @@ export class SchemaId {
     for (const [token] of src.matchAll(/(<|>|(?:[\w_]+|::)+)/gi)) {
       if (token === '<') {
         const lastItem = stack.at(-1)?.items.at(-1)
-        invariant(lastItem, 'should be')
+        assert(lastItem, 'should be')
         stack.push(lastItem)
       } else if (token === '>') {
-        invariant(stack.pop(), 'should be')
+        assert(stack.pop(), 'should be')
       } else {
         const head = stack.at(-1)
-        invariant(head, 'should be')
+        assert(head, 'should be')
         const idWithPath = token.split('::')
         const id = idWithPath.at(-1)!
         // const path = idWithPath.length > 1 ? idWithPath.slice(0, -1) : undefined
@@ -864,15 +850,17 @@ export interface EnumShortcutsTree {
   variants: EnumShortcutTreeVariant[]
 }
 
-export type EnumShortcutTreeVariant = { name: string } & (
-  | { t: 'unit' }
-  | { t: 'value'; value_ty: TypeRef }
-  | { t: 'enum'; tree: EnumShortcutsTree }
-)
+export type EnumShortcutTreeVariant =
+  & { name: string }
+  & (
+    | { t: 'unit' }
+    | { t: 'value'; value_ty: TypeRef }
+    | { t: 'enum'; tree: EnumShortcutsTree }
+  )
 
 function findEnum(map: EmitsMap, id: string): null | (EmitCode & { t: 'enum' }) {
   const type = map.get(id)
-  invariant(type, 'must be in schema')
+  assert(type, 'must be in schema')
   if (type.t === 'enum') return type
   if (type.t === 'alias' && type.to.t === 'local') return findEnum(map, type.to.id)
   return null
@@ -953,9 +941,10 @@ function arrangeEmits(map: EmitsMap): string[] {
   for (const [key, emit] of map) {
     const refs = new Set<string>()
     for (const ident of visitEmitRefs(emit)) {
-      if (ident.t === 'local')
-        if (CYCLE_BREAK_POINTS.has(ident.id)) invariant(ident.lazy, `reference from ${key} to ${ident.id} must be lazy`)
+      if (ident.t === 'local') {
+        if (CYCLE_BREAK_POINTS.has(ident.id)) assert(ident.lazy, `reference from ${key} to ${ident.id} must be lazy`)
         else refs.add(ident.id)
+      }
     }
     graph.set(key, refs)
   }
@@ -980,7 +969,7 @@ function arrangeEmits(map: EmitsMap): string[] {
     visit(n)
   }
 
-  invariant(sorted.length === map.size)
+  assert(sorted.length === map.size)
   return sorted
 }
 
@@ -1058,12 +1047,12 @@ function renderBaseEnumCodec(variants: EmitEnumVariant[]): string {
   const types = variants.map((variant) =>
     match(variant)
       .with({ type: { t: 'null' } }, ({ tag }) => `${tag}: []`)
-      .otherwise(({ tag, type }) => `${tag}: [${renderRef(type).type}]`),
+      .otherwise(({ tag, type }) => `${tag}: [${renderRef(type).type}]`)
   )
   const options = variants.map((variant) =>
     match(variant)
       .with({ type: { t: 'null' } }, ({ tag, discriminant }) => `${tag}: [${discriminant}]`)
-      .otherwise(({ tag, discriminant, type }) => `${tag}: [${discriminant}, ${renderRef(type).codec}]`),
+      .otherwise(({ tag, discriminant, type }) => `${tag}: [${discriminant}, ${renderRef(type).codec}]`)
   )
   return `lib.enumCodec<{ ${types.join(', ')} }>({ ${options.join(', ')} })`
 }
@@ -1072,7 +1061,7 @@ function renderSumTypes(variants: EmitEnumVariant[]) {
   const mapped = variants.map((variant) =>
     match(variant)
       .with({ type: { t: 'null' } }, ({ tag }) => `lib.VariantUnit<'${tag}'>`)
-      .otherwise(({ tag, type }) => `lib.Variant<'${tag}', ${renderRef(type).type}>`),
+      .otherwise(({ tag, type }) => `lib.Variant<'${tag}', ${renderRef(type).type}>`)
   )
 
   return mapped.join(' | ')
@@ -1134,9 +1123,11 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
               )
               .otherwise(
                 ({ head, chain }) =>
-                  `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}', value: ${genChain(
-                    chain,
-                  )} })`,
+                  `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}', value: ${
+                    genChain(
+                      chain,
+                    )
+                  } })`,
               ),
             doc: renderJsDoc([`Value of variant \`${genVariantFullChain(state)}\``]),
           }))
@@ -1145,17 +1136,21 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
               .with(
                 { chain: [] },
                 ({ head }) =>
-                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(
-                    state,
-                    variant,
-                  )} => ({ kind: '${head.var0}', value })`,
+                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${
+                    genConcreteType(
+                      state,
+                      variant,
+                    )
+                  } => ({ kind: '${head.var0}', value })`,
               )
               .otherwise(
                 ({ head, chain }) =>
-                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${genConcreteType(
-                    state,
-                    variant,
-                  )} => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
+                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${
+                    genConcreteType(
+                      state,
+                      variant,
+                    )
+                  } => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
               ),
             doc: renderJsDoc([`Constructor of variant \`${genVariantFullChain(state)}\``]),
           }))
@@ -1182,7 +1177,7 @@ function renderJsDoc(lines: string[]): string {
 
 function renderEmit(id: string, map: EmitsMap): string {
   const emit = map.get(id)
-  invariant(emit)
+  assert(emit)
   return match(emit)
     .returnType<string[]>()
     .with({ t: 'enum', variants: [] }, () => [
@@ -1202,7 +1197,7 @@ function renderEmit(id: string, map: EmitsMap): string {
     ])
     .with({ t: 'enum' }, ({ variants }) => {
       const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
-      invariant(shortcuts, () => `no shortcuts for ${id} meaning this type could not be created and must be "never"`)
+      assert(shortcuts, `no shortcuts for ${id} meaning this type could not be created and must be "never"`)
 
       const codec = renderBaseEnumCodec(variants) + `.discriminated()`
 
@@ -1229,8 +1224,8 @@ function renderEmit(id: string, map: EmitsMap): string {
 
       const typeFields = fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).type}`).join(', ')
       const codecFieldsOrder = '[' + fields.map((x) => `'${camelCase(x.name)}'`).join(', ') + ']'
-      const codecFieldsMap =
-        '{' + fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).codec}`).join(', ') + '}'
+      const codecFieldsMap = '{' + fields.map((x) => `${camelCase(x.name)}: ${renderRef(x.type).codec}`).join(', ') +
+        '}'
       const codec = (codecTy: string) => `lib.structCodec<${codecTy}>(${codecFieldsOrder}, ${codecFieldsMap})`
 
       if (maxGenericsIndex >= 0) {
@@ -1263,7 +1258,7 @@ function renderEmit(id: string, map: EmitsMap): string {
       return [`export type ${id} = [${typeElements.join(', ')}]`, `export const ${id} = lib.defineCodec(${codec})`]
     })
     .with({ t: 'bitmap' }, ({ masks, repr }) => {
-      invariant(repr === 'U32')
+      assert(repr === 'U32')
 
       const typeLiterals = masks.map((x) => `'${x.name}'`)
       const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
@@ -1292,7 +1287,7 @@ function takeSelectorTypeName(selector: string): string | null {
 
 function buildQuerySelectorMapEntries(emits: EmitsMap): { query: string; selector: string }[] {
   const schema = emits.get('QueryBox')
-  invariant(schema && schema.t === 'enum')
+  assert(schema && schema.t === 'enum')
   return schema.variants.map((variant) => {
     const selector = match(variant.type)
       .with(
@@ -1303,11 +1298,9 @@ function buildQuerySelectorMapEntries(emits: EmitsMap): { query: string; selecto
         },
         (x) => takeSelectorTypeName(x),
       )
-      .otherwise(() => {
-        throw new Error('unexpected query box value')
-      })
+      .otherwise(() => fail('unexpected query box value'))
 
-    invariant(selector)
+    assert(selector)
 
     return {
       query: variant.tag,
@@ -1317,9 +1310,9 @@ function buildQuerySelectorMapEntries(emits: EmitsMap): { query: string; selecto
 }
 
 function expectNestedSelector(type: TypeRef) {
-  invariant(type.t === 'local')
+  assert(type.t === 'local')
   const selector = takeSelectorTypeName(type.id)
-  invariant(selector)
+  assert(selector)
   if (selector === 'MetadataKey') return 'Json'
   return selector
 }
@@ -1349,13 +1342,14 @@ function buildSelectorOutputMapEntries(
     (acc, [key, value]) => {
       const selector = takeSelectorTypeName(key)
       if (selector && selector !== 'MetadataKey') {
-        invariant(value.t === 'enum', () => `not an enum: ${selector} (selector)`)
+        assert(value.t === 'enum', `not an enum: ${selector} (selector)`)
         acc.push({
           selector,
           entries: value.variants.map((variant) => ({
             name: variant.tag,
-            value:
-              variant.tag === 'Atom' ? resolveSelectorAtomOutputBoxTag(selector) : expectNestedSelector(variant.type),
+            value: variant.tag === 'Atom'
+              ? resolveSelectorAtomOutputBoxTag(selector)
+              : expectNestedSelector(variant.type),
           })),
         })
       }
