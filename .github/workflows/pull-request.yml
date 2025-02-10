@@ -7,20 +7,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
           version: 'v0.13.1'
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      
 
-      - name: Prepare
-        run: deno task prep:ci
+      - name: Clone Iroha
+        run: deno task prep:iroha --git $IROHA_GIT --git-rev $IROHA_REV
         env:
           IROHA_GIT: https://github.com/hyperledger-iroha/iroha.git
           IROHA_REV: v2.0.0-rc.1.0
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-on-failure: true
+          cache-directories:
+            - ./.iroha
+            - ./crypto-wasm
+
+      - name: Build Iroha & WASMs
+        run: |
+          deno task prep:iroha:build
+          deno task prep:crypto-wasm
 
       - name: Type check
         run: deno task check:all
