@@ -29,7 +29,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ".iroha -> target\ncrypto-wasm -> target"
+          workspaces: ".iroha -> target\n.iroha/wasm -> target\ncrypto-wasm -> target"
           cache-on-failure: "true"
           cache-all-crates: "true"
 
