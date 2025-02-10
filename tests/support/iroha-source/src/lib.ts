@@ -99,7 +99,7 @@ export async function irohaCodecToScale(
     })
 
     child.on('close', (code) => {
-      assert(code === 0, 'non-zero exit code of iroha_codec')
+      if (code !== 0) reject(new Error('non-zero exit code of iroha_codec'))
       resolve(Uint8Array.from(Buffer.concat(chunks)))
     })
 

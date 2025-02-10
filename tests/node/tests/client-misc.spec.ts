@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { Bytes, KeyPair } from '@iroha2/crypto'
 import * as dm from '@iroha2/data-model'
 import { type Client, QueryValidationError } from '@iroha2/client'
-import { usePeer } from './util'
+import { usePeer } from './util.ts'
 import { match, P } from 'ts-pattern'
 import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha2/test-configuration'
 

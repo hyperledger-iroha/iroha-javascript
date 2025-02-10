@@ -66,20 +66,6 @@ export interface StartPeerReturn {
   isAlive: () => boolean
 }
 
-function fileWriteStream(path: string): WritableStream<Uint8Array> {
-  const write = fs.createWriteStream(path)
-
-  return new WritableStream({
-    write(chunk) {
-      write.write(chunk)
-    },
-    close: () => write.close(),
-    abort: (reason) => {
-      console.error('Sink error:', reason)
-    },
-  })
-}
-
 /**
  * Start network with a single peer.
  *

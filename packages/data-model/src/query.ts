@@ -112,10 +112,8 @@ export function buildQuery<K extends QueryKind, const P extends BuildQueryParams
 ): BuildQueryResult<GetQueryOutput<K, P>> {
   return {
     query: {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       query: {
         kind,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         value: {
           query: payload,
           predicate: params?.predicate || types.CompoundPredicate.PASS,

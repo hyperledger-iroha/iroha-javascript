@@ -6,7 +6,7 @@ export * from './singleton.ts'
 export * from './util.ts'
 export * from './free.ts'
 
-import { type Bytes } from './util.ts'
+import type { Bytes } from './util.ts'
 import { type Free, FreeGuard, FreeScope, type GetInnerTrackObject } from './free.ts'
 import { getWASM } from './singleton.ts'
 import type { wasmPkg } from './types.ts'
@@ -227,7 +227,7 @@ export class Signature extends SingleFreeWrap<wasmPkg.Signature> implements HasP
    * Creates an actual signature, signing the payload with the given private key
    */
   public static create(privateKey: PrivateKey, payload: Bytes) {
-    let value = new (getWASM(true).Signature)(privateKey.inner, payload.wasm)
+    const value = new (getWASM(true).Signature)(privateKey.inner, payload.wasm)
     return new Signature(value)
   }
 

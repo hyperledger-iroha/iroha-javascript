@@ -5,7 +5,6 @@ import { temporaryDirectory } from 'tempy'
 import { EXECUTOR_WASM_PATH, irohaCodecToJson, resolveBinary } from '@iroha2/iroha-source'
 import type { PublicKey } from '@iroha2/crypto'
 import { ACCOUNT_KEY_PAIR, CHAIN, GENESIS_KEY_PAIR } from './lib.ts'
-import { assert } from '@std/assert'
 import { spawn } from 'node:child_process'
 import { Buffer } from 'node:buffer'
 

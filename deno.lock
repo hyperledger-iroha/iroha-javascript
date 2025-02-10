@@ -35,6 +35,7 @@
     "npm:emittery@^1.1.0": "1.1.0",
     "npm:esbuild@~0.24.2": "0.24.2",
     "npm:fast-equals@^5.2.2": "5.2.2",
+    "npm:get-port@^7.1.0": "7.1.0",
     "npm:h3@^1.15.0": "1.15.0",
     "npm:immutable@^5.0.3": "5.0.3",
     "npm:jake@^10.9.2": "10.9.2",
@@ -1400,6 +1401,9 @@
     },
     "get-port-please@3.1.2": {
       "integrity": "sha512-Gxc29eLs1fbn6LQ4jSU4vXjlwyZhF5HsGuMAa7gqBP4Rw4yxxltyDUuF5MBclFzDTXO+ACchGQoeela4DSfzdQ=="
+    },
+    "get-port@7.1.0": {
+      "integrity": "sha512-QB9NKEeDg3xxVwCCwJQ9+xycaz6pBB6iQ76wiWMl1927n0Kir6alPiP+yuiICLLU4jpMe08dXfpebuQppFA2zw=="
     },
     "get-proto@1.0.1": {
       "integrity": "sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==",
@@ -2892,6 +2896,7 @@
       "npm:change-case@^5.4.4",
       "npm:dprint-node@^1.0.8",
       "npm:fast-equals@^5.2.2",
+      "npm:get-port@^7.1.0",
       "npm:immutable@^5.0.3",
       "npm:jake@^10.9.2",
       "npm:remeda@^2.20.1",

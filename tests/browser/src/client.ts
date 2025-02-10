@@ -13,7 +13,7 @@ const keyPair = KeyPair.fromParts(
   PrivateKey.fromMultihash(ACCOUNT_KEY_PAIR.privateKey),
 )
 
-const HOST = window.location.host
+const HOST = globalThis.location.host
 
 export const client = new Client({
   // proxified with vite

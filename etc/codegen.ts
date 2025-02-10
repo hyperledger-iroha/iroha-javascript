@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-member-accessibility */
-/* eslint-disable max-nested-callbacks */
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model'
 import { camelCase } from 'change-case'
 import { deepEqual } from 'fast-equals'

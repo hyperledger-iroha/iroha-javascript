@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import type {
   Account,
   AccountId,
@@ -120,7 +118,7 @@ type test_singular_query_output_dm = Expect<Equal<GetSingularQueryOutput<'FindEx
 type test_singular_query_output_params = Expect<Equal<GetSingularQueryOutput<'FindParameters'>, Parameters>>
 
 type test_query_outputs =
-  & Expect<Equal<GetQueryOutput<'FindAccounts', {}>, Account>>
+  & Expect<Equal<GetQueryOutput<'FindAccounts', Record<string, never>>, Account>>
   & Expect<Equal<GetQueryOutput<'FindAccounts', { predicate: undefined }>, Account>>
 
 type test_selector_as_array_not_tuple = Expect<Equal<SelectorToOutput<'FindAssets', VariantUnit<'Atom'>[]>, Asset[]>>

@@ -51,14 +51,16 @@
     }
   },
   "fmt": {
+    "include": ["."],
     "semiColons": false,
     "lineWidth": 120,
-    "singleQuote": true,
-    "include": ["."]
+    "singleQuote": true
   },
   "lint": {
+    "include": ["."],
     "rules": {
-      "exclude": ["no-explicit-any"]
+      "tags": ["recommended", "jsr"],
+      "exclude": ["no-explicit-any", "require-await"]
     }
   },
   "imports": {
@@ -70,6 +72,7 @@
     "change-case": "npm:change-case@^5.4.4",
     "dprint-node": "npm:dprint-node@^1.0.8",
     "fast-equals": "npm:fast-equals@^5.2.2",
+    "get-port": "npm:get-port@^7.1.0",
     "immutable": "npm:immutable@^5.0.3",
     "jake": "npm:jake@^10.9.2",
     "remeda": "npm:remeda@^2.20.1",

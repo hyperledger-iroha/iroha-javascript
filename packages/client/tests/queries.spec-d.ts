@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// deno-lint-ignore-file no-unused-vars
 
 import type { Client, QueryHandle } from '@iroha2/client'
 import * as dm from '@iroha2/data-model'
