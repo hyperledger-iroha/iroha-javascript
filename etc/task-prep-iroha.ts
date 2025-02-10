@@ -61,7 +61,7 @@ async function buildBinaries() {
 async function buildWasms() {
   assert(await isDirExists(), 'clone/link repo first')
   $.logStep('Building lib wasms')
-  await $`./scripts/build_wasm.sh libs`.cwd(TARGET_DIR)
+  await $`/bin/sh ./scripts/build_wasm.sh libs`.cwd(TARGET_DIR)
   $.logStep('Finished building WASMs')
 }
 
