@@ -1,0 +1,34 @@
+name: Pull Request CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'v0.13.1'
+      - uses: actions/setup-deno
+        with:
+          deno-version: v2.x
+      
+
+      - name: Prepare
+        run: deno task prep:ci
+        env:
+          IROHA_GIT: https://github.com/hyperledger-iroha/iroha.git
+          IROHA_REV: v2.0.0-rc.1.0
+
+      - name: Type check
+        run: deno task check:all
+
+      - name: Lint, format
+        run: |
+          deno lint
+          deno fmt
+
+      - name: Test
+        run: deno task test

@@ -26,7 +26,11 @@
       "dependencies": ["prep:iroha:check"]
     },
     "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
-    "check:all": "deno check packages/*",
+    "prep:ci": {
+      "description": "Run all necessary preparations in CI",
+      "command": "deno task prep:iroha --git $IROHA_GIT --git-rev $IROHA_GIT_REV && deno task prep:iroha:build && deno task prep:crypto-wasm"
+    },
+    "check:all": "deno check .",
     "test:vitest": {
       "dependencies": ["prep:iroha:check"],
       "description": "Run Vitest",
