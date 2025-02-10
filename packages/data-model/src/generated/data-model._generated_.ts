@@ -1756,11 +1756,12 @@ export interface TransactionLimitError {
 /**
  * Codec of the structure.
  */
-export const TransactionLimitError: lib.CodecContainer<TransactionLimitError> = lib.defineCodec(
-  lib.structCodec<TransactionLimitError>(['reason'], {
-    reason: lib.getCodec(lib.String),
-  }),
-)
+export const TransactionLimitError: lib.CodecContainer<TransactionLimitError> =
+  lib.defineCodec(
+    lib.structCodec<TransactionLimitError>(['reason'], {
+      reason: lib.getCodec(lib.String),
+    }),
+  )
 
 /**
  * Enumeration (discriminated union). Represented as one of the following variants:
@@ -3570,8 +3571,9 @@ export const ValidationFail = {
             >
           >({
             kind: 'InstructionFailed',
-            value: InstructionExecutionError.Evaluate.Type.NumericAssetTypeExpected
-              .Store,
+            value:
+              InstructionExecutionError.Evaluate.Type.NumericAssetTypeExpected
+                .Store,
           }),
         },
       },
@@ -4514,7 +4516,8 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Register,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported.Register,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Unregister`
            */
@@ -4531,7 +4534,8 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Unregister,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported.Unregister,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Mint`
            */
@@ -4582,7 +4586,8 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Transfer,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported.Transfer,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.SetKeyValue`
            */
@@ -4599,7 +4604,8 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.SetKeyValue,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported.SetKeyValue,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.RemoveKeyValue`
            */
@@ -4616,8 +4622,9 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported
-              .RemoveKeyValue,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported
+                .RemoveKeyValue,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Grant`
            */
@@ -4668,8 +4675,9 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported
-              .ExecuteTrigger,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported
+                .ExecuteTrigger,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.SetParameter`
            */
@@ -4686,8 +4694,9 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported
-              .SetParameter,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported
+                .SetParameter,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Upgrade`
            */
@@ -4704,7 +4713,8 @@ export const TransactionRejectionReason = {
             >
           >({
             kind: 'Validation',
-            value: ValidationFail.InstructionFailed.Evaluate.Unsupported.Upgrade,
+            value:
+              ValidationFail.InstructionFailed.Evaluate.Unsupported.Upgrade,
           }), /**
            * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Evaluate.Unsupported.Log`
            */
@@ -4827,8 +4837,9 @@ export const TransactionRejectionReason = {
               >
             >({
               kind: 'Validation',
-              value: ValidationFail.InstructionFailed.Evaluate.Type
-                .NumericAssetTypeExpected.Store,
+              value:
+                ValidationFail.InstructionFailed.Evaluate.Type
+                  .NumericAssetTypeExpected.Store,
             }),
           },
         },
@@ -5122,7 +5133,8 @@ export const TransactionRejectionReason = {
           >
         >({
           kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Query.InvalidSingularParameters,
+          value:
+            ValidationFail.InstructionFailed.Query.InvalidSingularParameters,
         }), /**
          * Value of variant `TransactionRejectionReason.Validation.InstructionFailed.Query.CapacityLimit`
          */
@@ -5365,7 +5377,8 @@ export const TransactionRejectionReason = {
           >
         >({
           kind: 'Validation',
-          value: ValidationFail.InstructionFailed.Mintability.ForbidMintOnMintable,
+          value:
+            ValidationFail.InstructionFailed.Mintability.ForbidMintOnMintable,
         }),
       }, /**
        * Constructors of nested enumerations under variant `TransactionRejectionReason.Validation.InstructionFailed.Math`
@@ -5504,8 +5517,9 @@ export const TransactionRejectionReason = {
           >
         >({
           kind: 'Validation',
-          value: ValidationFail.InstructionFailed.InvalidParameter
-            .TimeTriggerInThePast,
+          value:
+            ValidationFail.InstructionFailed.InvalidParameter
+              .TimeTriggerInThePast,
         }),
       }, /**
        * Constructor of variant `TransactionRejectionReason.Validation.InstructionFailed.InvariantViolation`
@@ -6040,8 +6054,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Register,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Register,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Unregister`
              */
@@ -6061,8 +6076,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Unregister,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Unregister,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Mint`
              */
@@ -6082,8 +6098,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Mint,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Mint,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Burn`
              */
@@ -6103,8 +6120,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Burn,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Burn,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Transfer`
              */
@@ -6124,8 +6142,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Transfer,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Transfer,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.SetKeyValue`
              */
@@ -6145,8 +6164,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.SetKeyValue,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.SetKeyValue,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.RemoveKeyValue`
              */
@@ -6169,8 +6189,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.RemoveKeyValue,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.RemoveKeyValue,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Grant`
              */
@@ -6190,8 +6211,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Grant,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Grant,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Revoke`
              */
@@ -6211,8 +6233,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Revoke,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Revoke,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.ExecuteTrigger`
              */
@@ -6235,8 +6258,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.ExecuteTrigger,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.ExecuteTrigger,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.SetParameter`
              */
@@ -6259,8 +6283,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.SetParameter,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.SetParameter,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Upgrade`
              */
@@ -6280,8 +6305,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Upgrade,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Upgrade,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Log`
              */
@@ -6301,8 +6327,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Log,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Log,
             }), /**
              * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.Unsupported.Custom`
              */
@@ -6322,8 +6349,9 @@ export const TransactionStatus = {
               >
             >({
               kind: 'Rejected',
-              value: TransactionRejectionReason.Validation.InstructionFailed.Evaluate
-                .Unsupported.Custom,
+              value:
+                TransactionRejectionReason.Validation.InstructionFailed.Evaluate
+                  .Unsupported.Custom,
             }),
           }, /**
            * Constructor of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Evaluate.PermissionParameter`
@@ -6422,8 +6450,9 @@ export const TransactionStatus = {
                 >
               >({
                 kind: 'Rejected',
-                value: TransactionRejectionReason.Validation.InstructionFailed
-                  .Evaluate.Type.NumericAssetTypeExpected.Store,
+                value:
+                  TransactionRejectionReason.Validation.InstructionFailed
+                    .Evaluate.Type.NumericAssetTypeExpected.Store,
               }),
             },
           },
@@ -6720,8 +6749,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query
-              .NotFound,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Query
+                .NotFound,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Query.CursorMismatch`
            */
@@ -6738,8 +6768,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query
-              .CursorMismatch,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Query
+                .CursorMismatch,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Query.CursorDone`
            */
@@ -6756,8 +6787,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query
-              .CursorDone,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Query
+                .CursorDone,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Query.FetchSizeTooBig`
            */
@@ -6774,8 +6806,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query
-              .FetchSizeTooBig,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Query
+                .FetchSizeTooBig,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Query.InvalidSingularParameters`
            */
@@ -6795,8 +6828,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query
-              .InvalidSingularParameters,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Query
+                .InvalidSingularParameters,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Query.CapacityLimit`
            */
@@ -6813,8 +6847,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Query
-              .CapacityLimit,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Query
+                .CapacityLimit,
           }),
         }, /**
          * Constructor of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Conversion`
@@ -7085,8 +7120,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed
-              .Mintability.MintUnmintable,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed
+                .Mintability.MintUnmintable,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Mintability.ForbidMintOnMintable`
            */
@@ -7106,8 +7142,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed
-              .Mintability.ForbidMintOnMintable,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed
+                .Mintability.ForbidMintOnMintable,
           }),
         }, /**
          * Constructors of nested enumerations under variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math`
@@ -7128,8 +7165,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math
-              .Overflow,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Math
+                .Overflow,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math.NotEnoughQuantity`
            */
@@ -7146,8 +7184,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math
-              .NotEnoughQuantity,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Math
+                .NotEnoughQuantity,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math.DivideByZero`
            */
@@ -7164,8 +7203,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math
-              .DivideByZero,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Math
+                .DivideByZero,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math.NegativeValue`
            */
@@ -7182,8 +7222,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math
-              .NegativeValue,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Math
+                .NegativeValue,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math.DomainViolation`
            */
@@ -7200,8 +7241,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math
-              .DomainViolation,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Math
+                .DomainViolation,
           }), /**
            * Value of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math.Unknown`
            */
@@ -7218,8 +7260,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed.Math
-              .Unknown,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed.Math
+                .Unknown,
           }), /**
            * Constructor of variant `TransactionStatus.Rejected.Validation.InstructionFailed.Math.FixedPointConversion`
            */
@@ -7279,8 +7322,9 @@ export const TransactionStatus = {
             >
           >({
             kind: 'Rejected',
-            value: TransactionRejectionReason.Validation.InstructionFailed
-              .InvalidParameter.TimeTriggerInThePast,
+            value:
+              TransactionRejectionReason.Validation.InstructionFailed
+                .InvalidParameter.TimeTriggerInThePast,
           }),
         }, /**
          * Constructor of variant `TransactionStatus.Rejected.Validation.InstructionFailed.InvariantViolation`
@@ -7571,7 +7615,8 @@ export const TransactionStatus = {
           >
         >({
           kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.CursorMismatch,
+          value:
+            TransactionRejectionReason.Validation.QueryFailed.CursorMismatch,
         }), /**
          * Value of variant `TransactionStatus.Rejected.Validation.QueryFailed.CursorDone`
          */
@@ -7599,7 +7644,8 @@ export const TransactionStatus = {
           >
         >({
           kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.FetchSizeTooBig,
+          value:
+            TransactionRejectionReason.Validation.QueryFailed.FetchSizeTooBig,
         }), /**
          * Value of variant `TransactionStatus.Rejected.Validation.QueryFailed.InvalidSingularParameters`
          */
@@ -7616,8 +7662,9 @@ export const TransactionStatus = {
           >
         >({
           kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed
-            .InvalidSingularParameters,
+          value:
+            TransactionRejectionReason.Validation.QueryFailed
+              .InvalidSingularParameters,
         }), /**
          * Value of variant `TransactionStatus.Rejected.Validation.QueryFailed.CapacityLimit`
          */
@@ -7631,7 +7678,8 @@ export const TransactionStatus = {
           >
         >({
           kind: 'Rejected',
-          value: TransactionRejectionReason.Validation.QueryFailed.CapacityLimit,
+          value:
+            TransactionRejectionReason.Validation.QueryFailed.CapacityLimit,
         }),
       }, /**
        * Value of variant `TransactionStatus.Rejected.Validation.TooComplex`
@@ -11283,7 +11331,8 @@ export const TransactionErrorWithIndex: lib.CodecContainer<
 
 export type TransactionErrors = lib.BTreeSet<TransactionErrorWithIndex>
 export const TransactionErrors = lib.defineCodec(
-  lib.BTreeSet.withCmp(lib.getCodec(TransactionErrorWithIndex), (a, b) => lib.ordCompare(a.index, b.index)),
+  lib.BTreeSet.withCmp(lib.getCodec(TransactionErrorWithIndex), (a, b) =>
+    lib.ordCompare(a.index, b.index)),
 )
 
 /**
@@ -11766,11 +11815,12 @@ export interface CanUnregisterAccount {
 /**
  * Codec of the structure.
  */
-export const CanUnregisterAccount: lib.CodecContainer<CanUnregisterAccount> = lib.defineCodec(
-  lib.structCodec<CanUnregisterAccount>(['account'], {
-    account: lib.getCodec(lib.AccountId),
-  }),
-)
+export const CanUnregisterAccount: lib.CodecContainer<CanUnregisterAccount> =
+  lib.defineCodec(
+    lib.structCodec<CanUnregisterAccount>(['account'], {
+      account: lib.getCodec(lib.AccountId),
+    }),
+  )
 
 /**
  * Structure with named fields.
@@ -11847,11 +11897,12 @@ export interface CanUnregisterTrigger {
 /**
  * Codec of the structure.
  */
-export const CanUnregisterTrigger: lib.CodecContainer<CanUnregisterTrigger> = lib.defineCodec(
-  lib.structCodec<CanUnregisterTrigger>(['trigger'], {
-    trigger: lib.getCodec(TriggerId),
-  }),
-)
+export const CanUnregisterTrigger: lib.CodecContainer<CanUnregisterTrigger> =
+  lib.defineCodec(
+    lib.structCodec<CanUnregisterTrigger>(['trigger'], {
+      trigger: lib.getCodec(TriggerId),
+    }),
+  )
 
 /**
  * Structure with named fields.
@@ -11864,13 +11915,14 @@ export interface CommittedTransaction {
 /**
  * Codec of the structure.
  */
-export const CommittedTransaction: lib.CodecContainer<CommittedTransaction> = lib.defineCodec(
-  lib.structCodec<CommittedTransaction>(['blockHash', 'value', 'error'], {
-    blockHash: lib.getCodec(lib.HashRepr),
-    value: lib.getCodec(SignedTransaction),
-    error: lib.Option.with(lib.getCodec(TransactionRejectionReason)),
-  }),
-)
+export const CommittedTransaction: lib.CodecContainer<CommittedTransaction> =
+  lib.defineCodec(
+    lib.structCodec<CommittedTransaction>(['blockHash', 'value', 'error'], {
+      blockHash: lib.getCodec(lib.HashRepr),
+      value: lib.getCodec(SignedTransaction),
+      error: lib.Option.with(lib.getCodec(TransactionRejectionReason)),
+    }),
+  )
 
 /**
  * This type could not be constructed.
@@ -12698,7 +12750,8 @@ export const CommittedTransactionProjectionSelector = {
             >
           >({
             kind: 'Value',
-            value: SignedTransactionProjectionSelector.Authority.Domain.Name.Atom,
+            value:
+              SignedTransactionProjectionSelector.Authority.Domain.Name.Atom,
           }),
         },
       }, /**
@@ -14306,12 +14359,13 @@ export interface RolePermissionChanged {
 /**
  * Codec of the structure.
  */
-export const RolePermissionChanged: lib.CodecContainer<RolePermissionChanged> = lib.defineCodec(
-  lib.structCodec<RolePermissionChanged>(['role', 'permission'], {
-    role: lib.getCodec(RoleId),
-    permission: lib.getCodec(Permission),
-  }),
-)
+export const RolePermissionChanged: lib.CodecContainer<RolePermissionChanged> =
+  lib.defineCodec(
+    lib.structCodec<RolePermissionChanged>(['role', 'permission'], {
+      role: lib.getCodec(RoleId),
+      permission: lib.getCodec(Permission),
+    }),
+  )
 
 /**
  * Enumeration (discriminated union). Represented as one of the following variants:
@@ -15144,12 +15198,13 @@ export interface TriggerCompletedEvent {
 /**
  * Codec of the structure.
  */
-export const TriggerCompletedEvent: lib.CodecContainer<TriggerCompletedEvent> = lib.defineCodec(
-  lib.structCodec<TriggerCompletedEvent>(['triggerId', 'outcome'], {
-    triggerId: lib.getCodec(TriggerId),
-    outcome: lib.getCodec(TriggerCompletedOutcome),
-  }),
-)
+export const TriggerCompletedEvent: lib.CodecContainer<TriggerCompletedEvent> =
+  lib.defineCodec(
+    lib.structCodec<TriggerCompletedEvent>(['triggerId', 'outcome'], {
+      triggerId: lib.getCodec(TriggerId),
+      outcome: lib.getCodec(TriggerCompletedOutcome),
+    }),
+  )
 
 /**
  * Enumeration (discriminated union). Represented as one of the following variants:
@@ -15817,11 +15872,12 @@ export interface FindAccountsWithAsset {
 /**
  * Codec of the structure.
  */
-export const FindAccountsWithAsset: lib.CodecContainer<FindAccountsWithAsset> = lib.defineCodec(
-  lib.structCodec<FindAccountsWithAsset>(['assetDefinition'], {
-    assetDefinition: lib.getCodec(lib.AssetDefinitionId),
-  }),
-)
+export const FindAccountsWithAsset: lib.CodecContainer<FindAccountsWithAsset> =
+  lib.defineCodec(
+    lib.structCodec<FindAccountsWithAsset>(['assetDefinition'], {
+      assetDefinition: lib.getCodec(lib.AssetDefinitionId),
+    }),
+  )
 
 /**
  * Structure with named fields.
@@ -15849,11 +15905,12 @@ export interface FindRolesByAccountId {
 /**
  * Codec of the structure.
  */
-export const FindRolesByAccountId: lib.CodecContainer<FindRolesByAccountId> = lib.defineCodec(
-  lib.structCodec<FindRolesByAccountId>(['id'], {
-    id: lib.getCodec(lib.AccountId),
-  }),
-)
+export const FindRolesByAccountId: lib.CodecContainer<FindRolesByAccountId> =
+  lib.defineCodec(
+    lib.structCodec<FindRolesByAccountId>(['id'], {
+      id: lib.getCodec(lib.AccountId),
+    }),
+  )
 
 /**
  * Structure with named fields.
@@ -17478,7 +17535,9 @@ export const MultisigPropose: lib.CodecContainer<MultisigPropose> = lib
       'transactionTtl',
     ], {
       account: lib.getCodec(lib.AccountId),
-      instructions: lib.Vec.with(lib.lazyCodec(() => lib.getCodec(InstructionBox))),
+      instructions: lib.Vec.with(lib.lazyCodec(() =>
+        lib.getCodec(InstructionBox)
+      )),
       transactionTtl: lib.Option.with(
         lib.NonZero.with(lib.getCodec(lib.Duration)),
       ),
@@ -17545,21 +17604,24 @@ export interface MultisigProposalValue {
 /**
  * Codec of the structure.
  */
-export const MultisigProposalValue: lib.CodecContainer<MultisigProposalValue> = lib.defineCodec(
-  lib.structCodec<MultisigProposalValue>([
-    'instructions',
-    'proposedAt',
-    'expiresAt',
-    'approvals',
-    'isRelayed',
-  ], {
-    instructions: lib.Vec.with(lib.lazyCodec(() => lib.getCodec(InstructionBox))),
-    proposedAt: lib.getCodec(lib.Timestamp),
-    expiresAt: lib.getCodec(lib.Timestamp),
-    approvals: lib.BTreeSet.with(lib.getCodec(lib.AccountId)),
-    isRelayed: lib.Option.with(lib.getCodec(lib.Bool)),
-  }),
-)
+export const MultisigProposalValue: lib.CodecContainer<MultisigProposalValue> =
+  lib.defineCodec(
+    lib.structCodec<MultisigProposalValue>([
+      'instructions',
+      'proposedAt',
+      'expiresAt',
+      'approvals',
+      'isRelayed',
+    ], {
+      instructions: lib.Vec.with(lib.lazyCodec(() =>
+        lib.getCodec(InstructionBox)
+      )),
+      proposedAt: lib.getCodec(lib.Timestamp),
+      expiresAt: lib.getCodec(lib.Timestamp),
+      approvals: lib.BTreeSet.with(lib.getCodec(lib.AccountId)),
+      isRelayed: lib.Option.with(lib.getCodec(lib.Bool)),
+    }),
+  )
 
 /**
  * This type could not be constructed.
@@ -17609,15 +17671,16 @@ export interface TransactionParameters {
 /**
  * Codec of the structure.
  */
-export const TransactionParameters: lib.CodecContainer<TransactionParameters> = lib.defineCodec(
-  lib.structCodec<TransactionParameters>([
-    'maxInstructions',
-    'smartContractSize',
-  ], {
-    maxInstructions: lib.NonZero.with(lib.getCodec(lib.U64)),
-    smartContractSize: lib.NonZero.with(lib.getCodec(lib.U64)),
-  }),
-)
+export const TransactionParameters: lib.CodecContainer<TransactionParameters> =
+  lib.defineCodec(
+    lib.structCodec<TransactionParameters>([
+      'maxInstructions',
+      'smartContractSize',
+    ], {
+      maxInstructions: lib.NonZero.with(lib.getCodec(lib.U64)),
+      smartContractSize: lib.NonZero.with(lib.getCodec(lib.U64)),
+    }),
+  )
 
 /**
  * Structure with named fields.
@@ -19329,25 +19392,28 @@ export interface RawGenesisTransaction {
 /**
  * Codec of the structure.
  */
-export const RawGenesisTransaction: lib.CodecContainer<RawGenesisTransaction> = lib.defineCodec(
-  lib.structCodec<RawGenesisTransaction>([
-    'chain',
-    'executor',
-    'parameters',
-    'instructions',
-    'wasmDir',
-    'wasmTriggers',
-    'topology',
-  ], {
-    chain: lib.getCodec(ChainId),
-    executor: lib.getCodec(lib.String),
-    parameters: lib.Option.with(lib.getCodec(Parameters)),
-    instructions: lib.Vec.with(lib.lazyCodec(() => lib.getCodec(InstructionBox))),
-    wasmDir: lib.getCodec(lib.String),
-    wasmTriggers: lib.Vec.with(lib.getCodec(GenesisWasmTrigger)),
-    topology: lib.Vec.with(lib.getCodec(PeerId)),
-  }),
-)
+export const RawGenesisTransaction: lib.CodecContainer<RawGenesisTransaction> =
+  lib.defineCodec(
+    lib.structCodec<RawGenesisTransaction>([
+      'chain',
+      'executor',
+      'parameters',
+      'instructions',
+      'wasmDir',
+      'wasmTriggers',
+      'topology',
+    ], {
+      chain: lib.getCodec(ChainId),
+      executor: lib.getCodec(lib.String),
+      parameters: lib.Option.with(lib.getCodec(Parameters)),
+      instructions: lib.Vec.with(lib.lazyCodec(() =>
+        lib.getCodec(InstructionBox)
+      )),
+      wasmDir: lib.getCodec(lib.String),
+      wasmTriggers: lib.Vec.with(lib.getCodec(GenesisWasmTrigger)),
+      topology: lib.Vec.with(lib.getCodec(PeerId)),
+    }),
+  )
 
 /**
  * Structure with named fields.

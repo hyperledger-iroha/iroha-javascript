@@ -23,7 +23,7 @@ import {
   WebSocketAPI,
 } from './api-ws.ts'
 import type { IsomorphicWebSocketAdapter } from './web-socket/types.ts'
-import { FindAPI } from './generated/find-api.ts'
+import { FindAPI } from './generated/find-api._generated_.ts'
 import { QueryExecutor } from './query.ts'
 
 export interface CreateClientParams {

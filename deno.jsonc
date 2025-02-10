@@ -52,6 +52,7 @@
   },
   "fmt": {
     "include": ["."],
+    "exclude": ["**/*._generated_.ts"],
     "semiColons": false,
     "lineWidth": 120,
     "singleQuote": true

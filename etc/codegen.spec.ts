@@ -61,11 +61,11 @@ test('codegen snapshots', async () => {
   const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
 
   await expect(await formatTS(generateDataModel(resolver, './data-model.prelude.ts'))).toMatchFileSnapshot(
-    '../packages/data-model/src/generated/data-model.ts',
+    '../packages/data-model/src/generated/data-model._generated_.ts',
   )
 
   await expect(await formatTS(generateClientFindAPI(resolver, './find-api.prelude.ts'))).toMatchFileSnapshot(
-    '../packages/client/src/generated/find-api.ts',
+    '../packages/client/src/generated/find-api._generated_.ts',
   )
 })
 
