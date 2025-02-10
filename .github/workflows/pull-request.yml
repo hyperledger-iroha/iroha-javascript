@@ -17,8 +17,8 @@ jobs:
       - name: Clone Iroha
         run: deno task prep:iroha --git $IROHA_GIT --git-rev $IROHA_REV
         env:
-          IROHA_GIT: https://github.com/hyperledger-iroha/iroha.git
-          IROHA_REV: v2.0.0-rc.1.0
+          IROHA_GIT: https://github.com/0x009922/iroha.git
+          IROHA_REV: 5302-expose-signature-payload
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
