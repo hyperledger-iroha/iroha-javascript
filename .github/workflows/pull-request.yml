@@ -23,7 +23,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache-on-failure: "true"
-          cache-directories: ".iroha crypto-wasm"
+          workspaces: ".iroha -> target\ncrypto-wasm -> target"
 
       - name: Build Iroha & WASMs
         run: |
