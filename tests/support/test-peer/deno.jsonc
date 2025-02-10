@@ -1,5 +1,16 @@
 {
+  "name": "@iroha/test-peer",
+  "exports": {
+    ".": "./mod.ts",
+    "./api/server": "./api/server.ts"
+  },
   "tasks": {
-    "run": "DEBUG=\"@iroha2*\" deno run --allow-all ./etc/run.ts"
+    "run": "DEBUG=\"@iroha*\" deno run --allow-all ./etc/run.ts"
+  },
+  "imports": {
+    "debug": "npm:debug@^4.4.0",
+    "h3": "npm:h3@^1.15.0",
+    "listhen": "npm:listhen@^1.9.0",
+    "tempy": "npm:tempy@^3.1.0"
   }
 }

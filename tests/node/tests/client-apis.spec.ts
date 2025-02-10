@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
-import { SCHEMA } from '@iroha2/data-model'
-import { HttpTransport, MainAPI } from '@iroha2/client'
+import SCHEMA from '@iroha/core/data-model/schema-json'
+import { HttpTransport, MainAPI } from '@iroha/client'
 
 import { useNetwork, usePeer } from './util.ts'
 import { Buffer } from 'node:buffer'

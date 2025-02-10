@@ -1,9 +1,10 @@
 import type { Except, JsonValue } from 'type-fest'
-import * as dm from '@iroha2/data-model'
-import type { SCHEMA } from '@iroha2/data-model'
-import { irohaCodecToScale } from '@iroha2/iroha-source'
+import { type CodecContainer, defineCodec, getCodec } from '@iroha/core'
+import * as dm from '@iroha/core/data-model'
+import type SCHEMA from '@iroha/core/data-model/schema-json'
+import { irohaCodecToScale } from '@iroha/iroha-source'
 import { describe, expect, test } from 'vitest'
-import { Bytes, KeyPair } from '@iroha2/crypto'
+import { Bytes, KeyPair } from '@iroha/crypto'
 
 export const SAMPLE_ACCOUNT_ID = dm.AccountId.parse(
   'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
@@ -15,7 +16,7 @@ function toHex(bytes: Uint8Array) {
 
 interface Case<T> {
   type: keyof typeof SCHEMA
-  codec: dm.CodecContainer<T>
+  codec: CodecContainer<T>
   value: T
   json: JsonValue
 }
@@ -103,8 +104,8 @@ function casesTxPayload() {
 function casesCompoundPredicates() {
   const base = {
     type: 'CompoundPredicate<Asset>',
-    codec: dm.defineCodec(
-      dm.CompoundPredicate.with(dm.getCodec(dm.AssetProjectionPredicate)),
+    codec: defineCodec(
+      dm.CompoundPredicate.with(getCodec(dm.AssetProjectionPredicate)),
     ),
   } as const
   const atom = defCase(
@@ -310,14 +311,14 @@ test.each([
   `Check encoding against iroha_codec of type $type: $value`,
   async <T>(data: Case<T>) => {
     const referenceEncoded = await irohaCodecToScale(data.type, data.json)
-    const actualEncoded = dm.getCodec(data.codec).encode(data.value)
+    const actualEncoded = getCodec(data.codec).encode(data.value)
     expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
   },
 )
 
 describe('BTree{Set/Map}', () => {
   test('Metadata encoding matches with iroha_codec', async () => {
-    const CODEC = dm.getCodec(dm.Metadata)
+    const CODEC = getCodec(dm.Metadata)
     const reference = await irohaCodecToScale('Metadata', {
       foo: 'bar',
       bar: [1, 2, 3],
@@ -339,7 +340,7 @@ describe('BTree{Set/Map}', () => {
   })
 
   test('Metadata encoding is the same with and without duplicate entries', () => {
-    const CODEC = dm.getCodec(dm.Metadata)
+    const CODEC = getCodec(dm.Metadata)
 
     const withDuplicate: dm.Metadata = [
       { key: new dm.Name('foo'), value: dm.Json.fromValue('bar') },
@@ -379,13 +380,13 @@ describe('BTree{Set/Map}', () => {
       ids.map((x) => x.toJSON()),
     )
 
-    expect(dm.BTreeSet.with(dm.getCodec(dm.AccountId)).encode(ids)).toEqual(
+    expect(dm.BTreeSet.with(getCodec(dm.AccountId)).encode(ids)).toEqual(
       reference,
     )
   })
 
   test('BTreeSet<Permission> - encoding matches', async () => {
-    const codec = dm.getCodec(dm.PermissionsSet)
+    const codec = getCodec(dm.PermissionsSet)
     const reference = await irohaCodecToScale('SortedVec<Permission>', [
       { name: 'foo', payload: [1, 2, 3] },
       { name: 'foo', payload: [3, 2, 1] },

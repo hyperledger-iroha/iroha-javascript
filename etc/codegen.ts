@@ -1,4 +1,4 @@
-import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha2/data-model'
+import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha/core/data-model/schema'
 import { camelCase } from 'change-case'
 import { deepEqual } from 'fast-equals'
 import { assert as assert, fail } from '@std/assert'
@@ -58,8 +58,8 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
       `/**\n* Convenience method for \`${x.tag}\` query, a variant of {@link dm.QueryBox} enum.\n` +
       `* - Predicate type: {@link dm.${predicate}}\n` +
       `* - Selector type: {@link dm.${selector}}\n */\n` +
-      `  public ${methodName}<const P extends dm.BuildQueryParams<'${x.tag}'>>(${payloadArg}params?: P): ` +
-      `client.QueryHandle<dm.GetQueryOutput<'${x.tag}', P>> {` +
+      `  public ${methodName}<const P extends core.BuildQueryParams<'${x.tag}'>>(${payloadArg}params?: P): ` +
+      `client.QueryHandle<core.GetQueryOutput<'${x.tag}', P>> {` +
       `return client.buildQueryHandle(this._executor, '${x.tag}', ${payloadArgValue}, params) }\n`
     )
   })
@@ -75,14 +75,15 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
 
     return (
       `\n/** Convenience method for \`${x.tag}\` query, a variant of {@link dm.SingularQueryBox} enum. */` +
-      `  public ${methodName}(): Promise<dm.GetSingularQueryOutput<'${x.tag}'>> {` +
+      `  public ${methodName}(): Promise<core.GetSingularQueryOutput<'${x.tag}'>> {` +
       `return client.executeSingularQuery(this._executor, '${x.tag}') }`
     )
   })
 
   return [
     `import * as client from '${libClient}'`,
-    `import type * as dm from '@iroha2/data-model'`,
+    `import type * as core from '@iroha/core'`,
+    `import type * as dm from '@iroha/core/data-model'`,
     `export class FindAPI {`,
     `  private _executor: client.QueryExecutor`,
     `  public constructor(executor: client.QueryExecutor) { this._executor = executor; }`,

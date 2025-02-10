@@ -10,5 +10,5 @@ v8-compile-cache-0
 .vscode
 
 /.iroha
-/packages/crypto-*/src/wasm-target
+/packages/crypto*/wasm-target
 

@@ -43,7 +43,7 @@ async function buildCryptoWasm(opts?: { wasmPack?: boolean }) {
   await Deno.mkdir(copyToDir)
   const dts = path.join(wasmPackOutDir('node'), `${wasmPackOutName}.d.ts`)
   await $`cp ${dts} ${copyToDir}/wasm-pkg.d.ts`
-  $.logStep('Copied artifacts to @iroha2/crypto* packages')
+  $.logStep('Copied artifacts to @iroha/crypto* packages')
 }
 
 const args = parseArgs(Deno.args, {

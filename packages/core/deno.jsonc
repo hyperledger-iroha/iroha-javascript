@@ -1,0 +1,15 @@
+{
+  "name": "@iroha/core",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./data-model": "./data-model/mod.ts",
+    "./data-model/schema": "./data-model/schema/mod.ts",
+    "./data-model/schema-json": "./data-model/schema/json.ts"
+  },
+  "imports": {
+    "@scale-codec/core": "npm:@scale-codec/core@^2.0.1",
+    "@std/encoding": "jsr:@std/encoding@^1.0.7",
+    "type-fest": "npm:type-fest@^4.33.0"
+  }
+}

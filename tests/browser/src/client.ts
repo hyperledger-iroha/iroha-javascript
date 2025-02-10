@@ -1,12 +1,12 @@
-import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha2/test-configuration'
+import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
 
-import { Client } from '@iroha2/client'
-import { adapter as WS } from '@iroha2/client/web-socket/native'
+import { Client } from '@iroha/client'
+import { adapter as WS } from '@iroha/client/web-socket/native'
 
 // it must resolve first, before using core crypto exports
 import './setup-crypto.ts'
 
-import { KeyPair, PrivateKey, PublicKey } from '@iroha2/crypto'
+import { KeyPair, PrivateKey, PublicKey } from '@iroha/crypto'
 
 const keyPair = KeyPair.fromParts(
   PublicKey.fromMultihash(ACCOUNT_KEY_PAIR.publicKey),

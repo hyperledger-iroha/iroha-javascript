@@ -10,6 +10,7 @@
     "jsr:@std/bytes@0.221": "0.221.0",
     "jsr:@std/cli@*": "1.0.12",
     "jsr:@std/collections@^1.0.9": "1.0.10",
+    "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/fmt@*": "1.0.5",
     "jsr:@std/fmt@1": "1.0.5",
     "jsr:@std/fmt@^1.0.5": "1.0.5",
@@ -48,6 +49,7 @@
     "npm:ts-pattern@^5.6.2": "5.6.2",
     "npm:type-fest@^4.33.0": "4.33.0",
     "npm:vite@^6.1.0": "6.1.0_sass@1.84.0",
+    "npm:vitest@*": "3.0.5_vite@6.1.0__sass@1.84.0_sass@1.84.0",
     "npm:vitest@3.0.5": "3.0.5_vite@6.1.0__sass@1.84.0_sass@1.84.0",
     "npm:vitest@^3.0.5": "3.0.5_vite@6.1.0__sass@1.84.0_sass@1.84.0",
     "npm:vue@^3.2.47": "3.5.13",
@@ -97,6 +99,9 @@
     },
     "@std/collections@1.0.10": {
       "integrity": "903af106a3d92970d74e20f7ebff77d9658af9bef4403f1dc42a7801c0575899"
+    },
+    "@std/encoding@1.0.7": {
+      "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
     },
     "@std/fmt@1.0.5": {
       "integrity": "0cfab43364bc36650d83c425cd6d99910fc20c4576631149f0f987eddede1a4d"
@@ -2890,6 +2895,7 @@
     "dependencies": [
       "jsr:@std/assert@^1.0.11",
       "jsr:@std/async@^1.0.10",
+      "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fmt@^1.0.5",
       "jsr:@std/toml@^1.0.2",
       "npm:@deno/vite-plugin@^1.0.3",
@@ -2907,18 +2913,16 @@
     ],
     "members": {
       "packages/client": {
-        "packageJson": {
-          "dependencies": [
-            "npm:debug@^4.4.0",
-            "npm:emittery@^1.1.0",
-            "npm:p-defer@^4.0.1",
-            "npm:type-fest@^4.33.0",
-            "npm:ws@^8.18.0"
-          ]
-        }
-      },
-      "packages/data-model": {
         "dependencies": [
+          "npm:debug@^4.4.0",
+          "npm:emittery@^1.1.0",
+          "npm:p-defer@^4.0.1",
+          "npm:ws@^8.18.0"
+        ]
+      },
+      "packages/core": {
+        "dependencies": [
+          "jsr:@std/encoding@^1.0.7",
           "npm:@scale-codec/core@^2.0.1",
           "npm:type-fest@^4.33.0"
         ]
@@ -2941,21 +2945,17 @@
         }
       },
       "tests/support/test-configuration": {
-        "packageJson": {
-          "dependencies": [
-            "npm:tempy@^3.1.0"
-          ]
-        }
+        "dependencies": [
+          "npm:tempy@^3.1.0"
+        ]
       },
       "tests/support/test-peer": {
-        "packageJson": {
-          "dependencies": [
-            "npm:debug@^4.4.0",
-            "npm:h3@^1.15.0",
-            "npm:listhen@^1.9.0",
-            "npm:tempy@^3.1.0"
-          ]
-        }
+        "dependencies": [
+          "npm:debug@^4.4.0",
+          "npm:h3@^1.15.0",
+          "npm:listhen@^1.9.0",
+          "npm:tempy@^3.1.0"
+        ]
       }
     }
   }

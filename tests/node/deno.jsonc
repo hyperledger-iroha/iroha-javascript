@@ -1,6 +1,6 @@
 {
   "tasks": {
     "test": "vitest run",
-    "test:verbose": "DEBUG=\"@iroha2*\" deno task test"
+    "test:verbose": "DEBUG=\"@iroha*\" deno task test"
   }
 }

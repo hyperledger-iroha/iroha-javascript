@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
 
-import { Bytes, KeyPair } from '@iroha2/crypto'
-import * as dm from '@iroha2/data-model'
-import { type Client, QueryValidationError } from '@iroha2/client'
+import { Bytes, KeyPair } from '@iroha/crypto'
+import { blockHash } from '@iroha/core'
+import * as dm from '@iroha/core/data-model'
+import { type Client, QueryValidationError } from '@iroha/client'
 import { usePeer } from './util.ts'
 import { match, P } from 'ts-pattern'
-import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha2/test-configuration'
+import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha/test-configuration'
 
 async function submitTestData(client: Client) {
   const bob = KeyPair.deriveFromSeed(Bytes.hex('bbbb'))
@@ -341,7 +342,7 @@ describe('Queries', () => {
       .blocks({
         predicate: dm.CompoundPredicate.Atom(
           dm.SignedBlockProjectionPredicate.Header.Hash.Atom.Equals(
-            dm.HashRepr.fromCrypto(dm.blockHash(someBlock.value.payload.header)),
+            dm.HashRepr.fromCrypto(blockHash(someBlock.value.payload.header)),
           ),
         ),
       })

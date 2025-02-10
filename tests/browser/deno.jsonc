@@ -31,7 +31,7 @@
       "command": "deno task app:build && deno task test:run"
     },
     "test:run": {
-      "command": "DEBUG=\"@iroha2*\" deno run --allow-all ./etc/test-run.ts",
+      "command": "DEBUG=\"@iroha*\" deno run --allow-all ./etc/test-run.ts",
       "dependencies": ["legacy-install"]
     }
   }

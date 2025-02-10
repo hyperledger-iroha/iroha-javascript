@@ -1,7 +1,0 @@
-{
-  "name": "@iroha2/iroha-source",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "exports": "./src/lib.ts"
-}

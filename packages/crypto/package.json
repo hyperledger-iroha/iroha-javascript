@@ -1,6 +1,0 @@
-{
-  "name": "@iroha2/crypto",
-  "version": "0.1.0",
-  "type": "module",
-  "exports": "./src/lib.ts"
-}

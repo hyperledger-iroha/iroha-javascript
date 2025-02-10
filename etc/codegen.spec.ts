@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import type { Schema } from '../packages/data-model/src/schema/lib.ts'
-import { SCHEMA } from '../packages/data-model/src/schema/lib.ts'
+import type { Schema } from '@iroha/core/data-model/schema'
+import SCHEMA from '@iroha/core/data-model/schema-json'
 import {
   type EmitCode,
   type EmitsMap,
@@ -49,10 +49,6 @@ const EXTENSION: Schema = {
 
 */
 
-// function prettierFormat(code: string): Promise<string> {
-//   return format(code, { parser: 'typescript', ...PRETTIER_OPTIONS })
-// }
-
 // convenient for development in watch mode
 // works almost as if JavaScript supported comptime codegen
 test('codegen snapshots', async () => {
@@ -60,13 +56,14 @@ test('codegen snapshots', async () => {
 
   const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
 
-  await expect(await formatTS(generateDataModel(resolver, './data-model.prelude.ts'))).toMatchFileSnapshot(
-    '../packages/data-model/src/generated/data-model._generated_.ts',
+  await expect(await formatTS(generateDataModel(resolver, './_generated_.prelude.ts'))).toMatchFileSnapshot(
+    '../packages/core/data-model/_generated_.ts',
   )
 
-  await expect(await formatTS(generateClientFindAPI(resolver, './find-api.prelude.ts'))).toMatchFileSnapshot(
-    '../packages/client/src/generated/find-api._generated_.ts',
-  )
+  await expect(await formatTS(generateClientFindAPI(resolver, './find-api._generated_.prelude.ts')))
+    .toMatchFileSnapshot(
+      '../packages/client/find-api._generated_.ts',
+    )
 })
 
 // test("codegen")
