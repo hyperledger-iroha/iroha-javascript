@@ -11,7 +11,7 @@ jobs:
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
           version: 'v0.13.1'
-      - uses: actions/setup-deno
+      - uses: actions/setup-deno@v2
         with:
           deno-version: v2.x
       
