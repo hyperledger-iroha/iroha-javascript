@@ -1,6 +1,6 @@
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha/core/data-model/schema'
-import { camelCase } from 'change-case'
-import { deepEqual } from 'fast-equals'
+import { toCamelCase as camelCase } from 'jsr:@std/text'
+import { deepEqual } from 'npm:fast-equals'
 import { assert as assert, fail } from '@std/assert'
 import { match, P } from 'ts-pattern'
 

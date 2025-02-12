@@ -1,72 +1,16 @@
 import { describe, expect, test } from 'vitest'
-import type { Schema } from '@iroha/core/data-model/schema'
-import SCHEMA from '@iroha/core/data-model/schema-json'
 import {
   type EmitCode,
   type EmitsMap,
   enumShortcuts,
   type EnumShortcutTreeVariant,
-  generateClientFindAPI,
-  generateDataModel,
   renderShortcutsTree,
-  Resolver,
 } from './codegen.ts'
 import * as dprint from 'dprint-node'
 
 async function formatTS(code: string): Promise<string> {
   return dprint.format('whichever.ts', code, { semiColons: 'asi', quoteStyle: 'preferSingle' })
 }
-
-/**
- * There are not included into the schema for some reason, but are useful to generate code for.
- */
-const EXTENSION: Schema = {
-  Status: {
-    Struct: [
-      { name: 'peers', type: 'Compact<u128>' },
-      { name: 'blocks', type: 'Compact<u128>' },
-      { name: 'txs_accepted', type: 'Compact<u128>' },
-      { name: 'txs_rejected', type: 'Compact<u128>' },
-      { name: 'uptime', type: 'Uptime' },
-      { name: 'view_changes', type: 'Compact<u128>' },
-      { name: 'queue_size', type: 'Compact<u128>' },
-    ],
-  },
-  Uptime: {
-    Struct: [
-      { name: 'secs', type: 'Compact<u128>' },
-      { name: 'nanos', type: 'u32' },
-    ],
-  },
-}
-
-/* TODO
-
-- II  fix core types
-- II  more object.freeze
-- III codecFromPair()?
-- III Codec - differentiate input/output types?
-
-*/
-
-// convenient for development in watch mode
-// works almost as if JavaScript supported comptime codegen
-test('codegen snapshots', async () => {
-  expect(SCHEMA).not.contain.keys(Object.keys(EXTENSION))
-
-  const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
-
-  await expect(await formatTS(generateDataModel(resolver, './_generated_.prelude.ts'))).toMatchFileSnapshot(
-    '../packages/core/data-model/_generated_.ts',
-  )
-
-  await expect(await formatTS(generateClientFindAPI(resolver, './find-api._generated_.prelude.ts')))
-    .toMatchFileSnapshot(
-      '../packages/client/find-api._generated_.ts',
-    )
-})
-
-// test("codegen")
 
 describe('enum shortcuts', () => {
   const SAMPLE = {

@@ -4,6 +4,7 @@
     "jsr:@david/dax@*": "0.42.0",
     "jsr:@david/path@0.2": "0.2.0",
     "jsr:@david/which@~0.4.1": "0.4.1",
+    "jsr:@dprint/formatter@*": "0.4.1",
     "jsr:@std/assert@0.221": "0.221.0",
     "jsr:@std/assert@^1.0.11": "1.0.11",
     "jsr:@std/async@^1.0.10": "1.0.10",
@@ -13,6 +14,7 @@
     "jsr:@std/crypto@*": "1.0.4",
     "jsr:@std/encoding@*": "1.0.7",
     "jsr:@std/encoding@^1.0.7": "1.0.7",
+    "jsr:@std/expect@*": "1.0.13",
     "jsr:@std/fmt@*": "1.0.5",
     "jsr:@std/fmt@1": "1.0.5",
     "jsr:@std/fmt@^1.0.5": "1.0.5",
@@ -24,9 +26,11 @@
     "jsr:@std/path@1": "1.0.8",
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/streams@0.221": "0.221.0",
+    "jsr:@std/text@*": "1.0.10",
     "jsr:@std/toml@^1.0.2": "1.0.2",
     "npm:@bahmutov/cypress-esbuild-preprocessor@^2.2.0": "2.2.4_esbuild@0.24.2",
     "npm:@deno/vite-plugin@^1.0.3": "1.0.3_vite@6.1.0__sass@1.84.0_sass@1.84.0",
+    "npm:@dprint/typescript@*": "0.93.3",
     "npm:@scale-codec/core@^2.0.1": "2.0.1",
     "npm:@types/node@*": "22.5.4",
     "npm:@vitejs/plugin-vue@^5.0.4": "5.2.1_vite@6.1.0__sass@1.84.0_vue@3.5.13_sass@1.84.0",
@@ -38,6 +42,7 @@
     "npm:dprint-node@^1.0.8": "1.0.8",
     "npm:emittery@^1.1.0": "1.1.0",
     "npm:esbuild@~0.24.2": "0.24.2",
+    "npm:fast-equals@*": "5.2.2",
     "npm:fast-equals@^5.2.2": "5.2.2",
     "npm:get-port@^7.1.0": "7.1.0",
     "npm:h3@^1.15.0": "1.15.0",
@@ -82,6 +87,9 @@
     "@david/which@0.4.1": {
       "integrity": "896a682b111f92ab866cc70c5b4afab2f5899d2f9bde31ed00203b9c250f225e"
     },
+    "@dprint/formatter@0.4.1": {
+      "integrity": "96449ab83aa9f72df98caa5030d3f4a921c5c29d9b0e0d0da83d79e2024a9637"
+    },
     "@std/assert@0.221.0": {
       "integrity": "a5f1aa6e7909dbea271754fd4ab3f4e687aeff4873b4cef9a320af813adb489a"
     },
@@ -108,6 +116,13 @@
     },
     "@std/encoding@1.0.7": {
       "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
+    },
+    "@std/expect@1.0.13": {
+      "integrity": "d8e236c7089cd9fcf5e6032f27dadc3db6349d0aee48c15bc71d717bca5baa42",
+      "dependencies": [
+        "jsr:@std/assert@^1.0.11",
+        "jsr:@std/internal"
+      ]
     },
     "@std/fmt@1.0.5": {
       "integrity": "0cfab43364bc36650d83c425cd6d99910fc20c4576631149f0f987eddede1a4d"
@@ -136,6 +151,9 @@
       "dependencies": [
         "jsr:@std/io"
       ]
+    },
+    "@std/text@1.0.10": {
+      "integrity": "9dcab377450253c0efa9a9a0c731040bfd4e1c03f8303b5934381467b7954338"
     },
     "@std/toml@1.0.2": {
       "integrity": "5892ba489c5b512265a384238a8fe8dddbbb9498b4b210ef1b9f0336a423a39b",
@@ -209,6 +227,9 @@
       "dependencies": [
         "vite"
       ]
+    },
+    "@dprint/typescript@0.93.3": {
+      "integrity": "sha512-P/AAHYDyUG+5hih8knuk3s9n2wrCD1LSh0YsLlJMx6+v0Wsjf0PpcVRn+xDvHCtwPUctB5WBkZT2U8mu6Cm7RQ=="
     },
     "@esbuild/aix-ppc64@0.24.2": {
       "integrity": "sha512-thpVCb/rhxE/BnMLQ7GReQLLN8q9qbHmI55F4489/ByVg2aQaQ6kbcLb6FHkocZzQhxc4gx0sCk0tJkKBFzDhA=="

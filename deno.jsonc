@@ -26,7 +26,8 @@
       "dependencies": ["prep:iroha:check"]
     },
     "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
-    "prep:codegen": "vitest run codegen",
+    "prep:codegen": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
+    "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
     "check:all": "deno check .",
     "test:vitest": {
       "dependencies": ["prep:iroha:check"],
