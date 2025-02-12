@@ -15,7 +15,9 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
       - name: Check cache hit
         env:
-          TEST: ${{ steps.perp-cache.outputs.cache-hit }}
+          TEST: ${{ steps.prep-cache.outputs.cache-hit }}
+          TEST2: ${{ steps.prep-cache.outputs }}
+          TEST3: ${{ steps.prep-cache }}
         # if: steps.prep-cache.outputs.cache-hit != 'true'
         run: echo $TEST
       # - uses: actions-rust-lang/setup-rust-toolchain@v1
