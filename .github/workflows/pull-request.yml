@@ -33,10 +33,11 @@ jobs:
           cache-on-failure: 'true'
           cache-all-crates: 'true'
 
-      - name: Build Iroha & WASMs
+      - name: Prep tasks
         run: |
           deno task prep:iroha:build
           deno task prep:crypto-wasm
+          deno task prep:codegen
 
       - name: Type check
         run: deno task check:all
