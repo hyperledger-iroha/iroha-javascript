@@ -2,6 +2,9 @@ name: Pull Request CI
 on:
   pull_request:
     branches: [main]
+env:
+  IROHA_GIT: https://github.com/0x009922/iroha.git
+  IROHA_REV: 5302-expose-signature-payload
 jobs:
   prep-crypto-wasm:
     runs-on: ubuntu-latest
@@ -29,6 +32,33 @@ jobs:
       - name: Build packages
         if: steps.prep-cache.outputs.cache-hit != 'true'
         run: deno task prep:crypto-wasm
+
+  prep-iroha:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: prep-cache
+        with:
+          path: |
+            prep/iroha
+          key: ${{ runner.os }}-${{ env.IROHA_GIT }}-${{ env.IROHA_REV }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+        with:
+          toolchain: 'nightly-2024-09-09'
+          target: 'wasm32-unknown-unknown'
+          components: rust-src
+          cache: 'false'
+      - uses: denoland/setup-deno@v2
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+        with:
+          deno-version: v2.x
+      - name: Prepare Iroha artifacts
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+        run: |
+          deno task prep:iroha --git $IROHA_GIT --git-rev $IROHA_REV
+          deno task prep:iroha:build
 
   check:
     if: false

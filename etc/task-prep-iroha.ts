@@ -5,13 +5,14 @@ import * as path from 'jsr:@std/path'
 import * as colors from 'jsr:@std/fmt/colors'
 import $ from 'jsr:@david/dax'
 import { assert } from '@std/assert'
-import { emptyDir } from 'jsr:@std/fs'
+import { copy, emptyDir } from 'jsr:@std/fs'
 
-const TARGET_DIR = resolveFromRoot('.iroha')
+const IROHA_REPO_DIR = resolveFromRoot('.iroha')
+const PREP_OUTPUT_DIR = resolveFromRoot('prep/iroha')
 
-async function isDirReady() {
+async function dirExists(dir: string) {
   try {
-    await Deno.stat(TARGET_DIR)
+    await Deno.stat(dir)
     return true
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
@@ -20,49 +21,65 @@ async function isDirReady() {
   }
 }
 
-async function assertDirIsReady() {
-  assert(await isDirReady(), 'Iroha is not ready; make sure tu run "deno task prep:iroha" first.')
+async function assertRepoIsReady() {
+  assert(await dirExists(IROHA_REPO_DIR), 'Iroha repo is not ready; make sure to run "deno task prep:iroha" first.')
 }
 
 async function clean() {
-  await emptyDir(TARGET_DIR)
+  await emptyDir(IROHA_REPO_DIR)
 }
 
 async function linkPath(target: string) {
   await clean()
 
   const full = path.resolve(target)
-  await Deno.symlink(full, TARGET_DIR)
+  await Deno.symlink(full, IROHA_REPO_DIR)
 
-  $.logStep(`Linked ${TARGET_DIR} -> ${full}`)
+  $.logStep(`Linked ${IROHA_REPO_DIR} -> ${full}`)
 }
 
 async function cloneRepo(repo: string, tagOrRevision: string) {
   await clean()
 
   $.logStep(`Cloning repo ${colors.blue(repo)} at revision ${colors.yellow(tagOrRevision)}`)
-  await $`git init --quiet`.cwd(TARGET_DIR)
-  await $`git remote add origin ${repo}`.cwd(TARGET_DIR)
-  await $`git fetch origin ${tagOrRevision}`.cwd(TARGET_DIR)
-  await $`git reset --hard FETCH_HEAD`.cwd(TARGET_DIR)
+  await $`git init --quiet`.cwd(IROHA_REPO_DIR)
+  await $`git remote add origin ${repo}`.cwd(IROHA_REPO_DIR)
+  await $`git fetch origin ${tagOrRevision}`.cwd(IROHA_REPO_DIR)
+  await $`git reset --hard FETCH_HEAD`.cwd(IROHA_REPO_DIR)
 
   $.logStep('Finished cloning repo')
 }
 
 async function buildBinaries() {
-  await assertDirIsReady()
+  await assertRepoIsReady()
   const binaries = ['irohad', 'iroha_kagami', 'iroha_codec']
   $.logStep('Building binaries:', binaries)
   const args = binaries.map((x) => ['-p', x])
-  await $`cargo build --release ${args}`.cwd(TARGET_DIR)
+  await $`cargo build --release ${args}`.cwd(IROHA_REPO_DIR)
   $.logStep('Finished building binaries')
 }
 
 async function buildWasms() {
-  await assertDirIsReady()
+  await assertRepoIsReady()
   $.logStep('Building lib wasms')
-  await $`/bin/bash ./scripts/build_wasm.sh libs`.cwd(TARGET_DIR)
+  await $`/bin/bash ./scripts/build_wasm.sh libs`.cwd(IROHA_REPO_DIR)
   $.logStep('Finished building WASMs')
+}
+
+async function copyArtifacts() {
+  await emptyDir(PREP_OUTPUT_DIR)
+  for (
+    const artifactPath of [
+      'target/release/irohad',
+      'target/release/iroha_codec',
+      'target/release/kagami',
+      'defaults/executor.wasm',
+      'docs/source/references/schema.json',
+    ]
+  ) {
+    await copy(path.join(IROHA_REPO_DIR, artifactPath), path.join(PREP_OUTPUT_DIR, '/', path.basename(artifactPath)))
+  }
+  $.logStep(`Finished copying artifacts to ${colors.bold(colors.cyan(PREP_OUTPUT_DIR))}`)
 }
 
 const args = parseArgs(Deno.args, {
@@ -81,11 +98,13 @@ await match(args)
     await linkPath(path)
   })
   .with({ check: true }, async () => {
-    if (await isDirReady()) {
-      $.logStep(`${TARGET_DIR} exists`)
+    if (await dirExists(PREP_OUTPUT_DIR)) {
+      $.logStep(`Checked that ${colors.cyan(PREP_OUTPUT_DIR)} exists`)
     } else {
       $.logError(
-        `${TARGET_DIR} doesn't exist. Make sure to run ${colors.bold(colors.cyan('deno task prep:iroha'))} first`,
+        `Error: ${PREP_OUTPUT_DIR} doesn't exist. Make sure to run ${
+          colors.bold(colors.magenta('deno task prep:iroha:build'))
+        } first`,
       )
       Deno.exit(1)
     }
@@ -93,6 +112,7 @@ await match(args)
   .with({ build: true }, async () => {
     await buildBinaries()
     await buildWasms()
+    await copyArtifacts()
   })
   .otherwise(() => {
     $.logError('Bad CLI args')

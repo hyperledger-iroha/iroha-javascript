@@ -17,29 +17,31 @@
   "tasks": {
     "prep:iroha": "deno run --allow-all ./etc/task-prep-iroha.ts",
     "prep:iroha:check": {
-      "description": "Ensure that Iroha is linked",
+      "description": "Ensure that Iroha is built",
       "command": "deno task prep:iroha --check"
     },
     "prep:iroha:build": {
-      "description": "Build Iroha binaries (such as `irohad` or `iroha_codec`) and WASMs (`executor.wasm`)",
-      "command": "deno task prep:iroha --build",
-      "dependencies": ["prep:iroha:check"]
+      "description": "Build Iroha artifacts and produce `/prep/iroha` directory",
+      "command": "deno task prep:iroha --build"
     },
     "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
     "prep:codegen": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
     "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
-    "check:all": "deno check .",
+    "check:all": {
+      "command": "deno check .",
+      "dependencies": ["prep:iroha:check"]
+    },
     "test:vitest": {
-      "dependencies": ["prep:iroha:check"],
+      "dependencies": ["prep:iroha:check", "prep:codegen"],
       "description": "Run Vitest",
       "command": "vitest run"
     },
     "test:integration:node": {
-      "dependencies": ["prep:iroha:build"],
+      "dependencies": ["prep:iroha:check", "prep:codegen"],
       "command": "cd tests/node && deno task test"
     },
     "test:integration:browser": {
-      "dependencies": ["prep:iroha:build"],
+      "dependencies": ["prep:iroha:check", "prep:codegen"],
       "command": "cd tests/browser && deno task test"
     },
     "test": {
@@ -47,7 +49,7 @@
       "command": "deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
     },
     "dev:run-test-peer": {
-      "dependencies": ["prep:iroha:check"],
+      "dependencies": ["prep:iroha:check", "prep:codegen"],
       // "description": "",
       "command": "cd tests/support/test-peer && deno task run"
     },
