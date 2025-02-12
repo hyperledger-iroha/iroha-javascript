@@ -5,26 +5,27 @@ import * as path from 'jsr:@std/path'
 import * as colors from 'jsr:@std/fmt/colors'
 import $ from 'jsr:@david/dax'
 import { assert } from '@std/assert'
+import { emptyDir } from 'jsr:@std/fs'
 
 const TARGET_DIR = resolveFromRoot('.iroha')
 
-async function isDirExists() {
+async function isDirReady() {
   try {
     await Deno.stat(TARGET_DIR)
     return true
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
       return false
-      // fine
     } else throw err
   }
 }
 
+async function assertDirIsReady() {
+  assert(await isDirReady(), 'Iroha is not ready; make sure tu run "deno task prep:iroha" first.')
+}
+
 async function clean() {
-  if (await isDirExists()) {
-    $.logStep('Removing', TARGET_DIR)
-    await Deno.remove(TARGET_DIR, { recursive: true })
-  }
+  await emptyDir(TARGET_DIR)
 }
 
 async function linkPath(target: string) {
@@ -50,7 +51,7 @@ async function cloneRepo(repo: string, tagOrRevision: string) {
 }
 
 async function buildBinaries() {
-  assert(await isDirExists(), 'clone/link repo first')
+  await assertDirIsReady()
   const binaries = ['irohad', 'iroha_kagami', 'iroha_codec']
   $.logStep('Building binaries:', binaries)
   const args = binaries.map((x) => ['-p', x])
@@ -59,7 +60,7 @@ async function buildBinaries() {
 }
 
 async function buildWasms() {
-  assert(await isDirExists(), 'clone/link repo first')
+  await assertDirIsReady()
   $.logStep('Building lib wasms')
   await $`/bin/bash ./scripts/build_wasm.sh libs`.cwd(TARGET_DIR)
   $.logStep('Finished building WASMs')
@@ -81,7 +82,7 @@ await match(args)
     await linkPath(path)
   })
   .with({ check: true }, async () => {
-    if (await isDirExists()) {
+    if (await isDirReady()) {
       $.logStep(`${TARGET_DIR} exists`)
     } else {
       $.logError(
