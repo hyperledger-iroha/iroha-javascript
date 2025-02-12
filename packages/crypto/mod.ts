@@ -45,7 +45,7 @@ class SingleFreeWrap<T extends Free> implements Free, GetInnerTrackObject {
     this.__guard.free()
   }
 
-  public [FreeScope.getInnerTrackObject]() {
+  public [FreeScope.getInnerTrackObject](): FreeGuard<T> {
     return this.__guard
   }
 }
@@ -226,7 +226,7 @@ export class Signature extends SingleFreeWrap<wasmPkg.Signature> implements HasP
   /**
    * Creates an actual signature, signing the payload with the given private key
    */
-  public static create(privateKey: PrivateKey, payload: Bytes) {
+  public static create(privateKey: PrivateKey, payload: Bytes): Signature {
     const value = new (getWASM(true).Signature)(privateKey.inner, payload.wasm)
     return new Signature(value)
   }

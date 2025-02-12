@@ -1066,7 +1066,7 @@ function renderSumTypes(variants: EmitEnumVariant[]) {
   return mapped.join(' | ')
 }
 
-export function renderShortcutsTree(root: EnumShortcutsTree): string {
+export function renderShortcutsTree(root: EnumShortcutsTree, kind: 'type' | 'value'): string {
   interface State {
     head: { id0: string; var0: string }
     chain: string[]
@@ -1080,15 +1080,6 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
       .otherwise(({ head, chain }) => ({ head, chain: [...chain, variant.name] }))
 
   const genChain = (chain: string[]) => chain.join('.')
-  const genVariantFullChain = (state: State) => {
-    const items = (function* () {
-      yield state.head.id0
-      yield state.head.var0
-      for (const i of state.chain.slice(1)) yield i
-    })()
-
-    return [...items].join('.')
-  }
   const genConcreteType = (
     state: State,
     variant: Pick<Exclude<EnumShortcutTreeVariant, { t: 'enum' }>, 't' | 'name'>,
@@ -1108,63 +1099,63 @@ export function renderShortcutsTree(root: EnumShortcutsTree): string {
   }
 
   function iter(tree: EnumShortcutsTree, stateIn: State | null = null) {
-    return tree.variants
+    const items = tree.variants
       .map((variant): string => {
         const state = nextState(stateIn, tree, variant)
 
-        const { code, doc } = match(variant)
-          .returnType<{ code: string; doc: string }>()
-          .with({ t: 'unit' }, (variant) => ({
-            code: match(state)
+        const { type, value } = match(variant)
+          .returnType<{ type: string; value: string }>()
+          .with({ t: 'unit' }, (variant) =>
+            match(state)
               .with(
                 { chain: [] },
-                ({ head }) => `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}' })`,
+                ({ head }) => ({
+                  value: `${variant.name}: Object.freeze({ kind: '${head.var0}' })`,
+                  type: `${variant.name}: ` + genConcreteType(state, variant),
+                }),
               )
               .otherwise(
-                ({ head, chain }) =>
-                  `Object.freeze<${genConcreteType(state, variant)}>({ kind: '${head.var0}', value: ${
+                ({ head, chain }) => ({
+                  value: `${variant.name}: Object.freeze<${
+                    genConcreteType(state, variant)
+                  }>({ kind: '${head.var0}', value: ${
                     genChain(
                       chain,
                     )
                   } })`,
-              ),
-            doc: renderJsDoc([`Value of variant \`${genVariantFullChain(state)}\``]),
-          }))
-          .with({ t: 'value' }, (variant) => ({
-            code: match(state)
-              .with(
-                { chain: [] },
-                ({ head }) =>
-                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${
-                    genConcreteType(
-                      state,
-                      variant,
-                    )
-                  } => ({ kind: '${head.var0}', value })`,
-              )
-              .otherwise(
-                ({ head, chain }) =>
-                  `<const T extends ${renderRef(variant.value_ty).type}>(value: T): ${
-                    genConcreteType(
-                      state,
-                      variant,
-                    )
-                  } => ({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`,
-              ),
-            doc: renderJsDoc([`Constructor of variant \`${genVariantFullChain(state)}\``]),
-          }))
+                  type: `${variant.name}: ` + genConcreteType(state, variant),
+                }),
+              ))
+          .with({ t: 'value' }, (variant) => {
+            const valueFnBody = match(state)
+              .with({ chain: [] }, ({ head }) => `({ kind: '${head.var0}', value })`)
+              .otherwise(({ head, chain }) => `({ kind: '${head.var0}', value: ${genChain(chain)}(value) })`)
+
+            const valueTy = renderRef(variant.value_ty).type
+            const returnTy = genConcreteType(
+              state,
+              variant,
+            )
+
+            const type = `${variant.name}: <const T extends ${valueTy}>(value: T) => ${returnTy}`
+            const value = `${variant.name}: <const T extends ${valueTy}>(value: T): ${returnTy} => ${valueFnBody}`
+
+            return { type, value }
+          })
           .with({ t: 'enum' }, ({ tree }) => {
             const nested = iter(tree, state)
+            const type = `${variant.name}: ${nested}`
             return {
-              code: `{ ${nested} }`,
-              doc: renderJsDoc([`Constructors of nested enumerations under variant \`${genVariantFullChain(state)}\``]),
+              type,
+              value: type,
             }
           })
           .exhaustive()
 
-        return `${doc} ${variant.name}: ${code}`
+        return kind === 'type' ? type : value
       })
-      .join(', ')
+
+    return `{ ${items.join(', ')} }`
   }
 
   return iter(root)
@@ -1192,13 +1183,16 @@ function renderEmit(id: string, map: EmitsMap): string {
         ``,
         `Since the type is \`never\`, this codec does nothing and throws an error if actually called.`,
       ]),
-      `export const ${id} = lib.defineCodec(lib.neverCodec)`,
+      `export const ${id}: lib.CodecContainer<never> = lib.defineCodec(lib.neverCodec)`,
     ])
     .with({ t: 'enum' }, ({ variants }) => {
-      const shortcuts = renderShortcutsTree({ id, variants: enumShortcuts(variants, map) })
-      assert(shortcuts, `no shortcuts for ${id} meaning this type could not be created and must be "never"`)
+      const tree = { id, variants: enumShortcuts(variants, map) }
+      const shortcutsValue = renderShortcutsTree(tree, 'value')
+      const shortcutsType = renderShortcutsTree(tree, 'type')
 
       const codec = renderBaseEnumCodec(variants) + `.discriminated()`
+
+      const explicitType = `lib.CodecContainer<${id}> & ${shortcutsType}`
 
       return [
         renderJsDoc([
@@ -1210,7 +1204,7 @@ function renderEmit(id: string, map: EmitsMap): string {
         ]),
         `export type ${id} = ${renderSumTypes(variants)}`,
         renderJsDoc([`Codec and constructors for enumeration {@link ${id}}.`]),
-        `export const ${id} = { ${shortcuts}, ...lib.defineCodec(${codec}) }`,
+        `export const ${id}: ${explicitType} = { ...${shortcutsValue}, ...lib.defineCodec(${codec}) }`,
       ]
     })
     .with({ t: 'struct' }, ({ fields }) => {
@@ -1254,7 +1248,10 @@ function renderEmit(id: string, map: EmitsMap): string {
       const typeElements = elements.map((x) => renderRef(x).type)
       const codecElements = elements.map((x) => renderRef(x).codec)
       const codec = `lib.tupleCodec([${codecElements.join(', ')}])`
-      return [`export type ${id} = [${typeElements.join(', ')}]`, `export const ${id} = lib.defineCodec(${codec})`]
+      return [
+        `export type ${id} = [${typeElements.join(', ')}]`,
+        `export const ${id}: lib.CodecContainer<${id}> = lib.defineCodec(${codec})`,
+      ]
     })
     .with({ t: 'bitmap' }, ({ masks, repr }) => {
       assert(repr === 'U32')
@@ -1263,12 +1260,16 @@ function renderEmit(id: string, map: EmitsMap): string {
       const codecMasks = masks.map(({ name, mask }) => `${name}: ${mask}`)
       const codec = `lib.bitmapCodec<${id} extends Set<infer T> ? T : never>({ ${codecMasks.join(', ')} })`
 
-      return [`export type ${id} = Set<${typeLiterals.join(' | ')}>`, `export const ${id} = lib.defineCodec(${codec})`]
+      return [
+        `export type ${id} = Set<${typeLiterals.join(' | ')}>`,
+        `export const ${id}: lib.CodecContainer<${id}> = lib.defineCodec(${codec})`,
+      ]
     })
     .with({ t: 'alias' }, ({ to }) => {
       const rendered = renderRef(to)
       const value = rendered.valueId ?? `lib.defineCodec(${rendered.codec})`
-      return [`export type ${id} = ${rendered.type}`, `export const ${id} = ${value}`]
+      const explicitType = rendered.valueId ? `` : `: lib.CodecContainer<${id}>`
+      return [`export type ${id} = ${rendered.type}`, `export const ${id}${explicitType} = ${value}`]
     })
     .exhaustive()
     .join('\n')

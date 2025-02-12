@@ -220,26 +220,61 @@ describe('enum shortcuts', () => {
     )
   })
 
-  test('generate shortcut tree', () => {
-    const generated = renderShortcutsTree({ id: 'A', variants: enumShortcuts(SAMPLE.A.variants, SAMPLE_MAP) })
+  test('generate shortcut tree', async () => {
+    const TREE = { id: 'A', variants: enumShortcuts(SAMPLE.A.variants, SAMPLE_MAP) }
+    const type = renderShortcutsTree(TREE, 'type')
+    const value = renderShortcutsTree(TREE, 'value')
 
-    expect(generated).toMatchInlineSnapshot(
+    const full = `
+    type test = ${type}
+    const test = ${value}
+    `
+
+    expect(await formatTS(full)).toMatchInlineSnapshot(
       `
-      "/**
-       * Value of variant \`A.Unit\`
-       */ Unit: Object.freeze<lib.VariantUnit<'Unit'>>({ kind: 'Unit' }), /**
-       * Constructor of variant \`A.WithType\`
-       */ WithType: <const T extends Whichever>(value: T): lib.Variant<'WithType', T> => ({ kind: 'WithType', value }), /**
-       * Constructors of nested enumerations under variant \`A.Nested\`
-       */ Nested: { /**
-       * Value of variant \`A.Nested.Bunit\`
-       */ Bunit: Object.freeze<lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>>({ kind: 'Nested', value: B.Bunit }), /**
-       * Constructors of nested enumerations under variant \`A.Nested.Bnested\`
-       */ Bnested: { /**
-       * Value of variant \`A.Nested.Bnested.CUnit\`
-       */ CUnit: Object.freeze<lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>>({ kind: 'Nested', value: B.Bnested.CUnit }), /**
-       * Constructor of variant \`A.Nested.Bnested.Cfinal\`
-       */ Cfinal: <const T extends Whichever>(value: T): lib.Variant<'Nested', lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>> => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }) } }"
+      "type test = {
+        Unit: lib.VariantUnit<'Unit'>
+        WithType: <const T extends Whichever>(value: T) => lib.Variant<'WithType', T>
+        Nested: {
+          Bunit: lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>
+          Bnested: {
+            CUnit: lib.Variant<
+              'Nested',
+              lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>
+            >
+            Cfinal: <const T extends Whichever>(
+              value: T,
+            ) => lib.Variant<
+              'Nested',
+              lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>
+            >
+          }
+        }
+      }
+      const test = {
+        Unit: Object.freeze({ kind: 'Unit' }),
+        WithType: <const T extends Whichever>(
+          value: T,
+        ): lib.Variant<'WithType', T> => ({ kind: 'WithType', value }),
+        Nested: {
+          Bunit: Object.freeze<lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>>({
+            kind: 'Nested',
+            value: B.Bunit,
+          }),
+          Bnested: {
+            CUnit: Object.freeze<
+              lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>
+            >({ kind: 'Nested', value: B.Bnested.CUnit }),
+            Cfinal: <const T extends Whichever>(
+              value: T,
+            ): lib.Variant<
+              'Nested',
+              lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>
+            > => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }),
+          },
+        },
+      }
+      "
     `,
     )
   })

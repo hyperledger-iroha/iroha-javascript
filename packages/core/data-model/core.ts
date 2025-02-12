@@ -3,8 +3,16 @@ import * as crypto from '@iroha/crypto'
 import type { JsonValue } from 'type-fest'
 import { decodeHex, encodeHex } from '@std/encoding/hex'
 import { enumCodec, GenCodec, lazyCodec, structCodec } from '../codec.ts'
-import { CodecContainer, defineCodec, getCodec, IsZero, Ord, ordCompare, SYMBOL_CODEC } from '../traits.ts'
-import { CompareFn, toSortedSet, Variant, VariantUnit } from '../util.ts'
+import {
+  type CodecContainer,
+  defineCodec,
+  getCodec,
+  type IsZero,
+  type Ord,
+  ordCompare,
+  SYMBOL_CODEC,
+} from '../traits.ts'
+import { type CompareFn, toSortedSet, type Variant, type VariantUnit } from '../util.ts'
 
 export type U8 = number
 export const U8: CodecContainer<U8> = defineCodec(
@@ -97,7 +105,9 @@ export const Option = {
 
 export type Vec<T> = globalThis.Array<T>
 
-export const Vec = {
+export const Vec: {
+  with<T>(item: GenCodec<T>): GenCodec<Vec<T>>
+} = {
   with: <T>(item: GenCodec<T>): GenCodec<Vec<T>> => {
     return new GenCodec({
       encode: scale.createVecEncoder(item.raw.encode),
@@ -108,7 +118,10 @@ export const Vec = {
 
 export type BTreeSet<T> = Vec<T>
 
-export const BTreeSet = {
+export const BTreeSet: {
+  with<T extends Ord<T> | string>(type: GenCodec<T>): GenCodec<BTreeSet<T>>
+  withCmp<T>(codec: GenCodec<T>, compare: CompareFn<T>): GenCodec<BTreeSet<T>>
+} = {
   with<T extends Ord<T> | string>(type: GenCodec<T>): GenCodec<BTreeSet<T>> {
     return BTreeSet.withCmp(type, ordCompare)
   },
@@ -228,7 +241,7 @@ export class Timestamp {
     return this._ms
   }
 
-  public toJSON() {
+  public toJSON(): string {
     return this.asDate().toISOString()
   }
 }
@@ -260,7 +273,7 @@ export class Duration implements IsZero {
     return this._ms === 0n
   }
 
-  public toJSON() {
+  public toJSON(): { ms: bigint } {
     return { ms: this._ms }
   }
 }
@@ -270,19 +283,27 @@ export type CompoundPredicate<Atom> =
   | Variant<'Not', CompoundPredicate<Atom>>
   | Variant<'And' | 'Or', CompoundPredicate<Atom>[]>
 
-export const CompoundPredicate = {
-  // TODO: freeze `value: []` too?
+export const CompoundPredicate: {
+  with<T>(atom: GenCodec<T>): GenCodec<CompoundPredicate<T>>
   /**
    * Predicate that always passes.
    *
    * It is simply the `And` variant with no predicates, which is always True (same logic as for {@link Array.prototype.every}).
    */
-  PASS: Object.freeze({ kind: 'And', value: [] }),
+  PASS: Variant<'And', never[]>
   /**
    * Predicate that always fails.
    *
    * It is simply the `Or` variant with no predicates, which is always False (same logic as for {@link Array.prototype.some}).
    */
+  FAIL: Variant<'Or', never[]>
+  Atom<T>(value: T): CompoundPredicate<T>
+  Not<T>(predicate: CompoundPredicate<T>): CompoundPredicate<T>
+  And<T>(...predicates: CompoundPredicate<T>[]): CompoundPredicate<T>
+  Or<T>(...predicates: CompoundPredicate<T>[]): CompoundPredicate<T>
+} = {
+  // TODO: freeze `value: []` too?
+  PASS: Object.freeze({ kind: 'And', value: [] }),
   FAIL: Object.freeze({ kind: 'Or', value: [] }),
 
   Atom: <T>(value: T): CompoundPredicate<T> => ({ kind: 'Atom', value }),
@@ -315,11 +336,11 @@ export const CompoundPredicate = {
 // Crypto specials
 export type Algorithm = VariantUnit<crypto.Algorithm>
 
-export const Algorithm = {
-  Ed25519: Object.freeze<Algorithm>({ kind: 'ed25519' }),
-  Secp256k1: Object.freeze<Algorithm>({ kind: 'secp256k1' }),
-  BlsNormal: Object.freeze<Algorithm>({ kind: 'bls_normal' }),
-  BlsSmall: Object.freeze<Algorithm>({ kind: 'bls_small' }),
+export const Algorithm: { [K in crypto.Algorithm]: VariantUnit<K> } & CodecContainer<Algorithm> = {
+  ed25519: Object.freeze({ kind: 'ed25519' }),
+  secp256k1: Object.freeze({ kind: 'secp256k1' }),
+  bls_normal: Object.freeze({ kind: 'bls_normal' }),
+  bls_small: Object.freeze({ kind: 'bls_small' }),
   ...defineCodec(
     enumCodec<{
       ed25519: []
@@ -470,7 +491,7 @@ export class PublicKeyRepr implements Ord<PublicKeyRepr> {
   /**
    * Get as a public key multihash, i.e. by {@link crypto.PublicKey.toMultihash}
    */
-  public asHex() {
+  public asHex(): string {
     if (!this._hex) {
       if (!this._crypto) {
         this._crypto = crypto.PublicKey.fromBytes(this._obj!.algorithm.kind, crypto.Bytes.array(this._obj!.payload))
@@ -480,7 +501,7 @@ export class PublicKeyRepr implements Ord<PublicKeyRepr> {
     return this._hex
   }
 
-  public toJSON() {
+  public toJSON(): string {
     return this.asHex()
   }
 
@@ -600,7 +621,7 @@ export class SignatureRepr {
  * ```
  */
 export class Name implements Ord<Name> {
-  public static [SYMBOL_CODEC] = getCodec(String)
+  public static [SYMBOL_CODEC]: GenCodec<Name> = getCodec(String)
     .wrap<Name>({ toBase: (x) => x.value, fromBase: (x) => new Name(x) })
 
   private _brand!: 'Name'
@@ -623,7 +644,7 @@ export class Name implements Ord<Name> {
     return this._value
   }
 
-  public toJSON() {
+  public toJSON(): string {
     return this.value
   }
 
@@ -661,7 +682,7 @@ export class AccountId implements Ord<AccountId> {
     this.domain = domain
   }
 
-  public toJSON() {
+  public toJSON(): string {
     return this.toString()
   }
 
@@ -789,7 +810,7 @@ export class AssetId {
       : `${this.definition.toString()}#${this.account.toString()}`
   }
 
-  public toJSON() {
+  public toJSON(): string {
     return this.toString()
   }
 }

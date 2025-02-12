@@ -38,7 +38,7 @@ export async function buildBinaries(bin: Binary[]): Promise<void> {
   console.info(`Binaries are built`)
 }
 
-export const EXECUTOR_WASM_PATH = path.join(
+export const EXECUTOR_WASM_PATH: string = path.join(
   IROHA_DIR,
   'defaults/executor.wasm',
 )
