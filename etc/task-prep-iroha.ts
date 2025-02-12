@@ -41,7 +41,6 @@ async function cloneRepo(repo: string, tagOrRevision: string) {
   await clean()
 
   $.logStep(`Cloning repo ${colors.blue(repo)} at revision ${colors.yellow(tagOrRevision)}`)
-  await Deno.mkdir(TARGET_DIR)
   await $`git init --quiet`.cwd(TARGET_DIR)
   await $`git remote add origin ${repo}`.cwd(TARGET_DIR)
   await $`git fetch origin ${tagOrRevision}`.cwd(TARGET_DIR)
