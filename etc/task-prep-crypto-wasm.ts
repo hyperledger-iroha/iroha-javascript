@@ -9,7 +9,7 @@ const WASM_PACK_OUT_NAME = 'iroha_crypto'
 const PROJECT_DIR = resolveFromRoot('crypto-wasm')
 
 function wasmPackOutDir(target: 'node' | 'web') {
-  return resolveFromRoot(`crypto-wasm/target/pkg-${target}`)
+  return resolveFromRoot(`prep/crypto-wasm/pkg-${target}`)
 }
 
 async function runCargoBuild(): Promise<{ hash: string }> {

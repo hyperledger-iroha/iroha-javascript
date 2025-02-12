@@ -3,7 +3,29 @@ on:
   pull_request:
     branches: [main]
 jobs:
+  prep-crypto-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+         cache: 'false'
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        name: prep-cache
+        with:
+          path: |
+            prep/crypto-wasm
+          key: ${{ runner.os }}-{{ hashFiles('crypto-wasm/*') }}
+      - name: Build packages
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+        run: deno task prep:crypto-wasm
+
   check:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
