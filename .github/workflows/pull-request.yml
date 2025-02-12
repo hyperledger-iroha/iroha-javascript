@@ -13,23 +13,22 @@ jobs:
           path: |
             prep/crypto-wasm
           key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
-      - name: Check cache hit
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         if: steps.prep-cache.outputs.cache-hit != 'true'
-        run: echo WOW!
-      # - uses: actions-rust-lang/setup-rust-toolchain@v1
-      #   with:
-      #     cache: 'false'
-      #     toolchain: 'nightly-2024-09-09,stable'
-      #     target: 'wasm32-unknown-unknown'
-      #     components: rust-src
-      # - uses: jetli/wasm-pack-action@v0.4.0
-      # - uses: denoland/setup-deno@v2
-      #   with:
-      #     deno-version: v2.x
-      # - name: Build packages
-      #   if: steps.prep-cache.outputs.cache-hit != 'true'
-      #   run: echo ${{ steps.prep-cache.outputs }}
-        # run: deno task prep:crypto-wasm
+        with:
+          cache: 'false'
+          toolchain: 'nightly-2024-09-09,stable'
+          target: 'wasm32-unknown-unknown'
+          components: rust-src
+      - uses: jetli/wasm-pack-action@v0.4.0
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+      - uses: denoland/setup-deno@v2
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+        with:
+          deno-version: v2.x
+      - name: Build packages
+        if: steps.prep-cache.outputs.cache-hit != 'true'
+        run: deno task prep:crypto-wasm
 
   check:
     if: false
