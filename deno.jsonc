@@ -52,7 +52,21 @@
       "dependencies": ["prep:iroha:check"],
       // "description": "",
       "command": "cd tests/support/test-peer && deno task run"
-    }
+    },
+    "publish": {
+      // I don't use `deno publish` in the workspace root because it complaints about some workspace members
+      // not having `version` field. These members aren't intended for publication and are private.
+      // Create an issue for Deno, asking to allow private packages?
+      // I had an idea of just defining them in imports map, BUT it still would be very nice for them to have
+      // their own `deno.json` with their specific tasks (in my case - testing related).
+      "description": "Publish workspace packages",
+      "command": "deno task publish:core && deno task publish:client && deno task publish:crypto-node && deno task publish:crypto-web",
+      "dependencies": ["check:all"]
+    },
+    "publish:client": "cd packages/client && deno publish",
+    "publish:core": "cd packages/core && deno publish",
+    "publish:crypto-node": "cd packages/crypto-target-node && deno publish",
+    "publish:crypto-web": "cd packages/crypto-target-web && deno publish"
   },
   "fmt": {
     "include": ["."],
