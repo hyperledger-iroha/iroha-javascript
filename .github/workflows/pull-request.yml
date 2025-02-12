@@ -10,7 +10,9 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache: 'false'
+          toolchain: 'nightly-2024-09-09,stable'
           target: 'wasm32-unknown-unknown'
+          components: rust-src
       - uses: jetli/wasm-pack-action@v0.4.0
       - uses: denoland/setup-deno@v2
         with:
