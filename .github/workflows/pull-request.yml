@@ -61,46 +61,29 @@ jobs:
           deno task prep:iroha:build
 
   check:
-    if: false
+    needs: ['prep-crypto-wasm', 'prep-iroha']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/cache/restore@v4
         with:
-          version: 'v0.13.1'
+          fail-on-cache-miss: true
+          key: ${{ runner.os }}-${{ env.IROHA_GIT }}-${{ env.IROHA_REV }}
+          path: |
+            prep/iroha
+      - uses: actions/cache/restore@v4
+        with:
+          fail-on-cache-miss: true
+          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
+          path: |
+            prep/crypto-wasm
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-
-      - name: Clone Iroha
-        run: deno task prep:iroha --git $IROHA_GIT --git-rev $IROHA_REV
-        env:
-          IROHA_GIT: https://github.com/0x009922/iroha.git
-          IROHA_REV: 5302-expose-signature-payload
-
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: 'nightly-2024-09-09,stable'
-          target: 'wasm32-unknown-unknown'
-          components: rust-src
-          cache: 'false'
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ".iroha -> target\n.iroha/wasm -> target\ncrypto-wasm -> target"
-          cache-on-failure: 'true'
-          cache-all-crates: 'true'
-
-      - name: Prep tasks
-        run: |
-          deno task prep:iroha:build
-          deno task prep:crypto-wasm
-          deno task prep:codegen
-
-      - name: Type check
+      - name: Deno check
         run: deno task check:all
 
-      - name: Lint, format
+      - name: Deno lint, fmt
         run: |
           deno lint
           deno fmt --check

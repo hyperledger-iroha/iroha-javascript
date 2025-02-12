@@ -4,6 +4,7 @@ import $ from 'jsr:@david/dax'
 import * as colors from '@std/fmt/colors'
 import { glob, hashsum, resolveFromRoot } from './util.ts'
 import { copy, emptyDir } from 'jsr:@std/fs'
+import { assert } from '@std/assert/assert'
 
 const WASM_PACK_OUT_NAME = 'iroha_crypto'
 const PROJECT_DIR = resolveFromRoot('crypto-wasm')
@@ -73,14 +74,24 @@ async function buildWasmPackages(opts: { force: boolean }) {
   await runWasmPack({ key: hash })
 }
 
-async function buildCryptoWasm(opts: { force: boolean }) {
-  await buildWasmPackages(opts)
+async function buildCryptoWasm(opts: { force: boolean; onlyCopy: boolean }) {
+  if (opts.onlyCopy) {
+    $.logStep('Skipping wasm build')
+  } else {
+    await buildWasmPackages(opts)
+  }
+  await copyTargets()
+}
 
+async function copyTargets() {
   for (const target of ['node', 'web'] as const) {
     const copyToDir = resolveFromRoot(`packages/crypto-target-${target}/wasm-target`)
     await emptyDir(copyToDir)
     const copyGlob = await glob(path.join(wasmPackOutDir(target), `${WASM_PACK_OUT_NAME}*`))
-    await $`cp ${copyGlob} ${copyToDir}`
+    assert(copyGlob.length, 'nothing to copy. is prep/crypto-wasm ready?')
+    for (const pathFrom of copyGlob) {
+      await copy(pathFrom, path.join(copyToDir, path.basename(pathFrom)))
+    }
     if (target === 'node') {
       await Deno.writeTextFile(
         path.join(copyToDir, 'package.json'),
@@ -98,8 +109,8 @@ async function buildCryptoWasm(opts: { force: boolean }) {
 }
 
 const args = parseArgs(Deno.args, {
-  boolean: ['force'],
-  default: { 'force': false },
+  boolean: ['force', 'onlyCopy'],
+  default: { 'force': false, onlyCopy: false },
 })
 
-await buildCryptoWasm({ force: args.force })
+await buildCryptoWasm(args)

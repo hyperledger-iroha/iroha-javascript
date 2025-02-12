@@ -25,23 +25,27 @@
       "command": "deno task prep:iroha --build"
     },
     "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
+    "prep:crypto-wasm:copy": "deno task prep:crypto-wasm --onlyCopy",
     "prep:codegen": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
     "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
+    "prep:ensure-ready": {
+      "dependencies": ["prep:codegen", "prep:crypto-wasm:copy", "prep:iroha:check"]
+    },
     "check:all": {
       "command": "deno check .",
-      "dependencies": ["prep:iroha:check"]
+      "dependencies": ["prep:ensure-ready"]
     },
     "test:vitest": {
-      "dependencies": ["prep:iroha:check", "prep:codegen"],
+      "dependencies": ["prep:ensure-ready"],
       "description": "Run Vitest",
       "command": "vitest run"
     },
     "test:integration:node": {
-      "dependencies": ["prep:iroha:check", "prep:codegen"],
+      "dependencies": ["prep:ensure-ready"],
       "command": "cd tests/node && deno task test"
     },
     "test:integration:browser": {
-      "dependencies": ["prep:iroha:check", "prep:codegen"],
+      "dependencies": ["prep:ensure-ready"],
       "command": "cd tests/browser && deno task test"
     },
     "test": {
@@ -49,7 +53,7 @@
       "command": "deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
     },
     "dev:run-test-peer": {
-      "dependencies": ["prep:iroha:check", "prep:codegen"],
+      "dependencies": ["prep:ensure-ready"],
       // "description": "",
       "command": "cd tests/support/test-peer && deno task run"
     },
