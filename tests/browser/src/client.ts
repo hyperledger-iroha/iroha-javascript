@@ -6,7 +6,7 @@ import { adapter as WS } from '@iroha/client/web-socket/native'
 // it must resolve first, before using core crypto exports
 import './setup-crypto.ts'
 
-import { KeyPair, PrivateKey, PublicKey } from '@iroha/crypto'
+import { KeyPair, PrivateKey, PublicKey } from '@iroha/core/crypto'
 
 const keyPair = KeyPair.fromParts(
   PublicKey.fromMultihash(ACCOUNT_KEY_PAIR.publicKey),

@@ -12,7 +12,7 @@ import { mergeDeep } from 'remeda'
 import { spawn } from 'node:child_process'
 
 import Debug from 'debug'
-import type { KeyPair } from '@iroha/crypto'
+import type { KeyPair } from '@iroha/core/crypto'
 import { assert } from '@std/assert'
 
 const debug = Debug('@iroha/test-peer')
@@ -110,8 +110,8 @@ export async function startPeer(params: {
     TOML.stringify(
       mergeDeep(PEER_CONFIG_BASE, {
         ...configGenesisPart,
-        public_key: params.keypair.publicKey().toMultihash(),
-        private_key: params.keypair.privateKey().toMultihash(),
+        public_key: params.keypair.publicKey().multihash(),
+        private_key: params.keypair.privateKey().multihash(),
         trusted_peers: params.trustedPeers?.map((x) => `${x.id}@${x.address}`) ?? [],
         kura: { store_dir: './storage' },
         torii: { address: API_ADDRESS },

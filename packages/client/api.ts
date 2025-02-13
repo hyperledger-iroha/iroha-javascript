@@ -26,7 +26,7 @@ export interface PeerJson {
   /**
    * Peer public key
    */
-  id: dm.PublicKeyRepr
+  id: dm.PublicKey
 }
 
 export interface PeerConfig {
@@ -203,7 +203,7 @@ export class ApiTelemetry {
         return ids.map((id) => {
           assert(typeof id === 'string')
           const [pubkey, address] = id.split('@')
-          return { id: dm.PublicKeyRepr.fromHex(pubkey), address }
+          return { id: dm.PublicKey.fromMultihash(pubkey), address }
         })
       },
     )

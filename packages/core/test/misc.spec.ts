@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
 
-import { KeyPair, PublicKey } from '@iroha/crypto'
+import { KeyPair } from '@iroha/core/crypto'
 import * as dm from '@iroha/core/data-model'
 import { getCodec } from '@iroha/core'
-import { fromHexWithSpaces, SAMPLE_ACCOUNT_ID, toHex } from './util.ts'
+import { fromHexWithSpaces, SAMPLE_ACCOUNT_ID } from './util.ts'
 
 describe('JSON/string serialisation', () => {
   test('AccountId', () => {
@@ -12,15 +12,15 @@ describe('JSON/string serialisation', () => {
     const ID = `${SIGNATORY}@${DOMAIN}`
 
     expect(dm.AccountId.parse(ID).toJSON()).toEqual(ID)
-    expect(new dm.AccountId(dm.PublicKeyRepr.fromHex(SIGNATORY), new dm.Name(DOMAIN)).toJSON()).toEqual(ID)
+    expect(new dm.AccountId(dm.PublicKey.fromMultihash(SIGNATORY), new dm.Name(DOMAIN)).toJSON()).toEqual(ID)
   })
 
   test('AccountId (after being decoded)', () => {
     const pk = KeyPair.random().publicKey()
     const decoded = getCodec(dm.AccountId)
-      .decode(getCodec(dm.AccountId).encode(new dm.AccountId(dm.PublicKeyRepr.fromCrypto(pk), new dm.Name('test'))))
+      .decode(getCodec(dm.AccountId).encode(new dm.AccountId(pk, new dm.Name('test'))))
 
-    expect(decoded.toJSON()).toEqual(`${pk.toMultihash()}@test`)
+    expect(decoded.toJSON()).toEqual(`${pk.multihash()}@test`)
   })
 
   test('AssetId - different domains', () => {
@@ -79,8 +79,8 @@ test('Parse AssetId with different domains', () => {
 
   expect(parsed.definition.name.value).toEqual('rose')
   expect(parsed.definition.domain.value).toEqual('wonderland')
-  expect(parsed.account.signatory.algorithm.kind).toEqual('ed25519')
-  expect(toHex(parsed.account.signatory.payload)).toEqual(
+  expect(parsed.account.signatory.algorithm).toEqual('ed25519')
+  expect(parsed.account.signatory.payload.hex()).toEqual(
     'b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e',
   )
   expect(parsed.account.domain.value).toEqual('badland')
@@ -136,35 +136,23 @@ describe('Status', () => {
   })
 })
 
-describe('construct pub key wrap', () => {
-  function assertMatches(key: dm.PublicKeyRepr) {
-    expect(key.algorithm.kind).toEqual('ed25519')
-    expect(toHex(key.payload)).toEqual('b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e')
+describe('construct pub key', () => {
+  function assertMatches(key: dm.PublicKey) {
+    expect(key.algorithm).toEqual('ed25519')
+    expect(key.payload.hex()).toEqual('b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e')
   }
 
-  test('from hex', () => {
-    const key = dm.PublicKeyRepr.fromHex('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
-
-    assertMatches(key)
-  })
-
-  test('from crypto', () => {
-    const key = dm.PublicKeyRepr.fromCrypto(
-      PublicKey.fromMultihash('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E'),
-    )
+  test('from multihash', () => {
+    const key = dm.PublicKey.fromMultihash('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
 
     assertMatches(key)
   })
 
   test('by decoding', () => {
-    const key = dm.PublicKeyRepr.fromHex('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
-    const bytes = getCodec(dm.PublicKeyRepr).encode(key)
-    const key2 = getCodec(dm.PublicKeyRepr).decode(bytes)
+    const key = dm.PublicKey.fromMultihash('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
+    const bytes = getCodec(dm.PublicKey).encode(key)
+    const key2 = getCodec(dm.PublicKey).decode(bytes)
 
     assertMatches(key2)
   })
 })
-
-// describe('SortedMap', () => {
-//   // test.todo('')
-// })

@@ -101,7 +101,7 @@ async function copyTargets() {
     $.logStep('Ready', copyToDir)
   }
 
-  const copyToDir = resolveFromRoot(`packages/crypto/wasm-target`)
+  const copyToDir = resolveFromRoot(`packages/core/crypto/wasm-target`)
   await emptyDir(copyToDir)
   const dts = path.join(wasmPackOutDir('node'), `${WASM_PACK_OUT_NAME}.d.ts`)
   await copy(dts, path.join(copyToDir, 'wasm-pkg.d.ts'))

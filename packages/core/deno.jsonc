@@ -5,7 +5,8 @@
     ".": "./mod.ts",
     "./data-model": "./data-model/mod.ts",
     "./data-model/schema": "./data-model/schema/mod.ts",
-    "./data-model/schema-json": "./data-model/schema/json.ts"
+    "./data-model/schema-json": "./data-model/schema/json.ts",
+    "./crypto": "./crypto/mod.ts"
   },
   "imports": {
     "@scale-codec/core": "npm:@scale-codec/core@^2.0.1",

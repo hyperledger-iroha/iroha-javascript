@@ -1,6 +1,6 @@
 import { type BuildQueryResult, signQuery } from '@iroha/core'
 import * as dm from '@iroha/core/data-model'
-import type { PrivateKey } from '@iroha/crypto'
+import type { PrivateKey } from '@iroha/core/crypto'
 import { assert } from '@std/assert'
 import type { MainAPI } from './api.ts'
 

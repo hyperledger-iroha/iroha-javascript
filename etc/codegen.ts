@@ -159,9 +159,9 @@ export type LibType =
   | `AssetDefinitionId`
   | `AssetId`
   | 'Algorithm'
-  | 'SignatureRepr'
-  | 'HashRepr'
-  | 'PublicKeyRepr'
+  | 'Signature'
+  | 'Hash'
+  | 'PublicKey'
 
 export class Resolver {
   #schema: Schema
@@ -501,12 +501,12 @@ export class Resolver {
             { ref: { id: 'SignatureOf', items: [P._] }, schema: 'Signature' },
             { refStr: P.union('TransactionSignature', 'QuerySignature') },
           ),
-          () => ({ t: 'lib', id: 'SignatureRepr' }),
+          () => ({ t: 'lib', id: 'Signature' }),
         )
-        .with({ ref: { id: 'HashOf', items: [P._] }, schema: 'Hash' }, () => ({ t: 'lib', id: 'HashRepr' }))
+        .with({ ref: { id: 'HashOf', items: [P._] }, schema: 'Hash' }, () => ({ t: 'lib', id: 'Hash' }))
         .with({ refStr: P.union('Hash', 'PublicKey', 'Signature').select() }, (id) => ({
           t: 'lib',
-          id: `${id}Repr`,
+          id,
         }))
         .with(
           { refStr: 'FetchSize', schema: { Struct: [{ name: 'fetch_size', type: P.select() }] } },

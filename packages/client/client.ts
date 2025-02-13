@@ -9,7 +9,7 @@
  * Events, Status & Health check.
  */
 
-import type { KeyPair, PrivateKey } from '@iroha/crypto'
+import type { KeyPair, PrivateKey } from '@iroha/core/crypto'
 import * as dm from '@iroha/core/data-model'
 import type { Except } from 'type-fest'
 import defer from 'p-defer'
@@ -91,7 +91,7 @@ export class Client {
 
   public authority(): dm.AccountId {
     return new dm.AccountId(
-      dm.PublicKeyRepr.fromCrypto(this.params.accountKeyPair.publicKey()),
+      this.params.accountKeyPair.publicKey(),
       this.params.accountDomain,
     )
   }
@@ -128,15 +128,15 @@ export class Client {
 export class TransactionHandle {
   private readonly client: Client
   private readonly tx: dm.SignedTransaction
-  private readonly txHash: dm.HashRepr
+  private readonly txHash: dm.Hash
 
   public constructor(tx: dm.SignedTransaction, client: Client) {
     this.client = client
     this.tx = tx
-    this.txHash = dm.HashRepr.fromCrypto(transactionHash(tx))
+    this.txHash = transactionHash(tx)
   }
 
-  public get hash(): dm.HashRepr {
+  public get hash(): dm.Hash {
     return this.txHash
   }
 

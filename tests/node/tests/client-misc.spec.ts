@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { Bytes, KeyPair } from '@iroha/crypto'
+import { Bytes, KeyPair } from '@iroha/core/crypto'
 import { blockHash } from '@iroha/core'
 import * as dm from '@iroha/core/data-model'
 import { type Client, QueryValidationError } from '@iroha/client'
@@ -10,8 +10,8 @@ import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha/test-configuration'
 
 async function submitTestData(client: Client) {
   const bob = KeyPair.deriveFromSeed(Bytes.hex('bbbb'))
-  const bobAcc = new dm.AccountId(dm.PublicKeyRepr.fromCrypto(bob.publicKey()), new dm.DomainId('based'))
-  const bobPub = bob.publicKey().toMultihash()
+  const bobAcc = new dm.AccountId(bob.publicKey(), new dm.DomainId('based'))
+  const bobPub = bob.publicKey().multihash()
 
   const madHatter = KeyPair.deriveFromSeed(Bytes.hex('aaaa'))
 
@@ -33,7 +33,7 @@ async function submitTestData(client: Client) {
       metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Bob') }],
     }),
     dm.InstructionBox.Register.Account({
-      id: new dm.AccountId(dm.PublicKeyRepr.fromCrypto(madHatter.publicKey()), new dm.Name('certainty')),
+      id: new dm.AccountId(madHatter.publicKey(), new dm.Name('certainty')),
       metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Mad Hatter') }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
@@ -66,7 +66,7 @@ async function submitTestData(client: Client) {
     }),
     dm.InstructionBox.Mint.Asset({
       object: { scale: 2n, mantissa: 1904n },
-      destination: dm.AssetId.parse(`gator_coin##${madHatter.publicKey().toMultihash()}@certainty`),
+      destination: dm.AssetId.parse(`gator_coin##${madHatter.publicKey().multihash()}@certainty`),
     }),
 
     dm.InstructionBox.SetKeyValue.Asset({
@@ -75,7 +75,7 @@ async function submitTestData(client: Client) {
       value: dm.Json.fromValue({ me: 'wo' }),
     }),
     dm.InstructionBox.SetKeyValue.Asset({
-      object: dm.AssetId.parse(`base_coin#based#${madHatter.publicKey().toMultihash()}@certainty`),
+      object: dm.AssetId.parse(`base_coin#based#${madHatter.publicKey().multihash()}@certainty`),
       key: new dm.Name('hey'),
       value: dm.Json.fromValue([1, 2, 3]),
     }),
@@ -146,7 +146,7 @@ describe('Queries', () => {
         predicate: dm.CompoundPredicate.Or<dm.AccountProjectionPredicate>(
           dm.CompoundPredicate.Atom(dm.AccountProjectionPredicate.Id.Domain.Name.Atom.Contains('cert')),
           dm.CompoundPredicate.Atom(
-            dm.AccountProjectionPredicate.Id.Signatory.Atom.Equals(dm.PublicKeyRepr.fromCrypto(bob.publicKey())),
+            dm.AccountProjectionPredicate.Id.Signatory.Atom.Equals(bob.publicKey()),
           ),
         ),
         selector: dm.AccountProjectionSelector.Metadata.Key({
@@ -342,7 +342,7 @@ describe('Queries', () => {
       .blocks({
         predicate: dm.CompoundPredicate.Atom(
           dm.SignedBlockProjectionPredicate.Header.Hash.Atom.Equals(
-            dm.HashRepr.fromCrypto(blockHash(someBlock.value.payload.header)),
+            blockHash(someBlock.value.payload.header),
           ),
         ),
       })
@@ -461,12 +461,12 @@ describe('Singular queries', () => {
 })
 
 describe('Transactions', () => {
+  function randomAccountId() {
+    return new dm.AccountId(KeyPair.random().publicKey(), new dm.Name('wonderland'))
+  }
+
   test('invalid transaction with `verify: true` - throws', async () => {
     const { client } = await usePeer()
-
-    function randomAccountId() {
-      return new dm.AccountId(dm.PublicKeyRepr.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
-    }
 
     // TODO: include detailed rejection reason into the error
     await expect(
@@ -486,10 +486,6 @@ describe('Transactions', () => {
 
   test('invalid transaction without verification - no errors', async () => {
     const { client } = await usePeer()
-
-    function randomAccountId() {
-      return new dm.AccountId(dm.PublicKeyRepr.fromCrypto(KeyPair.random().publicKey()), new dm.Name('wonderland'))
-    }
 
     // TODO: include detailed rejection reason into the error
     await client
@@ -608,7 +604,7 @@ describe('Roles & Permission', () => {
 
     const permissions = await client.find
       .permissionsByAccountId({
-        id: new dm.AccountId(dm.PublicKeyRepr.fromHex(ACCOUNT_KEY_PAIR.publicKey), DOMAIN),
+        id: new dm.AccountId(dm.PublicKey.fromMultihash(ACCOUNT_KEY_PAIR.publicKey), DOMAIN),
       })
       .executeAll()
 

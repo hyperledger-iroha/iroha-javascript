@@ -4,7 +4,7 @@ import * as dm from '@iroha/core/data-model'
 import type SCHEMA from '@iroha/core/data-model/schema-json'
 import { irohaCodecToScale } from 'iroha-build-utils'
 import { describe, expect, test } from 'vitest'
-import { Bytes, KeyPair } from '@iroha/crypto'
+import { Bytes, KeyPair } from '@iroha/core/crypto'
 
 export const SAMPLE_ACCOUNT_ID = dm.AccountId.parse(
   'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
@@ -37,8 +37,8 @@ function caseHash() {
   return defCase({
     type: 'Hash',
     json: hex,
-    codec: dm.HashRepr,
-    value: dm.HashRepr.fromRaw(bytes),
+    codec: dm.Hash,
+    value: dm.Hash.fromRaw(Bytes.array(bytes)),
   })
 }
 
@@ -177,7 +177,7 @@ test.each([
       'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
     ),
     new dm.AccountId(
-      dm.PublicKeyRepr.fromHex(
+      dm.PublicKey.fromMultihash(
         'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E',
       ),
       new dm.Name('badland'),
@@ -284,9 +284,9 @@ test.each([
         nonce: null,
         metadata: [],
       },
-      signature: dm.SignatureRepr.fromHex(
+      signature: dm.Signature.fromRaw(Bytes.hex(
         '4B3842C4CDB0E6364396A1019F303CE81CE4F01E56AF0FA9312AA070B88D405E831115112E5B23D76A30C6D81B85AB707FBDE0DE879D2ABA096D0CBEDB7BF30F',
-      ),
+      )),
     }),
   }),
   defCase({
@@ -358,10 +358,8 @@ describe('BTree{Set/Map}', () => {
     const keys = Array.from(
       { length: 7 },
       (_v, i) =>
-        dm.PublicKeyRepr.fromCrypto(
-          KeyPair.deriveFromSeed(Bytes.array(new Uint8Array([0, 1, 2, i])))
-            .publicKey(),
-        ),
+        KeyPair.deriveFromSeed(Bytes.array(new Uint8Array([0, 1, 2, i])))
+          .publicKey(),
     )
 
     const domains = Array.from(

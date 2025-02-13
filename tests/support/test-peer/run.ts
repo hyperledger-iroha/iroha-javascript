@@ -1,6 +1,6 @@
 import { startPeer } from '@iroha/test-peer'
 import * as colors from 'jsr:@std/fmt/colors'
-import { KeyPair } from '@iroha/crypto'
+import { KeyPair } from '@iroha/core/crypto'
 import { createGenesis } from '@iroha/test-configuration/node'
 import { install } from '@iroha/crypto-target-node'
 

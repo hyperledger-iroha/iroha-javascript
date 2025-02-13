@@ -89,8 +89,8 @@ describe('Telemetry API methods', () => {
 
     const peersData = await peers[0].client.api.telemetry.peers()
 
-    expect(peersData.map((x) => x.id.asHex())).contain.all.members(
-      peers.slice(1).map((x) => x.keypair.publicKey().toMultihash()),
+    expect(peersData.map((x) => x.id.multihash())).contain.all.members(
+      peers.slice(1).map((x) => x.keypair.publicKey().multihash()),
     )
   })
 })

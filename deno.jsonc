@@ -2,7 +2,6 @@
   "nodeModulesDir": "auto",
   "workspace": [
     "./packages/core",
-    "./packages/crypto",
     "./packages/crypto-target-node",
     "./packages/crypto-target-web",
     "./packages/client",

@@ -4,7 +4,7 @@ import { Client } from '../../../packages/client/mod.ts'
 import { adapter as WS } from '../../../packages/client/web-socket/node.ts'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
 import { createGenesis } from '@iroha/test-configuration/node'
-import { Bytes, KeyPair, PrivateKey, PublicKey } from '@iroha/crypto'
+import { Bytes, KeyPair, PrivateKey, PublicKey } from '@iroha/core/crypto'
 import type * as dm from '@iroha/core/data-model'
 import * as TestPeer from '@iroha/test-peer'
 import { delay } from '@std/async'
@@ -57,7 +57,7 @@ export async function useNetwork(params: {
   const trustedPeers = (peerIndex: number) =>
     configs
       .filter((_x, i) => i !== peerIndex)
-      .map(({ key, ports }) => ({ id: key.publicKey().toMultihash(), address: `localhost:${ports.p2p}` }))
+      .map(({ key, ports }) => ({ id: key.publicKey().multihash(), address: `localhost:${ports.p2p}` }))
 
   const peers = await Promise.all(
     configs.map(async ({ key, ports }, i) => {

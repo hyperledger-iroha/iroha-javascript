@@ -2,7 +2,7 @@
  * @module @iroha/crypto-target-web
  */
 
-import { setWASM } from '@iroha/crypto'
+import { setWASM } from '@iroha/core/crypto'
 // @ts-types="./wasm-target/iroha_crypto.d.ts"
 import * as wasmPkg from './wasm-target/iroha_crypto.js'
 import init from './wasm-target/iroha_crypto.js'

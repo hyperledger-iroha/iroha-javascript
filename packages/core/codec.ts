@@ -74,9 +74,11 @@ export class EnumCodec<E extends scale.EnumRecord> extends GenCodec<scale.Enumer
     }) as any
   }
 
-  public literalUnion(): {
-    [Tag in keyof E]: E[Tag] extends [] ? GenCodec<Tag> : never
-  }[keyof E] {
+  public literalUnion(): GenCodec<
+    {
+      [Tag in keyof E]: E[Tag] extends [] ? Tag : never
+    }[keyof E]
+  > {
     return this.wrap<string>({
       toBase: (literal) => scale.variant<any>(literal),
       fromBase: (variant) => variant.tag,

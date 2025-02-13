@@ -4,7 +4,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { temporaryDirectory } from 'tempy'
 import { BIN_PATHS, EXECUTOR_WASM_PATH, irohaCodecToJson } from 'iroha-build-utils'
-import type { PublicKey } from '@iroha/crypto'
+import type { PublicKey } from '@iroha/core/crypto'
 import { ACCOUNT_KEY_PAIR, CHAIN, GENESIS_KEY_PAIR } from './mod.ts'
 import { spawn } from 'node:child_process'
 import { Buffer } from 'node:buffer'
@@ -43,7 +43,7 @@ export async function createGenesis(params: {
     chain: CHAIN,
     executor: EXECUTOR_WASM_PATH,
     instructions: instructionsJson,
-    topology: params.topology.map((x) => x.toMultihash()),
+    topology: params.topology.map((x) => x.multihash()),
     // FIXME: migrate to direct building of `SignedBlock`, without `genesis.json`.
     //        And note that I don't use any WASMs and these fields are extra for my case.
     wasm_dir: 'why the hell do you require wasm_dir at all times?',

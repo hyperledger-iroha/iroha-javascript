@@ -2,7 +2,7 @@ import * as h3 from 'h3'
 import { listen } from 'listhen'
 
 import * as lib from '../mod.ts'
-import { KeyPair } from '@iroha/crypto'
+import { KeyPair } from '@iroha/core/crypto'
 import { createGenesis } from '@iroha/test-configuration/node'
 
 export async function run(ports: { server: number; toriiApi: number; toriiP2p: number }) {

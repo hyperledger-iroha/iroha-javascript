@@ -11,6 +11,7 @@ v8-compile-cache-0
 
 /prep
 /.iroha
-/packages/crypto*/wasm-target
+/packages/crypto-target-*/wasm-target
+/packages/core/crypto/wasm-target
 **/*_generated_.ts
 
