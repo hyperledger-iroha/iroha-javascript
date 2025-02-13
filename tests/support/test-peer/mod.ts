@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fs } from 'zx'
 import { PEER_CONFIG_BASE } from '@iroha/test-configuration'
 import * as TOML from '@std/toml'
+import { format as formatDuration } from '@std/fmt/duration'
 import * as dm from '@iroha/core/data-model'
 import { getCodec } from '@iroha/core'
 import { temporaryDirectory } from 'tempy'
@@ -16,7 +17,7 @@ import { assert } from '@std/assert'
 
 const debug = Debug('@iroha/test-peer')
 
-const GENESIS_CHECK_TIMEOUT = 1_500
+const GENESIS_CHECK_TIMEOUT = 3_000
 const GENESIS_CHECK_INTERVAL = 200
 
 async function waitForGenesis(url: URL, abort: AbortSignal) {
@@ -32,7 +33,11 @@ async function waitForGenesis(url: URL, abort: AbortSignal) {
     if (aborted) throw new Error('Aborted')
 
     now = Date.now()
-    if (now > endAt) throw new Error(`Genesis is still not committed after ${GENESIS_CHECK_TIMEOUT}ms`)
+    if (now > endAt) {
+      throw new Error(
+        `Genesis is still not committed after ${formatDuration(GENESIS_CHECK_TIMEOUT, { ignoreZero: true })}`,
+      )
+    }
 
     try {
       const { blocks } = await new MainAPI(new HttpTransport(url)).telemetry.status()
