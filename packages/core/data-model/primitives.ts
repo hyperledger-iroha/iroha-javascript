@@ -1,18 +1,7 @@
 import * as scale from '@scale-codec/core'
-import type * as crypto from '@iroha/core/crypto'
-import type { JsonValue } from 'type-fest'
-import type { decodeHex, encodeHex } from '@std/encoding/hex'
-import { type enumCodec, GenCodec, type lazyCodec, structCodec } from '../codec.ts'
-import {
-  type CodecContainer,
-  defineCodec,
-  type getCodec,
-  type IsZero,
-  type Ord,
-  ordCompare,
-  type SYMBOL_CODEC,
-} from '../traits.ts'
-import { type CompareFn, toSortedSet, type Variant, type VariantUnit } from '../util.ts'
+import { GenCodec, structCodec } from '../codec.ts'
+import { type CodecContainer, defineCodec, type IsZero, type Ord, ordCompare } from '../traits.ts'
+import { type CompareFn, toSortedSet } from '../util.ts'
 
 export type U8 = number
 export const U8: CodecContainer<U8> = defineCodec(

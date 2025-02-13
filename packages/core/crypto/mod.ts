@@ -9,10 +9,8 @@ import { Bytes } from './util.ts'
 import { getWASM } from './singleton.ts'
 import type { wasmPkg } from './types.ts'
 import { type CodecContainer, defineCodec, getCodec, type Ord, ordCompare, SYMBOL_CODEC } from '../traits.ts'
-import type { VariantUnit } from '../util.ts'
 import { enumCodec, GenCodec, structCodec } from '../codec.ts'
 import * as scale from '@scale-codec/core'
-import type { decodeHex } from '@std/encoding/hex'
 import { assert } from '@std/assert/assert'
 import { BytesVec } from '../data-model/primitives.ts'
 
@@ -37,14 +35,14 @@ const AlgorithmCodec: CodecContainer<Algorithm> = defineCodec(
   }).literalUnion(),
 )
 
-export const Algorithm = {
+export const Algorithm: Record<Algorithm, Algorithm> & { default: () => Algorithm } & CodecContainer<Algorithm> = {
   ed25519: 'ed25519' as const,
   secp256k1: 'secp256k1' as const,
   bls_normal: 'bls_normal' as const,
   bls_small: 'bls_small' as const,
   default: (): Algorithm => getWASM(true).algorithm_default(),
   ...AlgorithmCodec,
-} satisfies Record<Algorithm, Algorithm> & { default: () => Algorithm } & CodecContainer<Algorithm>
+}
 
 export interface HasAlgorithm {
   readonly algorithm: Algorithm
