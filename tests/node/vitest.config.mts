@@ -6,6 +6,6 @@ export default defineConfig({
   test: {
     setupFiles: ['tests/setup.ts'],
     testTimeout: 10_000,
-    retry: 2
+    retry: 2,
   },
 })
