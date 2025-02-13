@@ -1,8 +1,0 @@
-{
-  "name": "@iroha2/data-model-rust-samples",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "produce-samples": "cargo run --release > samples.json"
-  }
-}

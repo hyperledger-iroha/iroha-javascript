@@ -1,0 +1,104 @@
+{
+  "nodeModulesDir": "auto",
+  "workspace": [
+    "./packages/core",
+    "./packages/crypto-target-node",
+    "./packages/crypto-target-web",
+    "./packages/client",
+
+    "./tests/support/test-configuration",
+    "./tests/support/test-peer",
+    "./tests/node",
+    "./tests/browser"
+  ],
+  "tasks": {
+    "install": "deno install --allow-scripts=npm:cypress,npm:@parcel/watcher,npm:vue-demi",
+    "prep:iroha": "deno run --allow-all ./etc/task-prep-iroha.ts",
+    "prep:iroha:check": {
+      "description": "Ensure that Iroha is built",
+      "command": "deno task prep:iroha --check"
+    },
+    "prep:iroha:build": {
+      "description": "Build Iroha artifacts and produce `/prep/iroha` directory",
+      "command": "deno task prep:iroha --build"
+    },
+    "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
+    "prep:crypto-wasm:copy": "deno task prep:crypto-wasm --onlyCopy",
+    "prep:codegen": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
+    "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
+    "prep:ensure-ready": {
+      "dependencies": ["prep:codegen", "prep:crypto-wasm:copy", "prep:iroha:check"]
+    },
+    "check:all": {
+      "command": "deno check .",
+      "dependencies": ["prep:ensure-ready"]
+    },
+    "test:vitest": {
+      "dependencies": ["prep:ensure-ready"],
+      "description": "Run Vitest",
+      "command": "vitest run"
+    },
+    "test:integration:node": {
+      "dependencies": ["prep:ensure-ready"],
+      "command": "cd tests/node && deno task test"
+    },
+    "test:integration:browser": {
+      "dependencies": ["prep:ensure-ready"],
+      "command": "cd tests/browser && deno task test"
+    },
+    "test": {
+      "description": "Run all tests, from unit to integration",
+      "command": "deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
+    },
+    "dev:run-test-peer": {
+      "dependencies": ["prep:ensure-ready"],
+      "command": "cd tests/support/test-peer && deno task run"
+    },
+    "publish": {
+      // https://github.com/denoland/deno/issues/28096
+      "description": "Publish workspace packages",
+      "command": "deno run --allow-read --allow-run --allow-env ./etc/task-publish.ts",
+      "dependencies": ["check:all"]
+    }
+  },
+  "fmt": {
+    "include": ["."],
+    "exclude": ["**/*_generated_.ts"],
+    "semiColons": false,
+    "lineWidth": 120,
+    "singleQuote": true
+  },
+  "lint": {
+    "include": ["."],
+    "rules": {
+      "tags": ["recommended", "jsr"],
+      "exclude": ["no-explicit-any", "require-await"]
+    }
+  },
+  "imports": {
+    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.3",
+    "@std/assert": "jsr:@std/assert@^1.0.11",
+    "@std/async": "jsr:@std/async@^1.0.10",
+    "@std/encoding": "jsr:@std/encoding@^1.0.7",
+    "@std/fmt": "jsr:@std/fmt@^1.0.5",
+    "@std/toml": "jsr:@std/toml@^1.0.2",
+    "change-case": "npm:change-case@^5.4.4",
+    "dprint-node": "npm:dprint-node@^1.0.8",
+    "fast-equals": "npm:fast-equals@^5.2.2",
+    "get-port": "npm:get-port@^7.1.0",
+    "immutable": "npm:immutable@^5.0.3",
+    "jake": "npm:jake@^10.9.2",
+    "remeda": "npm:remeda@^2.20.1",
+    "ts-pattern": "npm:ts-pattern@^5.6.2",
+    "type-fest": "npm:type-fest@^4.33.0",
+    "vitest": "npm:vitest@^3.0.5",
+    "zx": "npm:zx@^8.3.2",
+    "iroha-build-utils": "./etc/iroha-build-utils.ts"
+  },
+  "publish": {
+    "exclude": [
+      "!**/*_generated_.ts",
+      "!packages/crypto-target-*/wasm-target"
+    ]
+  }
+}

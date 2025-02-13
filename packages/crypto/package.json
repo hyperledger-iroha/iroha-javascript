@@ -1,7 +1,0 @@
-{
-  "name": "@iroha2/monorepo-crypto",
-  "private": true,
-  "scripts": {
-    "test:integration": "pnpm --parallel --filter \"@iroha2/crypto-test-*\" run test"
-  }
-}

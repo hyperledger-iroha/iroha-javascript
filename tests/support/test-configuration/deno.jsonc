@@ -1,0 +1,10 @@
+{
+  "name": "@iroha/test-configuration",
+  "exports": {
+    ".": "./mod.ts",
+    "./node": "./node.ts"
+  },
+  "imports": {
+    "tempy": "npm:tempy@^3.1.0"
+  }
+}

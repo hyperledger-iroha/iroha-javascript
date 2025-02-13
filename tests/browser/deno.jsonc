@@ -1,0 +1,38 @@
+{
+  "tasks": {
+    "legacy-install": {
+      "description": "Install packages using PNPM",
+      "command": "pnpm install"
+    },
+    "app:dev": {
+      "description": "Run the web app itself",
+      "command": "pnpm vite",
+      "dependencies": ["legacy-install"]
+    },
+    // TODO: run `vue-tsc --noEmit` in some future?
+    "app:build": {
+      "command": "pnpm vite build",
+      "dependencies": ["legacy-install"]
+    },
+    "serve-peer": {
+      "description": "Run stateful server that controls `irohad` execution",
+      "command": "deno run --allow-all etc/serve-peer.ts"
+    },
+    "cy-open": {
+      "description": "Open Cypress",
+      "command": "pnpm cypress open",
+      "dependencies": ["legacy-install"]
+    },
+    "dev": {
+      "description": "Run app server, peer server, and open Cypress",
+      "dependencies": ["app:dev", "serve-peer", "cy-open"]
+    },
+    "test": {
+      "command": "deno task app:build && deno task test:run"
+    },
+    "test:run": {
+      "command": "DEBUG=\"@iroha*\" deno run --allow-all ./etc/test-run.ts",
+      "dependencies": ["legacy-install"]
+    }
+  }
+}

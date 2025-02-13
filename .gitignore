@@ -1,11 +1,17 @@
+.vite
 node_modules
 .DS_Store
-dist
-dist-tsc
-/etc/api/tmp
-/docs/api
+
 esbuild-kit
 v8-compile-cache-0
 
 .pnpm-debug.log
 .idea
+.vscode
+
+/prep
+/.iroha
+/packages/crypto-target-*/wasm-target
+/packages/core/crypto/wasm-target
+**/*_generated_.ts
+

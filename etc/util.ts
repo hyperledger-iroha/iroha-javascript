@@ -1,36 +1,26 @@
-import { Set } from 'immutable'
-import path from 'path'
-import consola from 'consola'
-import chalk from 'chalk'
-import { cd } from 'zx'
-import url from 'url'
+import * as path from 'jsr:@std/path'
+import { assert } from '@std/assert'
+import { expandGlob } from 'jsr:@std/fs'
+import { crypto } from 'jsr:@std/crypto'
+import { encodeHex } from 'jsr:@std/encoding'
 
-export type SetEntry<T> = T extends Set<infer V> ? V : never
-
-/**
- * Relative to the monorepo root
- */
-export function resolve(...paths: string[]): string {
-  return path.resolve(ROOT, ...paths)
+export function resolveFromRoot(...paths: (string)[]) {
+  const dirname = import.meta.dirname
+  assert(dirname)
+  return path.resolve(dirname, '../', ...paths)
 }
 
-export function reportDeleted(paths: string[]): void {
-  consola.info(
-    'Deleted stuff:\n' +
-      paths
-        .map((a) => path.relative(ROOT, a))
-        .map((a) => `  ${chalk.gray(a)}`)
-        .join('\n'),
-  )
-}
-
-export async function preserveCwd<T>(fn: () => Promise<T>): Promise<T> {
-  const preserved = process.cwd()
-  try {
-    return await fn()
-  } finally {
-    cd(preserved)
+export async function glob(pattern: string): Promise<string[]> {
+  const items: string[] = []
+  for await (const entry of expandGlob(pattern)) {
+    items.push(entry.path)
   }
+  return items
 }
 
-export const ROOT = url.fileURLToPath(new URL('../', import.meta.url))
+export async function hashsum(src: string | URL): Promise<string> {
+  const file = await Deno.open(src, { read: true })
+  const readableStream = file.readable
+  const fileHashBuffer = await crypto.subtle.digest('SHA-256', readableStream)
+  return encodeHex(fileHashBuffer)
+}
