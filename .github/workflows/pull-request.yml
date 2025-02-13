@@ -82,6 +82,12 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Enable corepack
+        run: corepack enable
       - name: Deno install
         run: deno task install
       - name: Deno check
