@@ -13,6 +13,7 @@
     "./tests/browser"
   ],
   "tasks": {
+    "install": "deno install --allow-scripts=npm:cypress,npm:@parcel/watcher,npm:vue-demi",
     "prep:iroha": "deno run --allow-all ./etc/task-prep-iroha.ts",
     "prep:iroha:check": {
       "description": "Ensure that Iroha is built",

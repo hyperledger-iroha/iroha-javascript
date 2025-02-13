@@ -25,6 +25,8 @@ jobs:
           components: rust-src
       - uses: jetli/wasm-pack-action@v0.4.0
         if: steps.prep-cache.outputs.cache-hit != 'true'
+        with:
+          version: 'v0.13.1'
       - uses: denoland/setup-deno@v2
         if: steps.prep-cache.outputs.cache-hit != 'true'
         with:
@@ -80,13 +82,13 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Deno install
+        run: deno task install
       - name: Deno check
         run: deno task check:all
-
       - name: Deno lint, fmt
         run: |
           deno lint
           deno fmt --check
-
       - name: Test
         run: deno task test
