@@ -1,6 +1,6 @@
-import * as crypto from '@iroha/core/crypto'
+import * as crypto from './crypto/mod.ts'
 import { getCodec } from './traits.ts'
-import * as types from '@iroha/core/data-model'
+import * as types from './data-model/mod.ts'
 
 export * from './query.ts'
 export * from './transaction.ts'

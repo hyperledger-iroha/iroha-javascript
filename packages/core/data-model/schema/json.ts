@@ -1,1 +1,1 @@
-export { default } from '../../../../prep/iroha/schema.json' with { type: 'json' }
+export { default } from './schema.json' with { type: 'json' }

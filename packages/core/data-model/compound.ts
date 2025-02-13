@@ -1,4 +1,4 @@
-import * as crypto from '@iroha/core/crypto'
+import * as crypto from '../crypto/mod.ts'
 import type { JsonValue } from 'type-fest'
 import { enumCodec, type GenCodec, lazyCodec, structCodec } from '../codec.ts'
 import { getCodec, type IsZero, type Ord, ordCompare, SYMBOL_CODEC } from '../traits.ts'
