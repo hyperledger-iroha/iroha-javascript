@@ -128,4 +128,4 @@ jobs:
       - name: Publish
         run: deno task publish --token $JSR_TOKEN
         env:
-          JSR_TOKEN: 'TODO'
+          JSR_TOKEN: ${{ secrets.JSR_TOKEN }}
