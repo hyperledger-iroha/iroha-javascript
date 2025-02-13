@@ -2,6 +2,8 @@ name: Pull Request CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 env:
   IROHA_GIT: https://github.com/0x009922/iroha.git
   IROHA_REV: 5302-expose-signature-payload
@@ -101,3 +103,30 @@ jobs:
           deno fmt --check
       - name: Test
         run: deno task test
+
+  publish:
+    if: github.event_name == 'push'
+    needs: [check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache/restore@v4
+        with:
+          fail-on-cache-miss: true
+          key: ${{ runner.os }}-${{ env.IROHA_GIT }}-${{ env.IROHA_REV }}
+          path: |
+            prep/iroha
+      - uses: actions/cache/restore@v4
+        with:
+          fail-on-cache-miss: true
+          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
+          path: |
+            prep/crypto-wasm
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Publish
+        run: deno task publish --token $JSR_TOKEN
+        env:
+          JSR_TOKEN: "TODO"
+
