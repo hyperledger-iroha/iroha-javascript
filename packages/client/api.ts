@@ -64,7 +64,7 @@ export class HttpTransport {
 
   /**
    * @param toriiBaseURL URL of Torii (Iroha API Gateway)
-   * @param fetch `fetch` implementation for environments where it is not available globally.
+   * @param fetch `fetch` implementation for environments where it is not available natively.
    * For example, you might need to use `node-fetch` or `undici` in older versions of Node.js.
    */
   public constructor(toriiBaseURL: URL, fetch?: Fetch) {

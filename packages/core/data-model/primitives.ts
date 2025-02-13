@@ -1,6 +1,6 @@
 import * as scale from '@scale-codec/core'
 import { GenCodec, structCodec } from '../codec.ts'
-import { type CodecContainer, defineCodec, type IsZero, type Ord, ordCompare } from '../traits.ts'
+import { type CodecContainer, defineCodec, type IsZero, type Ord, ordCompare, type OrdKnown } from '../traits.ts'
 import { type CompareFn, toSortedSet } from '../util.ts'
 
 export type U8 = number
@@ -105,8 +105,17 @@ export const Vec: {
   },
 }
 
+/**
+ * "Sorted vector".
+ *
+ * Represented as a plain array. The codec ensures that the entries are encoded in a deterministic manner,
+ * by sorting and deduplicating items.
+ */
 export type BTreeSet<T> = Vec<T>
 
+/**
+ * Codec factories for {@link BTreeSet:type}
+ */
 export const BTreeSet: {
   with<T extends Ord<T> | string>(type: GenCodec<T>): GenCodec<BTreeSet<T>>
   withCmp<T>(codec: GenCodec<T>, compare: CompareFn<T>): GenCodec<BTreeSet<T>>
@@ -128,13 +137,44 @@ export interface MapEntry<K, V> {
 }
 
 /**
- * Being represented as a plain array, its codec ensures that
- * the entries are encoded in a deterministic manner, sorting and deduplicating items.
+ * "Sorted map".
+ *
+ * Represented as a plain array. The codec ensures that the entries are encoded in a deterministic manner, by sorting and deduplicating items.
+ *
+ * Items comparison is based on their keys.
+ *
+ * @example
+ * ```ts
+ * import { getCodec } from '../traits.ts'
+ * import { assertEquals } from '@std/assert/equals'
+ *
+ * const map1: BTreeMap<string, number> = [
+ *   { key: 'a', value: 5 },
+ *   { key: 'c', value: 2 },
+ *   { key: 'b', value: 3 }
+ * ]
+ *
+ * const map2: BTreeMap<string, number> = [
+ *   { key: 'c', value: 2 },
+ *   { key: 'a', value: 2 },
+ *   { key: 'a', value: 5 },
+ *   { key: 'b', value: 3 }
+ * ]
+ *
+ * const codec = BTreeMap.with(getCodec(String), getCodec(U8))
+ *
+ * assertEquals(codec.encode(map1), codec.encode(map2))
+ * assertEquals(codec.decode(codec.encode(map1)), [
+ *   { key: 'a', value: 5 },
+ *   { key: 'b', value: 3 },
+ *   { key: 'c', value: 2 }
+ * ])
+ * ```
  */
 export type BTreeMap<K, V> = Array<MapEntry<K, V>>
 
 export const BTreeMap = {
-  with: <K extends Ord<K>, V>(key: GenCodec<K>, value: GenCodec<V>): GenCodec<BTreeMap<K, V>> => {
+  with: <K extends Ord<K> | OrdKnown, V>(key: GenCodec<K>, value: GenCodec<V>): GenCodec<BTreeMap<K, V>> => {
     return BTreeMap.withCmp(key, value, (a, b) => ordCompare(a.key, b.key))
   },
   withCmp: <K, V>(

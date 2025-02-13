@@ -1,7 +1,6 @@
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
 
 import { Client } from '@iroha/client'
-import { adapter as WS } from '@iroha/client/web-socket/native'
 
 // it must resolve first, before using core crypto exports
 import './setup-crypto.ts'
@@ -19,7 +18,6 @@ export const client = new Client({
   // proxified with vite
   toriiBaseURL: new URL(`http://${HOST}/torii`),
 
-  ws: WS,
   chain: CHAIN,
   accountDomain: DOMAIN,
   accountKeyPair: keyPair,

@@ -6,6 +6,7 @@
     "./packages/crypto-target-node",
     "./packages/crypto-target-web",
     "./packages/client",
+    "./packages/client-web-socket-node",
 
     "./tests/support/test-configuration",
     "./tests/support/test-peer",
@@ -34,6 +35,7 @@
       "command": "deno check .",
       "dependencies": ["prep:ensure-ready"]
     },
+    "test:deno": "deno test --doc --allow-read",
     "test:vitest": {
       "dependencies": ["prep:ensure-ready"],
       "description": "Run Vitest",
@@ -49,7 +51,7 @@
     },
     "test": {
       "description": "Run all tests, from unit to integration",
-      "command": "deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
+      "command": "deno task test:deno && deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
     },
     "dev:run-test-peer": {
       "dependencies": ["prep:ensure-ready"],
@@ -103,5 +105,6 @@
       "!packages/core/crypto/wasm-target",
       "!packages/core/data-model/schema/schema.json"
     ]
-  }
+  },
+  "test": { "exclude": ["prep", "crypto-wasm"] }
 }

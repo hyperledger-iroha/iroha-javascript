@@ -1,22 +1,18 @@
 import type Emittery from 'emittery'
-import Debug from 'debug'
 import * as dm from '@iroha/core/data-model'
 import { getCodec } from '@iroha/core'
 import { ENDPOINT_BLOCKS_STREAM, ENDPOINT_EVENTS } from './const.ts'
 import type { SocketEmitMapBase } from './util.ts'
 import { setupWebSocket } from './util.ts'
-import type { IsomorphicWebSocketAdapter } from './web-socket/types.ts'
-
-const debugBlocksStream = Debug('@iroha/client:blocks-stream')
-const debugEvents = Debug('@iroha/client:events')
+import { type IsomorphicWebSocketAdapter, nativeWS } from './web-socket/mod.ts'
 
 export class WebSocketAPI {
   public readonly toriiBaseURL: URL
   public readonly adapter: IsomorphicWebSocketAdapter
 
-  public constructor(toriiBaseURL: URL, adapter: IsomorphicWebSocketAdapter) {
+  public constructor(toriiBaseURL: URL, adapter?: IsomorphicWebSocketAdapter) {
     this.toriiBaseURL = toriiBaseURL
-    this.adapter = adapter
+    this.adapter = adapter ?? nativeWS
   }
 
   public async blocksStream(params?: SetupBlocksStreamParams): Promise<SetupBlocksStreamReturn> {
@@ -29,7 +25,6 @@ export class WebSocketAPI {
     } = setupWebSocket<BlocksStreamEmitteryMap>({
       baseURL: this.toriiBaseURL,
       endpoint: ENDPOINT_BLOCKS_STREAM,
-      parentDebugger: debugBlocksStream,
       adapter: this.adapter,
     })
 
@@ -67,7 +62,6 @@ export class WebSocketAPI {
     } = setupWebSocket<EventsEmitteryMap>({
       baseURL: this.toriiBaseURL,
       endpoint: ENDPOINT_EVENTS,
-      parentDebugger: debugEvents,
       adapter: this.adapter,
     })
 

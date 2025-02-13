@@ -1,15 +1,13 @@
 {
   "name": "@iroha/client",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "exports": {
     ".": "./mod.ts",
-    "./web-socket/native": "./web-socket/native.ts",
-    "./web-socket/node": "./web-socket/node.ts"
+    "./web-socket": "./web-socket/mod.ts"
   },
   "imports": {
-    "debug": "npm:debug@^4.4.0",
+    // TODO: remove these deps
     "emittery": "npm:emittery@^1.1.0",
-    "p-defer": "npm:p-defer@^4.0.1",
-    "ws": "npm:ws@^8.18.0"
+    "p-defer": "npm:p-defer@^4.0.1"
   }
 }

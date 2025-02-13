@@ -1,3 +1,26 @@
+/**
+ * Core components of the Iroha 2 JavaScript SDK.
+ *
+ * @example
+ * ```ts
+ * import '@iroha/crypto-target-node/install'
+ * import { getCodec } from '@iroha/core'
+ * import * as types from '@iroha/core/data-model'
+ * import { encodeHex } from '@std/encoding/hex'
+ * import { assertEquals } from '@std/assert/equals'
+ *
+ * const asset = types.AssetDefinitionId.parse("rose#wonderland")
+ * assertEquals(asset.name.value, 'rose')
+ * assertEquals(asset.domain.value, 'wonderland')
+ * assertEquals(asset.toString(), 'rose#wonderland')
+ *
+ * const encoded: Uint8Array = getCodec(types.AssetDefinitionId).encode(asset)
+ * assertEquals(encodeHex(encoded), '28776f6e6465726c616e6410726f7365')
+ * ```
+ *
+ * @module
+ */
+
 import * as crypto from './crypto/mod.ts'
 import { getCodec } from './traits.ts'
 import * as types from './data-model/mod.ts'

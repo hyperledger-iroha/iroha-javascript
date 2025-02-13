@@ -84,6 +84,15 @@ async function copyArtifacts() {
 
 async function copySchemaJson() {
   const dest = resolveFromRoot('packages/core/data-model/schema/schema.json')
+
+  try {
+    await Deno.remove(dest)
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound)) {
+      throw err
+    }
+  }
+
   await copy(path.join(PREP_OUTPUT_DIR, 'schema.json'), dest)
   $.logStep('Copied', dest)
 }

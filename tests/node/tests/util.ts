@@ -1,7 +1,7 @@
 import { onTestFinished } from 'vitest'
 import uniquePort from 'get-port'
 import { Client } from '../../../packages/client/mod.ts'
-import { adapter as WS } from '../../../packages/client/web-socket/node.ts'
+import WS from '@iroha/client-web-socket-node'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
 import { createGenesis } from '@iroha/test-configuration/node'
 import { Bytes, KeyPair, PrivateKey, PublicKey } from '@iroha/core/crypto'

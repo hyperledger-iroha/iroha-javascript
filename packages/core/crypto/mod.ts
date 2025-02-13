@@ -1,6 +1,11 @@
 /**
- * @module @iroha/crypto
+ * Port of `iroha_crypto` Rust crate via WASM.
+ *
+ * TODO: describe singleton, how to install WASMs.
+ *
+ * @module
  */
+
 export * from './types.ts'
 export * from './singleton.ts'
 export * from './util.ts'
@@ -50,10 +55,6 @@ export interface HasAlgorithm {
 
 export interface HasPayload {
   readonly payload: Bytes
-  // readonly payload: {
-  //   (): Uint8Array
-  //   (kind: 'hex'): string
-  // }
 }
 
 const HASH_ARR_LEN = 32
@@ -233,7 +234,7 @@ export class KeyPair implements HasAlgorithm {
   }
 
   /**
-   * Derive the key pair from a given seed.
+   * Derive the key pair from the given seed.
    * @param seed some binary data.
    * @param options key generation options
    */
