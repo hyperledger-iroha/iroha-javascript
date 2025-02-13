@@ -1,4 +1,5 @@
 {
+  "license": "Apache 2.0",
   "nodeModulesDir": "auto",
   "workspace": [
     "./packages/core",
@@ -98,7 +99,8 @@
   "publish": {
     "exclude": [
       "!**/*_generated_.ts",
-      "!packages/crypto-target-*/wasm-target"
+      "!packages/crypto-target-*/wasm-target",
+      "!packages/core/crypto/wasm-target"
     ]
   }
 }
