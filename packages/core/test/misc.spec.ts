@@ -58,7 +58,7 @@ describe('JSON/string serialisation', () => {
   })
 
   test('Timestamp serialises as ISO string', () => {
-    expect(dm.Timestamp.fromDate(new Date(1022, 10, 10, 0, 0, 0, 0)).toJSON()).toBe('1022-11-09T14:41:01.000Z')
+    expect(dm.Timestamp.fromDate(new Date(-41234040100)).toJSON()).toBe('1968-09-10T18:05:59.900Z')
   })
 })
 
