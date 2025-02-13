@@ -85,8 +85,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Enable corepack
-        run: corepack enable
+      - name: Enable pnpm via Corepack
+        run: |
+          echo "Before: corepack version => $(corepack --version || echo 'not installed')"
+          npm install -g corepack@latest
+          echo "After : corepack version => $(corepack --version)"
+          corepack enable pnpm
       - name: Deno install
         run: deno task install
       - name: Deno check
