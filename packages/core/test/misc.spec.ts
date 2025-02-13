@@ -88,7 +88,7 @@ test('Parse AssetId with different domains', () => {
 
 test('Fails to parse invalid account id with bad signatory', () => {
   expect(() => console.log(dm.AccountId.parse('test@test'))).toThrowErrorMatchingInlineSnapshot(
-    `[SyntaxError: Cannot parse PublicKey from "test": Error: Invalid character 't' at position 0]`,
+    `[Error: Invalid character 't' at position 0]`,
   )
 })
 

@@ -1,3 +1,1 @@
-import { install } from '@iroha/crypto-target-web'
-
-await install()
+import '@iroha/crypto-target-web/install'

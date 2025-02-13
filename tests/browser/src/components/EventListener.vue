@@ -27,7 +27,7 @@ async function startListening() {
         )
         .with(
           { kind: 'Pipeline', value: { kind: 'Transaction', value: P.select() } },
-          ({ hash, status }) => `Transaction (${hash.asHex().slice(0, 6)}...): ${status.kind}`,
+          ({ hash, status }) => `Transaction (${hash.payload.hex().slice(0, 6)}...): ${status.kind}`,
         )
         .otherwise(({ kind }) => {
           throw new Error(`This should not appear with given filters: ${kind}`)
