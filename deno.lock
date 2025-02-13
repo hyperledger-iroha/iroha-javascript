@@ -38,6 +38,7 @@
     "npm:@vueuse/core@^8.0.1": "8.9.4_vue@3.5.13",
     "npm:change-case@^5.4.4": "5.4.4",
     "npm:cypress@^13.12.0": "13.17.0_enquirer@2.4.1",
+    "npm:debug@*": "4.4.0",
     "npm:debug@^4.4.0": "4.4.0",
     "npm:dprint-node@^1.0.8": "1.0.8",
     "npm:emittery@^1.1.0": "1.1.0",

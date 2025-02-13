@@ -1,4 +1,0 @@
-{
-  "name": "@iroha/iroha-source",
-  "exports": "./mod.ts"
-}

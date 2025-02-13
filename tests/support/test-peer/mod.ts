@@ -1,4 +1,4 @@
-import { resolveBinary } from '@iroha/iroha-source'
+import { BIN_PATHS } from 'iroha-build-utils'
 import path from 'node:path'
 import { fs } from 'zx'
 import { PEER_CONFIG_BASE } from '@iroha/test-configuration'
@@ -88,7 +88,6 @@ export async function startPeer(params: {
   const API_URL = new URL(`http://${API_ADDRESS}`)
   const P2P_ADDRESS = `127.0.0.1:${PORT_P2P}`
   const TMP_DIR = temporaryDirectory()
-  const irohad = await resolveBinary('irohad')
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
   let configGenesisPart = {}
@@ -121,7 +120,7 @@ export async function startPeer(params: {
     ),
   )
 
-  const child = spawn(irohad.path, ['--config', './config.toml'], {
+  const child = spawn(BIN_PATHS.irohad, ['--config', './config.toml'], {
     cwd: TMP_DIR,
     stdio: ['ignore', 'pipe', 'pipe'],
   })

@@ -6,9 +6,7 @@
     "./packages/crypto-target-node",
     "./packages/crypto-target-web",
     "./packages/client",
-    // Could be enabled for DX (i.e. Deno LSP will recognise and help), but Deno will fail at running
-    // because of deps in `package.json`. They are specified with `pnpm dlx jsr add ...`, and Deno doesn't handle that.
-    "./tests/support/iroha-source",
+
     "./tests/support/test-configuration",
     "./tests/support/test-peer",
     "./tests/node",
@@ -103,6 +101,7 @@
     "ts-pattern": "npm:ts-pattern@^5.6.2",
     "type-fest": "npm:type-fest@^4.33.0",
     "vitest": "npm:vitest@^3.0.5",
-    "zx": "npm:zx@^8.3.2"
+    "zx": "npm:zx@^8.3.2",
+    "iroha-build-utils": "./etc/iroha-build-utils.ts"
   }
 }

@@ -3,7 +3,7 @@ import { getCodec } from '@iroha/core'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { temporaryDirectory } from 'tempy'
-import { EXECUTOR_WASM_PATH, irohaCodecToJson, resolveBinary } from '@iroha/iroha-source'
+import { BIN_PATHS, EXECUTOR_WASM_PATH, irohaCodecToJson } from 'iroha-build-utils'
 import type { PublicKey } from '@iroha/crypto'
 import { ACCOUNT_KEY_PAIR, CHAIN, GENESIS_KEY_PAIR } from './mod.ts'
 import { spawn } from 'node:child_process'
@@ -54,13 +54,11 @@ export async function createGenesis(params: {
 }
 
 async function signGenesisWithKagami(json: unknown): Promise<dm.SignedBlock> {
-  const kagami = await resolveBinary('iroha_kagami')
-
   const dir = temporaryDirectory()
   await fs.writeFile(path.join(dir, 'genesis.json'), JSON.stringify(json))
 
   const encoded = await new Promise<Buffer>((resolve, reject) => {
-    const child = spawn(kagami.path, [
+    const child = spawn(BIN_PATHS.kagami, [
       `genesis`,
       `sign`,
       path.join(dir, 'genesis.json'),

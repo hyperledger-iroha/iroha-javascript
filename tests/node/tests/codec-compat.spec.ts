@@ -2,7 +2,7 @@ import type { Except, JsonValue } from 'type-fest'
 import { type CodecContainer, defineCodec, getCodec } from '@iroha/core'
 import * as dm from '@iroha/core/data-model'
 import type SCHEMA from '@iroha/core/data-model/schema-json'
-import { irohaCodecToScale } from '@iroha/iroha-source'
+import { irohaCodecToScale } from 'iroha-build-utils'
 import { describe, expect, test } from 'vitest'
 import { Bytes, KeyPair } from '@iroha/crypto'
 

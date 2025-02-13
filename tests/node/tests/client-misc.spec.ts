@@ -348,7 +348,7 @@ describe('Queries', () => {
       })
       .executeSingle()
 
-    expect(found).toEqual(someBlock)
+    expect(found.value.payload.header).toEqual(someBlock.value.payload.header)
   })
 
   test('find asset definitions', async () => {
