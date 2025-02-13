@@ -1,4 +1,4 @@
-name: Pull Request CI
+name: Unified CI/CD
 on:
   pull_request:
     branches: [main]
