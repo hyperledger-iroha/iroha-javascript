@@ -1,6 +1,6 @@
 # Iroha JavaScript
 
-The JavaScript (TypeScript) SDK for Iroha 2.
+The JavaScript (TypeScript) SDK of [Iroha 2](https://github.com/hyperledger-iroha/iroha).
 
 Works in Deno, Node.js, and the Browser. (TODO: check in Bun and Cloudflare Workers).
 

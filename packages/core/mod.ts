@@ -1,5 +1,5 @@
 /**
- * Core components of the Iroha JavaScript SDK.
+ * Core components of the [Iroha](https://github.com/hyperledger-iroha/iroha) JavaScript SDK.
  *
  * It includes Iroha Data Model types and codecs, `iroha_crypto` WASM interface, and
  * utilities such as building/signing transactions/queries.

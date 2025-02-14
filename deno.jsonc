@@ -1,6 +1,7 @@
 {
   "license": "Apache 2.0",
   "nodeModulesDir": "auto",
+  "exclude": ["**/docs"],
   "workspace": [
     "./packages/core",
     "./packages/crypto-target-node",

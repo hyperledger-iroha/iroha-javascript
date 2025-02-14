@@ -20,13 +20,16 @@ export { FindAPI }
 
 export interface CreateClientParams {
   /**
-   * @default globalThis.fetch
+   * Custom {@linkcode fetch} for environments where it is not available natively.
    */
   fetch?: Fetch
   /**
-   * @default {@link import('./web-socket.mod.ts').nativeWS}
+   * WebSocket adapter. For environments where {@linkcode WebSocket} is not available natively.
    */
   ws?: IsomorphicWebSocketAdapter
+  /**
+   * The base URL of **Torii**, Iroha API Gateway.
+   */
   toriiBaseURL: URL
   chain: string
   accountDomain: types.DomainId
@@ -63,11 +66,11 @@ export class Client {
   public readonly params: CreateClientParams
 
   /**
-   * Raw API calls.
+   * Lower-level API calls.
    */
   public readonly api: MainAPI
   /**
-   * Raw WebSocket API calls.
+   * Lower-level WebSocket API calls.
    */
   public readonly socket: WebSocketAPI
   /**
@@ -97,6 +100,13 @@ export class Client {
     return this.params.accountKeyPair.privateKey()
   }
 
+  /**
+   * Create a transaction.
+   *
+   * @param executable the executable of the transactions
+   * @param params parameters to adjust the constructed transaction payload
+   * @returns the handle to perform further operations, such as computing transaction's hash or submitting it to Iroha.
+   */
   public transaction(
     executable: types.Executable,
     params?: Except<TransactionPayloadParams, 'authority' | 'chain'>,
@@ -113,10 +123,16 @@ export class Client {
     return new TransactionHandle(tx, this)
   }
 
+  /**
+   * Receive events from Iroha in real time.
+   */
   public async events(params?: SetupEventsParams): Promise<SetupEventsReturn> {
     return this.socket.events(params)
   }
 
+  /**
+   * Receive blocks from Iroha in real time.
+   */
   public async blocks(params?: SetupBlocksStreamParams): Promise<SetupBlocksStreamReturn> {
     return this.socket.blocksStream(params)
   }

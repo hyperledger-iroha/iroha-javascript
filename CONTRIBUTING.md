@@ -10,6 +10,8 @@ Steps, in short:
 4. Explore `tasks` in the root `deno.json`
 5. Work with the code
 
+TODO: setting up commit hooks
+
 ## Installing Rust and `wasm-pack`
 
 ```sh
