@@ -26,7 +26,10 @@
     },
     "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
     "prep:crypto-wasm:copy": "deno task prep:crypto-wasm --onlyCopy",
-    "prep:codegen": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
+    "prep:codegen": {
+      "command": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
+      "dependencies": ["prep:iroha:check"]
+    },
     "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
     "prep:ensure-ready": {
       "dependencies": ["prep:codegen", "prep:crypto-wasm:copy", "prep:iroha:check"]

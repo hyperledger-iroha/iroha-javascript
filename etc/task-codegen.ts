@@ -11,19 +11,20 @@ const tsFormatter = dprint.createFromBuffer(await Deno.readFile(dprintTS.getPath
 const formatTS = (code: string) => tsFormatter.formatText({ filePath: 'file.ts', fileText: code })
 
 async function write({ file, code }: { file: string; code: string }) {
+  let status: string
   try {
     const prevCode = await Deno.readTextFile(file)
     if (prevCode === code) {
-      $.logStep(`Skipping ${colors.cyan(file)}, no change`)
-      return
+      status = 'unchanged'
     } else {
       await Deno.writeTextFile(file, code)
-      $.logStep(`Re-written ${colors.cyan(file)}`)
+      status = 'updated'
     }
   } catch {
     await Deno.writeTextFile(file, code)
-    $.logStep(`Written ${colors.cyan(file)}`)
+    status = 'created'
   }
+  $.logStep(`Generated ${colors.cyan(file)} (${status})`)
 }
 
 /**
