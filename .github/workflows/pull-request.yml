@@ -108,6 +108,9 @@ jobs:
     if: github.event_name == 'push'
     needs: [check]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache/restore@v4
@@ -126,6 +129,4 @@ jobs:
         with:
           deno-version: v2.x
       - name: Publish
-        run: deno task publish --token $JSR_TOKEN
-        env:
-          JSR_TOKEN: ${{ secrets.JSR_TOKEN }}
+        run: deno task publish
