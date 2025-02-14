@@ -1,16 +1,5 @@
-/**
- * @module @iroha2/client
- */
-
-/**
- * @packageDocumentation
- *
- * Client library to interact with Iroha v2 Peer. Library implements Transactions, Queries,
- * Events, Status & Health check.
- */
-
 import type { KeyPair, PrivateKey } from '@iroha/core/crypto'
-import * as dm from '@iroha/core/data-model'
+import * as types from '@iroha/core/data-model'
 import type { Except } from 'type-fest'
 import defer from 'p-defer'
 import { buildTransactionPayload, signTransaction, transactionHash, type TransactionPayloadParams } from '@iroha/core'
@@ -23,16 +12,27 @@ import {
   type SetupEventsReturn,
   WebSocketAPI,
 } from './api-ws.ts'
-import type { IsomorphicWebSocketAdapter } from './web-socket/types.ts'
+import type { IsomorphicWebSocketAdapter } from './web-socket/mod.ts'
 import { FindAPI } from './find-api._generated_.ts'
 import { QueryExecutor } from './query.ts'
 
+export { FindAPI }
+
 export interface CreateClientParams {
+  /**
+   * Custom {@linkcode fetch} for environments where it is not available natively.
+   */
   fetch?: Fetch
-  ws: IsomorphicWebSocketAdapter
+  /**
+   * WebSocket adapter. For environments where {@linkcode WebSocket} is not available natively.
+   */
+  ws?: IsomorphicWebSocketAdapter
+  /**
+   * The base URL of **Torii**, Iroha API Gateway.
+   */
   toriiBaseURL: URL
   chain: string
-  accountDomain: dm.DomainId
+  accountDomain: types.DomainId
   accountKeyPair: KeyPair
 }
 
@@ -46,9 +46,9 @@ export interface SubmitParams {
 }
 
 export class TransactionRejectedError extends Error {
-  public reason: dm.TransactionRejectionReason
+  public reason: types.TransactionRejectionReason
 
-  public constructor(reason: dm.TransactionRejectionReason) {
+  public constructor(reason: types.TransactionRejectionReason) {
     super()
     this.name = 'TransactionRejectedError'
     this.reason = reason
@@ -66,11 +66,11 @@ export class Client {
   public readonly params: CreateClientParams
 
   /**
-   * Raw API calls.
+   * Lower-level API calls.
    */
   public readonly api: MainAPI
   /**
-   * Raw WebSocket API calls.
+   * Lower-level WebSocket API calls.
    */
   public readonly socket: WebSocketAPI
   /**
@@ -89,8 +89,8 @@ export class Client {
     this.socket = new WebSocketAPI(params.toriiBaseURL, params.ws)
   }
 
-  public authority(): dm.AccountId {
-    return new dm.AccountId(
+  public authority(): types.AccountId {
+    return new types.AccountId(
       this.params.accountKeyPair.publicKey(),
       this.params.accountDomain,
     )
@@ -100,8 +100,15 @@ export class Client {
     return this.params.accountKeyPair.privateKey()
   }
 
+  /**
+   * Create a transaction.
+   *
+   * @param executable the executable of the transactions
+   * @param params parameters to adjust the constructed transaction payload
+   * @returns the handle to perform further operations, such as computing transaction's hash or submitting it to Iroha.
+   */
   public transaction(
-    executable: dm.Executable,
+    executable: types.Executable,
     params?: Except<TransactionPayloadParams, 'authority' | 'chain'>,
   ): TransactionHandle {
     const tx = signTransaction(
@@ -116,10 +123,16 @@ export class Client {
     return new TransactionHandle(tx, this)
   }
 
+  /**
+   * Receive events from Iroha in real time.
+   */
   public async events(params?: SetupEventsParams): Promise<SetupEventsReturn> {
     return this.socket.events(params)
   }
 
+  /**
+   * Receive blocks from Iroha in real time.
+   */
   public async blocks(params?: SetupBlocksStreamParams): Promise<SetupBlocksStreamReturn> {
     return this.socket.blocksStream(params)
   }
@@ -127,16 +140,16 @@ export class Client {
 
 export class TransactionHandle {
   private readonly client: Client
-  private readonly tx: dm.SignedTransaction
-  private readonly txHash: dm.Hash
+  private readonly tx: types.SignedTransaction
+  private readonly txHash: types.Hash
 
-  public constructor(tx: dm.SignedTransaction, client: Client) {
+  public constructor(tx: types.SignedTransaction, client: Client) {
     this.client = client
     this.tx = tx
     this.txHash = transactionHash(tx)
   }
 
-  public get hash(): dm.Hash {
+  public get hash(): types.Hash {
     return this.txHash
   }
 
@@ -145,7 +158,7 @@ export class TransactionHandle {
       // const hash = transactionHash(tx)
       const stream = await this.client.events({
         filters: [
-          dm.EventFilterBox.Pipeline.Transaction({
+          types.EventFilterBox.Pipeline.Transaction({
             hash: this.txHash,
             blockHeight: null,
             // TODO: include "status" when Iroha API is fixed about it

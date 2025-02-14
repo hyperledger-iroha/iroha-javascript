@@ -1,4 +1,4 @@
-import * as types from '@iroha/core/data-model'
+import * as types from './data-model/mod.ts'
 import type { VariantUnit } from './util.ts'
 
 /**

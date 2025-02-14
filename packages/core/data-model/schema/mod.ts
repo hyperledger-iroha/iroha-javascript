@@ -1,3 +1,9 @@
+/**
+ * Types describing Iroha's `schema.json` file.
+ *
+ * @module
+ */
+
 export interface Schema {
   [type: string]: SchemaTypeDefinition
 }

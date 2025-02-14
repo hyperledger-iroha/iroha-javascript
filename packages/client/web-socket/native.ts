@@ -10,7 +10,7 @@ async function handleIncomingData(data: any): Promise<IncomingData> {
   throw new Error('Unable to parse incoming data')
 }
 
-export const adapter: IsomorphicWebSocketAdapter = {
+const adapter: IsomorphicWebSocketAdapter = {
   initWebSocket: (params) => {
     const socket = new WebSocket(params.url)
 
@@ -28,3 +28,5 @@ export const adapter: IsomorphicWebSocketAdapter = {
     }
   },
 }
+
+export default adapter

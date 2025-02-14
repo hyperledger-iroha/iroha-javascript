@@ -1,4 +1,18 @@
-import type { IncomingData, IsomorphicWebSocketAdapter } from './types.ts'
+/**
+ * WebSocket adapter for Node.js environment. Build on top of `npm:ws`.
+ *
+ * @example
+ * ```ts
+ * import ws from '@iroha/client-web-socket-node'
+ * import { WebSocketAPI } from '@iroha/client'
+ *
+ * new WebSocketAPI(new URL('http://localhost:8080'), ws)
+ * ```
+ *
+ * @module
+ */
+
+import type { IncomingData, IsomorphicWebSocketAdapter } from '@iroha/client/web-socket'
 import WebSocket from 'ws'
 import { Buffer } from 'node:buffer'
 
@@ -13,7 +27,10 @@ function handleIncomingData(
   throw new Error('Unable to parse incoming data')
 }
 
-export const adapter: IsomorphicWebSocketAdapter = {
+/**
+ * The WebSocket adapter.
+ */
+const adapter: IsomorphicWebSocketAdapter = {
   initWebSocket: (params) => {
     const socket = new WebSocket(params.url)
 
@@ -33,3 +50,5 @@ export const adapter: IsomorphicWebSocketAdapter = {
     }
   },
 }
+
+export default adapter

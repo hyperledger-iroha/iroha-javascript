@@ -1,8 +1,9 @@
 {
   "name": "@iroha/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "exports": {
     ".": "./mod.ts",
+    "./codec": "./codec.ts",
     "./data-model": "./data-model/mod.ts",
     "./data-model/schema": "./data-model/schema/mod.ts",
     "./data-model/schema-json": "./data-model/schema/json.ts",

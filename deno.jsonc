@@ -1,10 +1,13 @@
 {
+  "license": "Apache 2.0",
   "nodeModulesDir": "auto",
+  "exclude": ["**/docs"],
   "workspace": [
     "./packages/core",
     "./packages/crypto-target-node",
     "./packages/crypto-target-web",
     "./packages/client",
+    "./packages/client-web-socket-node",
 
     "./tests/support/test-configuration",
     "./tests/support/test-peer",
@@ -24,15 +27,19 @@
     },
     "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
     "prep:crypto-wasm:copy": "deno task prep:crypto-wasm --onlyCopy",
-    "prep:codegen": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
+    "prep:codegen": {
+      "command": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
+      "dependencies": ["prep:iroha:check"]
+    },
     "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
     "prep:ensure-ready": {
       "dependencies": ["prep:codegen", "prep:crypto-wasm:copy", "prep:iroha:check"]
     },
     "check:all": {
-      "command": "deno check .",
+      "command": "deno check --doc .",
       "dependencies": ["prep:ensure-ready"]
     },
+    "test:deno": "deno test --doc --allow-read",
     "test:vitest": {
       "dependencies": ["prep:ensure-ready"],
       "description": "Run Vitest",
@@ -48,7 +55,7 @@
     },
     "test": {
       "description": "Run all tests, from unit to integration",
-      "command": "deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
+      "command": "deno task test:deno && deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
     },
     "dev:run-test-peer": {
       "dependencies": ["prep:ensure-ready"],
@@ -98,7 +105,10 @@
   "publish": {
     "exclude": [
       "!**/*_generated_.ts",
-      "!packages/crypto-target-*/wasm-target"
+      "!packages/crypto-target-*/wasm-target",
+      "!packages/core/crypto/wasm-target",
+      "!packages/core/data-model/schema/schema.json"
     ]
-  }
+  },
+  "test": { "exclude": ["prep", "crypto-wasm"] }
 }

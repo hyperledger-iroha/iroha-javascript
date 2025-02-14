@@ -14,4 +14,5 @@ v8-compile-cache-0
 /packages/crypto-target-*/wasm-target
 /packages/core/crypto/wasm-target
 **/*_generated_.ts
+/packages/core/data-model/schema/schema.json
 

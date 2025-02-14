@@ -1,4 +1,4 @@
-import * as dm from '@iroha/core/data-model'
+import * as dm from './data-model/mod.ts'
 
 export interface TransactionPayloadParams {
   chain: dm.ChainId

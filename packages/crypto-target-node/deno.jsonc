@@ -1,6 +1,6 @@
 {
   "name": "@iroha/crypto-target-node",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "exports": {
     ".": "./mod.ts",
     "./install": "./install.ts"

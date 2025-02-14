@@ -82,6 +82,21 @@ async function copyArtifacts() {
   $.logStep(`Finished copying artifacts to ${colors.bold(colors.cyan(PREP_OUTPUT_DIR))}`)
 }
 
+async function copySchemaJson() {
+  const dest = resolveFromRoot('packages/core/data-model/schema/schema.json')
+
+  try {
+    await Deno.remove(dest)
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound)) {
+      throw err
+    }
+  }
+
+  await copy(path.join(PREP_OUTPUT_DIR, 'schema.json'), dest)
+  $.logStep('Copied', dest)
+}
+
 const args = parseArgs(Deno.args, {
   string: ['git', 'git-rev', 'path'],
   boolean: ['check', 'build'],
@@ -100,6 +115,7 @@ await match(args)
   .with({ check: true }, async () => {
     if (await dirExists(PREP_OUTPUT_DIR)) {
       $.logStep(`Checked that ${colors.cyan(PREP_OUTPUT_DIR)} exists`)
+      await copySchemaJson()
     } else {
       $.logError(
         `Error: ${PREP_OUTPUT_DIR} doesn't exist. Make sure to run ${

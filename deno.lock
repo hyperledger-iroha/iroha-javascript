@@ -2942,9 +2942,12 @@
     "members": {
       "packages/client": {
         "dependencies": [
-          "npm:debug@^4.4.0",
           "npm:emittery@^1.1.0",
-          "npm:p-defer@^4.0.1",
+          "npm:p-defer@^4.0.1"
+        ]
+      },
+      "packages/client-web-socket-node": {
+        "dependencies": [
           "npm:ws@^8.18.0"
         ]
       },

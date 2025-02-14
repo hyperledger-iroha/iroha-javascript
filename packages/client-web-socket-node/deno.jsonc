@@ -1,0 +1,8 @@
+{
+  "name": "@iroha/client-web-socket-node",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "imports": {
+    "ws": "npm:ws@^8.18.0"
+  }
+}
