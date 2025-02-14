@@ -1,6 +1,6 @@
 import * as scale from '@scale-codec/core'
-import { GenCodec, structCodec } from '../codec.ts'
-import { type CodecContainer, defineCodec, type IsZero, type Ord, ordCompare, type OrdKnown } from '../traits.ts'
+import { type CodecContainer, defineCodec, GenCodec, structCodec } from '../codec.ts'
+import { type IsZero, type Ord, ordCompare, type OrdKnown } from '../traits.ts'
 import { type CompareFn, toSortedSet } from '../util.ts'
 
 export type U8 = number
@@ -145,7 +145,7 @@ export interface MapEntry<K, V> {
  *
  * @example
  * ```ts
- * import { getCodec } from '../traits.ts'
+ * import { getCodec } from '../codec.ts'
  * import { assertEquals } from '@std/assert/equals'
  *
  * const map1: BTreeMap<string, number> = [

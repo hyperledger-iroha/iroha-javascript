@@ -1,28 +1,3 @@
-import type { GenCodec } from './codec.ts'
-
-export const SYMBOL_CODEC = '$codec'
-
-/**
- * Extracts codec from its container.
- */
-export function getCodec<T>(type: CodecContainer<T>): GenCodec<T> {
-  return type[SYMBOL_CODEC]
-}
-
-/**
- * Wraps a codec into {@link CodecContainer}.
- */
-export function defineCodec<T>(codec: GenCodec<T>): CodecContainer<T> {
-  return { [SYMBOL_CODEC]: codec }
-}
-
-/**
- * A value that contains a codec under a "special" key ({@link SYMBOL_CODEC}).
- */
-export interface CodecContainer<T> {
-  [SYMBOL_CODEC]: GenCodec<T>
-}
-
 /**
  * Ordering "trait". Tells how to compare values of the same type with each other.
  */

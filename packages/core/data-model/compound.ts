@@ -1,7 +1,7 @@
 import * as crypto from '../crypto/mod.ts'
 import type { JsonValue } from 'type-fest'
-import { enumCodec, type GenCodec, lazyCodec, structCodec } from '../codec.ts'
-import { getCodec, type IsZero, type Ord, ordCompare, SYMBOL_CODEC } from '../traits.ts'
+import { enumCodec, type GenCodec, getCodec, lazyCodec, structCodec, SYMBOL_CODEC } from '../codec.ts'
+import { type IsZero, type Ord, ordCompare } from '../traits.ts'
 import type { Variant } from '../util.ts'
 import { String, U64, Vec } from './primitives.ts'
 

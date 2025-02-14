@@ -1,5 +1,5 @@
 import type { Except, JsonValue } from 'type-fest'
-import { type CodecContainer, defineCodec, getCodec } from '@iroha/core'
+import { type CodecContainer, defineCodec, getCodec } from '@iroha/core/codec'
 import * as dm from '@iroha/core/data-model'
 import type SCHEMA from '@iroha/core/data-model/schema-json'
 import { irohaCodecToScale } from 'iroha-build-utils'

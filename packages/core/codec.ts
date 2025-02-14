@@ -2,6 +2,29 @@ import * as scale from '@scale-codec/core'
 import { decodeHex } from '@std/encoding'
 import type { Variant, VariantUnit } from './util.ts'
 
+export const SYMBOL_CODEC = '$codec'
+
+/**
+ * Extracts codec from its container.
+ */
+export function getCodec<T>(type: CodecContainer<T>): GenCodec<T> {
+  return type[SYMBOL_CODEC]
+}
+
+/**
+ * Wraps a codec into {@link CodecContainer}.
+ */
+export function defineCodec<T>(codec: GenCodec<T>): CodecContainer<T> {
+  return { [SYMBOL_CODEC]: codec }
+}
+
+/**
+ * A value that contains a codec under a "special" key ({@link SYMBOL_CODEC}).
+ */
+export interface CodecContainer<T> {
+  [SYMBOL_CODEC]: GenCodec<T>
+}
+
 export interface RawScaleCodec<T> {
   encode: scale.Encode<T>
   decode: scale.Decode<T>
@@ -70,7 +93,7 @@ export class EnumCodec<E extends scale.EnumRecord> extends GenCodec<scale.Enumer
         if (value.value !== undefined) return scale.variant<any>(value.kind, value.value)
         return scale.variant<any>(value.kind)
       },
-      fromBase: (value) => ({ kind: value.tag, value: value.content }),
+      fromBase: (value) => (value.unit ? { kind: value.tag } : { kind: value.tag, value: value.content }),
     }) as any
   }
 

@@ -1,7 +1,49 @@
 /**
- * Port of `iroha_crypto` Rust crate via WASM.
+ * Port of `iroha_crypto` Rust crate via WebAssembly.
  *
- * TODO: describe singleton, how to install WASMs.
+ * ## Installing the WebAssembly
+ *
+ * In order for this module (and its dependants) to operate properly, the WASM must be set via {@linkcode setWASM}.
+ * This module itself doesn't contain the WASMs, as they are dependant on the target platform. Instead, they are shipped
+ * as separate packages:
+ *
+ * - `@iroha/crypto-target-node` - for Node.js and Deno.
+ * - `@iroha/crypto-target-web` - for native browser ESModule environment, e.g. it will work out of the box with Vite.
+ *
+ * The shortest way to install a target is by the following:
+ *
+ * ```ts
+ * // In Node.js/Deno
+ * import '@iroha/crypto-target-node/install'
+ * ```
+ *
+ * ```ts
+ * // In Browser
+ * import '@iroha/crypto-target-web/install'
+ * ```
+ *
+ * Please consult to the relevant packages documentation for more details.
+ *
+ * @example Deriving a KeyPair from seed
+ * ```ts
+ * import '@iroha/crypto-target-node/install'
+ * import { Bytes } from '@iroha/core/crypto'
+ * import { assertEquals } from '@std/assert/equals'
+ *
+ * const kp = KeyPair.deriveFromSeed(Bytes.hex('001122'))
+ *
+ * assertEquals(kp.privateKey().multihash(), '8026205720A4B3BFFA5C9BBD83D09C88CD1DB08CA3F0C302EC4C8C37A26BD734C37616')
+ * ```
+ *
+ * @example Constructing a private key from a multihash
+ * ```ts
+ * import '@iroha/crypto-target-node/install'
+ * import { assertEquals } from '@std/assert/equals'
+ *
+ * const pk = PrivateKey.fromMultihash('8026205720A4B3BFFA5C9BBD83D09C88CD1DB08CA3F0C302EC4C8C37A26BD734C37616')
+ *
+ * assertEquals(pk.algorithm, 'ed25519')
+ * ```
  *
  * @module
  */
@@ -13,7 +55,8 @@ export * from './util.ts'
 import { Bytes } from './util.ts'
 import { getWASM } from './singleton.ts'
 import type { wasmPkg } from './types.ts'
-import { type CodecContainer, defineCodec, getCodec, type Ord, ordCompare, SYMBOL_CODEC } from '../traits.ts'
+import { type CodecContainer, defineCodec, getCodec, SYMBOL_CODEC } from '../codec.ts'
+import { type Ord, ordCompare } from '../traits.ts'
 import { enumCodec, GenCodec, structCodec } from '../codec.ts'
 import * as scale from '@scale-codec/core'
 import { assert } from '@std/assert/assert'
