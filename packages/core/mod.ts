@@ -24,7 +24,7 @@
  * >
  * > See the `@iroha/core/crypto` module for details.
  *
- * ### Iroha Compatilibity
+ * ### Iroha Compatibility
  *
  * Versions compatibility between this package and Iroha:
  *
