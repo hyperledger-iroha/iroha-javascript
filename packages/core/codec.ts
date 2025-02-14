@@ -1,3 +1,13 @@
+/**
+ * [SCALE](https://docs.polkadot.com/polkadot-protocol/basics/data-encoding) codec utilities.
+ *
+ * These are mostly used internally, but you can use it in case you need to extend codec functionality.
+ *
+ * This module is mostly based on the [`@scale-codec/core`](https://www.npmjs.com/package/@scale-codec/core) package.
+ *
+ * @module
+ */
+
 import * as scale from '@scale-codec/core'
 import { decodeHex } from '@std/encoding'
 import type { Variant, VariantUnit } from './util.ts'

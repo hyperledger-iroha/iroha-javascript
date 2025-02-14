@@ -35,7 +35,7 @@
       "dependencies": ["prep:codegen", "prep:crypto-wasm:copy", "prep:iroha:check"]
     },
     "check:all": {
-      "command": "deno check .",
+      "command": "deno check --doc .",
       "dependencies": ["prep:ensure-ready"]
     },
     "test:deno": "deno test --doc --allow-read",

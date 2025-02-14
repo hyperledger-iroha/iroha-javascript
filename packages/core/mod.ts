@@ -24,6 +24,19 @@
  * >
  * > See the `@iroha/core/crypto` module for details.
  *
+ * ### Iroha Compatilibity
+ *
+ * Versions compatibility between this package and Iroha:
+ *
+ * | Iroha version | `@iroha/core` version |
+ * | --: | :-- |
+ * | `2.0.0-rc.1.x` | `0.1.0` |
+ * | `2.0.0-pre-rc.20.x` and before | the legacy SDK |
+ *
+ * The legacy SDK is the previous iteration on SDK that is no longer maintained.
+ * It is still available on Iroha Nexus NPM registry (https://nexus.iroha.tech/repository/npm-group/).
+ * Its source code could be found on the [`iroha-2-pre-rc`](https://github.com/hyperledger-iroha/iroha-javascript/tree/iroha-2-pre-rc) branch.
+ *
  * @example Building and signing a transaction
  * ```ts
  * import '@iroha/crypto-target-node/install'
