@@ -43,7 +43,8 @@ async function test() {
 
 ## Iroha Compatibility
 
-See the ["Compatibility" section in `@iroha/core` package documentation](https://jsr.io/@iroha/core#iroha-compatibility).
+See the
+["Compatibility" section in `@iroha/core` package documentation](https://jsr.io/@iroha/core#iroha-compatibility).
 
 ## Contributing
 
