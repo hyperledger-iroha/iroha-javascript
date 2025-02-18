@@ -41,11 +41,9 @@ async function test() {
 }
 ```
 
-This example assumes running in Deno/Node.js.
-
 ## Iroha Compatibility
 
-See the ["Compatibility" secion in `@iroha/core` package documentation](https://jsr.io/@iroha/core#iroha-compatibility).
+See the ["Compatibility" section in `@iroha/core` package documentation](https://jsr.io/@iroha/core#iroha-compatibility).
 
 ## Contributing
 
