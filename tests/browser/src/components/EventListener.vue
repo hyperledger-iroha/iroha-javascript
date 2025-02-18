@@ -23,7 +23,7 @@ async function startListening() {
         .returnType<string>()
         .with(
           { kind: 'Pipeline', value: { kind: 'Block', value: P.select() } },
-          ({ status, header }) => `Block (height=${header.height}): ${status.kind}`,
+          ({ status, header }) => `Block (height=${header.height.value}): ${status.kind}`,
         )
         .with(
           { kind: 'Pipeline', value: { kind: 'Transaction', value: P.select() } },

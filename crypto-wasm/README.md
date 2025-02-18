@@ -1,15 +1,7 @@
-# Iroha Crypto WASM (Rust sources)
+# WebAssembly port of Iroha Crypto
 
-This Cargo project is a port of [`iroha_crypto` crate](https://github.com/hyperledger/iroha/tree/iroha2-lts/crypto) with
-`wasm_bindgen`s.
-
-## Rebuild WASMs
-
-To re-create `./wasm-pkg-*`, run in the monorepo root:
-
-```bash
-pnpm jake crypto-wasm:rebuild
-```
+This Cargo project is a port of [`iroha_crypto` crate](https://github.com/hyperledger/iroha/) with `wasm_bindgen`s.
+Building is done with `deno task prep:crypto-wasm`.
 
 ## Be aware of moves
 

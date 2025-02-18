@@ -5,7 +5,6 @@
  *
  * @example Constructing the client
  * ```ts
- * import '@iroha/crypto-target-node/install'
  * import ws from '@iroha/client-web-socket-node'
  * import { Client } from '@iroha/client'
  * import * as types from '@iroha/core/data-model'

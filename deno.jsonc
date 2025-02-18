@@ -4,8 +4,6 @@
   "exclude": ["**/docs"],
   "workspace": [
     "./packages/core",
-    "./packages/crypto-target-node",
-    "./packages/crypto-target-web",
     "./packages/client",
     "./packages/client-web-socket-node",
 
@@ -25,8 +23,14 @@
       "description": "Build Iroha artifacts and produce `/prep/iroha` directory",
       "command": "deno task prep:iroha --build"
     },
-    "prep:crypto-wasm": "deno run --allow-read --allow-env --allow-run --allow-write ./etc/task-prep-crypto-wasm.ts",
-    "prep:crypto-wasm:copy": "deno task prep:crypto-wasm --onlyCopy",
+    "prep:crypto-wasm": {
+      "description": "Prepare crypto wasm and put into `@iroha/core`",
+      "command": "deno run -A ./etc/task-prep-crypto-wasm.ts"
+    },
+    "prep:crypto-wasm:copy": {
+      "description": "Only copy already built crypto wasm into `@iroha/core`",
+      "command": "deno task prep:crypto-wasm --copy"
+    },
     "prep:codegen": {
       "command": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
       "dependencies": ["prep:iroha:check"]
@@ -70,7 +74,7 @@
   },
   "fmt": {
     "include": ["."],
-    "exclude": ["**/*_generated_.ts"],
+    "exclude": ["**/*_generated_.ts", "**/pnpm-lock.yaml"],
     "semiColons": false,
     "lineWidth": 120,
     "singleQuote": true
@@ -105,8 +109,7 @@
   "publish": {
     "exclude": [
       "!**/*_generated_.ts",
-      "!packages/crypto-target-*/wasm-target",
-      "!packages/core/crypto/wasm-target",
+      "!packages/core/crypto/wasm/",
       "!packages/core/data-model/schema/schema.json"
     ]
   },

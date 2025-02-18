@@ -27,6 +27,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/streams@0.221": "0.221.0",
     "jsr:@std/text@*": "1.0.10",
+    "jsr:@std/toml@*": "1.0.2",
     "jsr:@std/toml@^1.0.2": "1.0.2",
     "npm:@bahmutov/cypress-esbuild-preprocessor@^2.2.0": "2.2.4_esbuild@0.24.2",
     "npm:@deno/vite-plugin@^1.0.3": "1.0.3_vite@6.1.0__sass@1.84.0_sass@1.84.0",
@@ -57,7 +58,9 @@
     "npm:tempy@^3.1.0": "3.1.0",
     "npm:ts-pattern@^5.6.2": "5.6.2",
     "npm:type-fest@^4.33.0": "4.33.0",
-    "npm:vite@^6.1.0": "6.1.0_sass@1.84.0",
+    "npm:vite-plugin-wasm@^3.4.1": "3.4.1_vite@6.1.0__sass@1.84.0_@types+node@22.5.4_sass@1.84.0",
+    "npm:vite@*": "6.1.0_@types+node@22.5.4_sass@1.84.0",
+    "npm:vite@^6.1.0": "6.1.0_@types+node@22.5.4_sass@1.84.0",
     "npm:vitest@*": "3.0.5_vite@6.1.0__sass@1.84.0_sass@1.84.0",
     "npm:vitest@3.0.5": "3.0.5_vite@6.1.0__sass@1.84.0_sass@1.84.0",
     "npm:vitest@^3.0.5": "3.0.5_vite@6.1.0__sass@1.84.0_sass@1.84.0",
@@ -226,7 +229,7 @@
     "@deno/vite-plugin@1.0.3_vite@6.1.0__sass@1.84.0_sass@1.84.0": {
       "integrity": "sha512-As059Zjde6oaUw7+WXhu2WpnjnBzjUCs5+j21S1ilQRIorN+sCrArXpdSDsCXXnHQbCU1SHjVrjcca49YOuwIg==",
       "dependencies": [
-        "vite"
+        "vite@6.1.0_sass@1.84.0"
       ]
     },
     "@dprint/typescript@0.93.3": {
@@ -495,7 +498,7 @@
     "@vitejs/plugin-vue@5.2.1_vite@6.1.0__sass@1.84.0_vue@3.5.13_sass@1.84.0": {
       "integrity": "sha512-cxh314tzaWwOLqVes2gnnCtvBDcM1UMdn+iFR+UjAn411dPT3tOmqrJjbMd7koZpMAmBM/GqeV4n9ge7JSiJJQ==",
       "dependencies": [
-        "vite",
+        "vite@6.1.0_sass@1.84.0",
         "vue"
       ]
     },
@@ -514,7 +517,7 @@
         "@vitest/spy",
         "estree-walker@3.0.3",
         "magic-string",
-        "vite"
+        "vite@6.1.0_sass@1.84.0"
       ]
     },
     "@vitest/pretty-format@3.0.5": {
@@ -2761,12 +2764,40 @@
         "debug@4.4.0",
         "es-module-lexer",
         "pathe@2.0.2",
-        "vite"
+        "vite@6.1.0_sass@1.84.0"
+      ]
+    },
+    "vite-plugin-wasm@3.4.1_vite@6.1.0__sass@1.84.0_@types+node@22.5.4_sass@1.84.0": {
+      "integrity": "sha512-ja3nSo2UCkVeitltJGkS3pfQHAanHv/DqGatdI39ja6McgABlpsZ5hVgl6wuR8Qx5etY3T5qgDQhOWzc5RReZA==",
+      "dependencies": [
+        "vite@6.1.0_sass@1.84.0_@types+node@22.5.4"
+      ]
+    },
+    "vite@6.1.0_@types+node@22.5.4_sass@1.84.0": {
+      "integrity": "sha512-RjjMipCKVoR4hVfPY6GQTgveinjNuyLw+qruksLDvA5ktI1150VmcMBKmQaEWJhg/j6Uaf6dNCNA0AfdzUb/hQ==",
+      "dependencies": [
+        "@types/node@22.5.4",
+        "esbuild",
+        "fsevents",
+        "postcss",
+        "rollup",
+        "sass"
       ]
     },
     "vite@6.1.0_sass@1.84.0": {
       "integrity": "sha512-RjjMipCKVoR4hVfPY6GQTgveinjNuyLw+qruksLDvA5ktI1150VmcMBKmQaEWJhg/j6Uaf6dNCNA0AfdzUb/hQ==",
       "dependencies": [
+        "esbuild",
+        "fsevents",
+        "postcss",
+        "rollup",
+        "sass"
+      ]
+    },
+    "vite@6.1.0_sass@1.84.0_@types+node@22.5.4": {
+      "integrity": "sha512-RjjMipCKVoR4hVfPY6GQTgveinjNuyLw+qruksLDvA5ktI1150VmcMBKmQaEWJhg/j6Uaf6dNCNA0AfdzUb/hQ==",
+      "dependencies": [
+        "@types/node@22.5.4",
         "esbuild",
         "fsevents",
         "postcss",
@@ -2794,7 +2825,7 @@
         "tinyexec",
         "tinypool",
         "tinyrainbow",
-        "vite",
+        "vite@6.1.0_sass@1.84.0",
         "vite-node",
         "why-is-node-running"
       ]
@@ -2970,6 +3001,7 @@
             "npm:esbuild@~0.24.2",
             "npm:npm-run-all@^4.1.5",
             "npm:sass@^1.52.1",
+            "npm:vite-plugin-wasm@^3.4.1",
             "npm:vite@^6.1.0",
             "npm:vue@^3.2.47"
           ]

@@ -10,6 +10,10 @@ export function resolveFromRoot(...paths: (string)[]) {
   return path.resolve(dirname, '../', ...paths)
 }
 
+export function pathRel(to: string) {
+  return path.relative(resolveFromRoot(), to)
+}
+
 export async function glob(pattern: string): Promise<string[]> {
   const items: string[] = []
   for await (const entry of expandGlob(pattern)) {

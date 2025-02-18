@@ -1,4 +1,3 @@
-import '@iroha/crypto-target-node/install'
 import * as dm from '@iroha/core/data-model'
 
 function* hexes(hex: string): Generator<number> {

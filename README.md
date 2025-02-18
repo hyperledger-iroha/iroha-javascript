@@ -1,8 +1,7 @@
 # Iroha JavaScript
 
-The JavaScript (TypeScript) SDK of [Iroha 2](https://github.com/hyperledger-iroha/iroha).
-
-Works in Deno, Node.js, and the Browser. (TODO: check in Bun and Cloudflare Workers).
+The JavaScript (TypeScript) SDK of [Iroha 2](https://github.com/hyperledger-iroha/iroha) for Node.js, Deno, Bun and the
+browser\*.
 
 Packages and documentation are available on JSR: https://jsr.io/@iroha
 
@@ -24,7 +23,6 @@ bunx jsr add @iroha/core
 ### Quick Example
 
 ```ts
-import '@iroha/crypto-target-node/install'
 import { Client } from '@iroha/client'
 import * as types from '@iroha/core/data-model'
 

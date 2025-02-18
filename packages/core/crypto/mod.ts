@@ -1,32 +1,36 @@
 /**
  * Port of `iroha_crypto` Rust crate via WebAssembly.
  *
- * ## Installing the WebAssembly
+ * ### Compatibility
  *
- * In order for this module (and its dependants) to operate properly, the WASM must be set via {@linkcode setWASM}.
- * This module itself doesn't contain the WASMs, as they are dependant on the target platform. Instead, they are shipped
- * as separate packages:
+ * This package uses native `.wasm` ES Module imports, **which isn't widely supported yet**.
+ * However, there are some tricks in play to increase the compatibility.
  *
- * - `@iroha/crypto-target-node` - for Node.js and Deno.
- * - `@iroha/crypto-target-web` - for native browser ESModule environment, e.g. it will work out of the box with Vite.
+ * | Platform | Support | Version | Notes |
+ * | - | - | - | - |
+ * | Deno | ✅ | 2.1+ or 2.1.5+ | See [notes in `@deno/wasmbuild`](https://github.com/denoland/wasmbuild?tab=readme-ov-file#browser-nodejs-or-older-deno-support). |
+ * | Node.js | ✅ | v24.0+, v22.0+, v20.0+ | Uses `import('node:fs')` to make it work. |
+ * | Bun | ✅ ❓ | v1.2.2 | Checked only with `v1.2.2` |
+ * | Bundlers | ✅ 🚧 | | Requires plugins to support importing `.wasm` (e.g. [`vite-plugin-wasm`](https://github.com/Menci/vite-plugin-wasm)). |
+ * | Natively in the browser  | ✅ |  | Checked with https://esm.sh |
+ * | Cloudflare Workers | ❓ | | Not checked |
  *
- * The shortest way to install a target is by the following:
+ * An example of how this could be used in browser:
  *
- * ```ts
- * // In Node.js/Deno
- * import '@iroha/crypto-target-node/install'
+ * ```html
+ * <script type="module">
+ *   import * as types from 'https://esm.sh/jsr/@iroha/core@0.2.0/data-model'
+ *   console.log(types.KeyPair.random().publicKey().multihash())
+ * </script>
  * ```
  *
- * ```ts
- * // In Browser
- * import '@iroha/crypto-target-web/install'
- * ```
+ * Useful links:
  *
- * Please consult to the relevant packages documentation for more details.
+ * - [Proposal - WebAssembly/ES Module Integration](https://github.com/WebAssembly/esm-integration/tree/main/proposals/esm-integration?rgh-link-date=2025-02-17T23%3A57%3A24.000Z)
+ * - [Vite - WebAssembly](https://vite.dev/guide/features#webassembly)
  *
  * @example Deriving a KeyPair from seed
  * ```ts
- * import '@iroha/crypto-target-node/install'
  * import { Bytes } from '@iroha/core/crypto'
  * import { assertEquals } from '@std/assert/equals'
  *
@@ -37,7 +41,6 @@
  *
  * @example Constructing a private key from a multihash
  * ```ts
- * import '@iroha/crypto-target-node/install'
  * import { assertEquals } from '@std/assert/equals'
  *
  * const pk = PrivateKey.fromMultihash('8026205720A4B3BFFA5C9BBD83D09C88CD1DB08CA3F0C302EC4C8C37A26BD734C37616')
@@ -48,26 +51,21 @@
  * @module
  */
 
-export * from './types.ts'
-export * from './singleton.ts'
-export * from './util.ts'
-
 import { Bytes } from './util.ts'
-import { getWASM } from './singleton.ts'
-import type { wasmPkg } from './types.ts'
 import { type CodecContainer, defineCodec, getCodec, SYMBOL_CODEC } from '../codec.ts'
 import { type Ord, ordCompare } from '../traits.ts'
 import { enumCodec, GenCodec, structCodec } from '../codec.ts'
 import * as scale from '@scale-codec/core'
 import { assert } from '@std/assert/assert'
 import { BytesVec } from '../data-model/primitives.ts'
+import * as wasm from './wasm.js'
 
-export type VerifyResult = wasmPkg.VerifyResult
-
+export { Bytes }
+export type VerifyResult = wasm.VerifyResult
 /**
  * Crypto alrogithms supported by Iroha.
  */
-export type Algorithm = wasmPkg.Algorithm
+export type Algorithm = wasm.Algorithm
 
 const AlgorithmCodec: CodecContainer<Algorithm> = defineCodec(
   enumCodec<{
@@ -88,7 +86,7 @@ export const Algorithm: Record<Algorithm, Algorithm> & { default: () => Algorith
   secp256k1: 'secp256k1' as const,
   bls_normal: 'bls_normal' as const,
   bls_small: 'bls_small' as const,
-  default: (): Algorithm => getWASM(true).algorithm_default(),
+  default: (): Algorithm => wasm.algorithm_default(),
   ...AlgorithmCodec,
 }
 
@@ -118,7 +116,7 @@ export class Hash {
    * Create an hash filled with zeros.
    */
   public static zeroed(): Hash {
-    return new Hash(getWASM(true).Hash.zeroed(), null)
+    return new Hash(wasm.Hash.zeroed(), null)
   }
 
   /**
@@ -127,17 +125,17 @@ export class Hash {
    * @returns the resulting hash
    */
   public static hash(input: Bytes): Hash {
-    return new Hash(new (getWASM(true).Hash)(input.asWasmFormat), null)
+    return new Hash(new (wasm.Hash)(input.asWasmFormat), null)
   }
 
   public static fromRaw(payload: Bytes): Hash {
     return new Hash(null, payload)
   }
 
-  #wasm: null | wasmPkg.Hash
+  #wasm: null | wasm.Hash
   #bytes: null | Bytes
 
-  private constructor(wasm: null | wasmPkg.Hash, bytes: Bytes | null) {
+  private constructor(wasm: null | wasm.Hash, bytes: Bytes | null) {
     this.#wasm = wasm
     this.#bytes = bytes
   }
@@ -158,7 +156,7 @@ export class PrivateKey implements HasAlgorithm, HasPayload {
    */
   public static fromMultihash(multihash: string): PrivateKey {
     return new PrivateKey(
-      getWASM(true).PrivateKey.from_multihash_hex(multihash),
+      wasm.PrivateKey.from_multihash_hex(multihash),
     )
   }
 
@@ -167,12 +165,12 @@ export class PrivateKey implements HasAlgorithm, HasPayload {
   }
 
   public static fromParts(algorithm: Algorithm, payload: Bytes): PrivateKey {
-    return new PrivateKey(getWASM(true).PrivateKey.from_bytes(algorithm, payload.asWasmFormat))
+    return new PrivateKey(wasm.PrivateKey.from_bytes(algorithm, payload.asWasmFormat))
   }
 
-  #wasm: wasmPkg.PrivateKey
+  #wasm: wasm.PrivateKey
 
-  private constructor(wasm: wasmPkg.PrivateKey) {
+  private constructor(wasm: wasm.PrivateKey) {
     this.#wasm = wasm
   }
 
@@ -195,7 +193,7 @@ export class PrivateKey implements HasAlgorithm, HasPayload {
   /**
    * @internal
    */
-  public get wasm(): wasmPkg.PrivateKey {
+  public get wasm(): wasm.PrivateKey {
     return this.#wasm
   }
 }
@@ -210,12 +208,12 @@ export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
   })
 
   public static fromMultihash(multihash: string): PublicKey {
-    const key = getWASM(true).PublicKey.from_multihash_hex(multihash)
+    const key = wasm.PublicKey.from_multihash_hex(multihash)
     return new PublicKey(key)
   }
 
   public static fromPrivateKey(privateKey: PrivateKey): PublicKey {
-    const key = getWASM(true).PublicKey.from_private_key(privateKey.wasm)
+    const key = wasm.PublicKey.from_private_key(privateKey.wasm)
     return new PublicKey(key)
   }
 
@@ -224,12 +222,12 @@ export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
   }
 
   public static fromParts(algorithm: Algorithm, payload: Bytes): PublicKey {
-    return new PublicKey(getWASM(true).PublicKey.from_bytes(algorithm, payload.asWasmFormat))
+    return new PublicKey(wasm.PublicKey.from_bytes(algorithm, payload.asWasmFormat))
   }
 
-  #wasm: wasmPkg.PublicKey
+  #wasm: wasm.PublicKey
 
-  private constructor(wasm: wasmPkg.PublicKey) {
+  private constructor(wasm: wasm.PublicKey) {
     this.#wasm = wasm
   }
 
@@ -241,7 +239,7 @@ export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
     return Bytes.array(this.#wasm.payload())
   }
 
-  public get wasm(): wasmPkg.PublicKey {
+  public get wasm(): wasm.PublicKey {
     return this.#wasm
   }
 
@@ -249,7 +247,7 @@ export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
     return this.#wasm.to_multihash_hex()
   }
 
-  public verifySignature(signature: Signature, message: Bytes): wasmPkg.VerifyResult {
+  public verifySignature(signature: Signature, message: Bytes): wasm.VerifyResult {
     return signature.verify(this, message)
   }
 
@@ -272,7 +270,7 @@ export class KeyPair implements HasAlgorithm {
    * Generate a random key pair.
    */
   public static random(options?: KeyGenOptions): KeyPair {
-    const pair = getWASM(true).KeyPair.random(options?.algorithm)
+    const pair = wasm.KeyPair.random(options?.algorithm)
     return new KeyPair(pair)
   }
 
@@ -282,22 +280,22 @@ export class KeyPair implements HasAlgorithm {
    * @param options key generation options
    */
   public static deriveFromSeed(seed: Bytes, options?: KeyGenOptions): KeyPair {
-    const pair = getWASM(true).KeyPair.derive_from_seed(seed.asWasmFormat, options?.algorithm)
+    const pair = wasm.KeyPair.derive_from_seed(seed.asWasmFormat, options?.algorithm)
     return new KeyPair(pair)
   }
 
   public static deriveFromPrivateKey(private_key: PrivateKey): KeyPair {
-    const pair = getWASM(true).KeyPair.derive_from_private_key(private_key.wasm)
+    const pair = wasm.KeyPair.derive_from_private_key(private_key.wasm)
     return new KeyPair(pair)
   }
 
   public static fromParts(publicKey: PublicKey, privateKey: PrivateKey): KeyPair {
-    return new KeyPair(getWASM(true).KeyPair.from_parts(publicKey.wasm, privateKey.wasm))
+    return new KeyPair(wasm.KeyPair.from_parts(publicKey.wasm, privateKey.wasm))
   }
 
-  #wasm: wasmPkg.KeyPair
+  #wasm: wasm.KeyPair
 
-  private constructor(wasm: wasmPkg.KeyPair) {
+  private constructor(wasm: wasm.KeyPair) {
     this.#wasm = wasm
   }
 
@@ -316,7 +314,7 @@ export class KeyPair implements HasAlgorithm {
   /**
    * @internal
    */
-  public get wasm(): wasmPkg.KeyPair {
+  public get wasm(): wasm.KeyPair {
     return this.#wasm
   }
 }
@@ -331,27 +329,27 @@ export class Signature implements HasPayload {
    * Create a signature from its payload and public key. This function **does not sign the payload**.
    */
   public static fromRaw(payload: Bytes): Signature {
-    return new Signature(getWASM(true).Signature.from_bytes(payload.asWasmFormat))
+    return new Signature(wasm.Signature.from_bytes(payload.asWasmFormat))
   }
 
   /**
    * Creates an actual signature, signing the payload with the given private key
    */
   public static create(privateKey: PrivateKey, payload: Bytes): Signature {
-    const value = new (getWASM(true).Signature)(privateKey.wasm, payload.asWasmFormat)
+    const value = new (wasm.Signature)(privateKey.wasm, payload.asWasmFormat)
     return new Signature(value)
   }
 
-  #wasm: wasmPkg.Signature
+  #wasm: wasm.Signature
 
-  private constructor(wasm: wasmPkg.Signature) {
+  private constructor(wasm: wasm.Signature) {
     this.#wasm = wasm
   }
 
   /**
    * Verify that this signature is produced for the given payload by the given key (its public part)
    */
-  public verify(publicKey: PublicKey, payload: Bytes): wasmPkg.VerifyResult {
+  public verify(publicKey: PublicKey, payload: Bytes): wasm.VerifyResult {
     return this.#wasm.verify(publicKey.wasm, payload.asWasmFormat)
   }
 
