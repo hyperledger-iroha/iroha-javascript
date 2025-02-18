@@ -1,46 +1,35 @@
 /**
  * Core components of the [Iroha](https://github.com/hyperledger-iroha/iroha) JavaScript SDK.
  *
- * It includes Iroha Data Model types and codecs, `iroha_crypto` WASM interface, and
+ * It includes Iroha Data Model types and codecs, WebAssembly port of `iroha_crypto`, and
  * utilities such as building/signing transactions/queries.
  *
- * It consists of the following modules:
+ * This package consists of the following modules:
  *
- * - `@iroha/core` - shared utilities
- * - `@iroha/core/data-model` - the data model
- * - `@iroha/core/crypto` - `iroha_crypto` WASM interface
- * - `@iroha/core/codec` - lower-level utilities to work with the codec
- *
- * ### Install `iroha_crypto` WASM
+ * - `data-model` - the data model
+ * - `crypto` - cryptographic utilities
+ * - `codec` - lower-level utilities to work with the codec
  *
  * > [!IMPORTANT]
- * > Make sure to install the `iroha_crypto` WASM **before using utilities that are dependant on it**.
- * >
- * > The simplest way to do so in Deno/Node.js is the following:
- * >
- * > ```ts ignore
- * > import '@iroha/crypto-target-node/install'
- * > ```
- * >
- * > See the `@iroha/core/crypto` module for details.
+ * > This package includes a WebAssembly module to perform cryptographic operations in a way consistent with Iroha.
+ * > It is a bit tricky to initialise uniformly across different environments, and **there could be compatibility issues**.
+ * > See the `crypto` module for more details.
  *
  * ### Iroha Compatibility
  *
- * Versions compatibility between this package and Iroha:
+ * Versions compatibility between Iroha and this package:
  *
- * | Iroha version | `@iroha/core` version |
+ * | Iroha | `@iroha/core` |
  * | --: | :-- |
- * | `2.0.0-rc.1.x` | `0.1.0` |
- * | `2.0.0-pre-rc.20.x` and before | the legacy SDK |
+ * | `2.0.0-rc.1.x` | `0.2.0`, ~~`0.1.0`~~ ([broken](https://github.com/hyperledger-iroha/iroha-javascript/issues/210#issuecomment-2662231135)) |
+ * | `2.0.0-pre-rc.20.x` and before | the Legacy SDK* |
  *
- * The legacy SDK is the previous iteration on SDK that is no longer maintained.
- * It is still available on Iroha Nexus NPM registry (https://nexus.iroha.tech/repository/npm-group/).
+ * **The Legacy SDK** is the previous iteration on SDK that is no longer maintained.
+ * It is still available on [Iroha Nexus NPM registry](https://nexus.iroha.tech/repository/npm-group/).
  * Its source code could be found on the [`iroha-2-pre-rc`](https://github.com/hyperledger-iroha/iroha-javascript/tree/iroha-2-pre-rc) branch.
  *
  * @example Building and signing a transaction
  * ```ts
- * import '@iroha/crypto-target-node/install'
- *
  * import * as types from '@iroha/core/data-model'
  * import { buildTransactionPayload, signTransaction } from '@iroha/core'
  *
@@ -83,7 +72,6 @@
  *
  * @example Parsing an account id
  * ```ts
- * import '@iroha/crypto-target-node/install'
  * import { getCodec } from '@iroha/core'
  * import * as types from '@iroha/core/data-model'
  * import { encodeHex } from '@std/encoding/hex'

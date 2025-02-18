@@ -1,4 +1,3 @@
-import '@iroha/crypto-target-node/install'
 import { run } from '@iroha/test-peer/api/server'
 import { PORT_PEER_API, PORT_PEER_P2P, PORT_PEER_SERVER } from './meta.ts'
 

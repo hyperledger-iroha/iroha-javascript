@@ -5,7 +5,7 @@
     "./api/server": "./api/server.ts"
   },
   "tasks": {
-    "run": "DEBUG=\"@iroha*\" deno run --allow-all ./etc/run.ts"
+    "run": "DEBUG=\"@iroha*\" deno run -A ./run.ts"
   },
   "imports": {
     "debug": "npm:debug@^4.4.0",

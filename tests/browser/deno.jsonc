@@ -16,7 +16,7 @@
     },
     "serve-peer": {
       "description": "Run stateful server that controls `irohad` execution",
-      "command": "deno run --allow-all etc/serve-peer.ts"
+      "command": "DEBUG=\"@iroha*\" deno run -A etc/serve-peer.ts"
     },
     "cy-open": {
       "description": "Open Cypress",
@@ -28,7 +28,10 @@
       "dependencies": ["app:dev", "serve-peer", "cy-open"]
     },
     "test": {
-      "command": "deno task app:build && deno task test:run"
+      // FIXME: "vite-plugin-wasm" doesn't work in production, so I have to use `vite dev` in tests
+      // https://github.com/Menci/vite-plugin-wasm/issues/57
+      // "dependencies": ["app:build"],
+      "command": "deno task test:run"
     },
     "test:run": {
       "command": "DEBUG=\"@iroha*\" deno run --allow-all ./etc/test-run.ts",

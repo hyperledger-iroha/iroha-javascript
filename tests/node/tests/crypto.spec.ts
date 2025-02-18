@@ -1,8 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { wasmPkg } from '@iroha/crypto-target-node'
-import { Algorithm, Bytes, KeyPair, PrivateKey, PublicKey, setWASM, Signature } from '@iroha/core/crypto'
-
-setWASM(wasmPkg)
+import { Algorithm, Bytes, KeyPair, PrivateKey, PublicKey, Signature } from '@iroha/core/crypto'
 
 const { hex: bytesHex } = Bytes
 

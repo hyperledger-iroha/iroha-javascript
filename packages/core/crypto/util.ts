@@ -1,7 +1,5 @@
 import { decodeHex, encodeHex } from '@std/encoding/hex'
-import type { wasmPkg } from './types.ts'
-
-export type WasmBytes = wasmPkg.Bytes
+import type { Bytes as WasmBytes } from './wasm.js'
 
 /**
  * Helper to work with binary data passed into the WASM

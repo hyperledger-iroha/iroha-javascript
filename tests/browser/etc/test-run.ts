@@ -66,7 +66,9 @@ $.logStep('Running peer server and vite preview in parallel')
 const tasks = await Promise.all([
   spawnLinked(
     new Deno.Command('pnpm', {
-      args: ['vite', 'preview', '--port', String(PORT_VITE), '--strictPort'],
+      // TODO: replace with `vite build` & `vite preview` once resolved
+      // https://github.com/Menci/vite-plugin-wasm/issues/57
+      args: ['vite', 'dev', '--port', String(PORT_VITE), '--strictPort'],
       stderr: 'inherit',
       'stdout': 'inherit',
     }),

@@ -3,8 +3,6 @@ import { resolveFromRoot } from './util.ts'
 
 const PATHS = [
   'packages/core',
-  'packages/crypto-target-node',
-  'packages/crypto-target-web',
   'packages/client',
   'packages/client-web-socket-node',
 ].map(

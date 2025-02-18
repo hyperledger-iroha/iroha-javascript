@@ -1,10 +1,5 @@
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
-
 import { Client } from '@iroha/client'
-
-// it must resolve first, before using core crypto exports
-import './setup-crypto.ts'
-
 import { KeyPair, PrivateKey, PublicKey } from '@iroha/core/crypto'
 
 const keyPair = KeyPair.fromParts(

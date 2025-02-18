@@ -17,7 +17,7 @@ jobs:
         with:
           path: |
             prep/crypto-wasm
-          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*', 'etc/task-prep-crypto-wasm.ts') }}
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         if: steps.prep-cache.outputs.cache-hit != 'true'
         with:
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           fail-on-cache-miss: true
-          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*', 'etc/task-prep-crypto-wasm.ts') }}
           path: |
             prep/crypto-wasm
       - uses: denoland/setup-deno@v2
@@ -122,7 +122,7 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           fail-on-cache-miss: true
-          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*') }}
+          key: ${{ runner.os }}-${{ hashFiles('crypto-wasm/*', 'etc/task-prep-crypto-wasm.ts') }}
           path: |
             prep/crypto-wasm
       - uses: denoland/setup-deno@v2
