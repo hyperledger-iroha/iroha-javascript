@@ -7,7 +7,7 @@
  * However, there are some tricks in play to increase the compatibility.
  *
  * | Platform | Support | Version | Notes |
- * | - | - | - | - | 
+ * | - | - | - | - |
  * | Deno | ✅ | 2.1+ or 2.1.5+ | See [notes in `@deno/wasmbuild`](https://github.com/denoland/wasmbuild?tab=readme-ov-file#browser-nodejs-or-older-deno-support). |
  * | Node.js | ✅ | v24.0+, v22.0+, v20.0+ | Uses `import('node:fs')` to make it work. |
  * | Bun | ✅ ❓ | v1.2.2 | Checked only with `v1.2.2` |

@@ -74,7 +74,7 @@
   },
   "fmt": {
     "include": ["."],
-    "exclude": ["**/*_generated_.ts"],
+    "exclude": ["**/*_generated_.ts", "**/pnpm-lock.yaml"],
     "semiColons": false,
     "lineWidth": 120,
     "singleQuote": true
