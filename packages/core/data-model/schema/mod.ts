@@ -1,6 +1,6 @@
 /**
  * Types describing Iroha `schema.json` file.
- * 
+ *
  * The embedded `schema.json` used to generate this exact version of the package is in the {@linkcode [data-model/schema-json]} module.
  *
  * @module
