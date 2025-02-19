@@ -131,6 +131,27 @@ await match(args)
     await copyArtifacts()
   })
   .otherwise(() => {
-    $.logError('Bad CLI args')
+    const cmd = colors.gray(`deno task prep:iroha`)
+
+    console.info(`Usage:
+
+  ${colors.blue('## Link Iroha')}
+
+  ${colors.magenta(`${cmd} --git <git repo> --git-rev <tag or revision>`)}
+    to clone Iroha repo
+
+  or
+
+  ${colors.magenta(`${cmd} --path <local path>`)}
+    to symlink a local Iroha repo
+  
+  ${colors.blue('## Build')}
+  
+  ${colors.magenta(`${cmd} --build`)}
+    to build Iroha artifacts
+
+  ${colors.magenta(`${cmd} --check`)}
+    to check that the artifacts are ready
+  `)
     Deno.exit(1)
   })
