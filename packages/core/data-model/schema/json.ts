@@ -1,7 +1,7 @@
 /**
- * The Iroha's `schema.json` itself.
+ * The embedded `schema.json` used to generate this exact version of the package.
  *
- * Data model types are generated based on this schema. It could be used as a reference.
+ * Its types are described in the {@linkcode [data-model/schema]} module.
  *
  * @module
  */

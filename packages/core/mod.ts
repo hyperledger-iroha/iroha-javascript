@@ -6,14 +6,14 @@
  *
  * This package consists of the following modules:
  *
- * - `data-model` - the data model
- * - `crypto` - cryptographic utilities
- * - `codec` - lower-level utilities to work with the codec
+ * - {@linkcode [data-model]} - the data model
+ * - {@linkcode [crypto]} - cryptographic utilities
+ * - {@linkcode [codec]} - lower-level utilities to work with the codec
  *
  * > [!IMPORTANT]
  * > This package includes a WebAssembly module to perform cryptographic operations in a way consistent with Iroha.
  * > It is a bit tricky to initialise uniformly across different environments, and **there could be compatibility issues**.
- * > See the `crypto` module for more details.
+ * > See the {@linkcode [crypto]} module for more details.
  *
  * ### Iroha Compatibility
  *
@@ -84,8 +84,6 @@
  * assertEquals(account.domain.value, 'wonderland')
  * assertEquals(account.toString(), raw)
  * ```
- *
- * Note that this example requires WASM installation, because account id contains a public key.
  *
  * @module
  */
