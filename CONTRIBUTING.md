@@ -44,7 +44,7 @@ deno task prep:iroha --path /path/to/local/iroha/clone
 
 ```sh
 # clone the repo
-deno task prep:iroha --git https://github.com/hyperledger-iroha/iroha.git --rev v2.0.0-rc.1.0
+deno task prep:iroha --git https://github.com/hyperledger-iroha/iroha.git --git-rev v2.0.0-rc.1.0
 ```
 
 After Iroha is linked, you need to prepare some artifacts from it (binaries such as `irohad`, `kagami`, `iroha_codec`;
