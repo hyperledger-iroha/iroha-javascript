@@ -1,3 +1,14 @@
+### 2025.02.19
+
+#### @iroha/client 0.2.0 (major)
+
+- bump version to update @iroha/core dependency
+- docs(core, client): extend docs, link modules (#226)
+
+#### @iroha/core 0.2.1 (patch)
+
+- docs(core, client): extend docs, link modules (#226)
+
 ### 2025.02.18
 
 #### @iroha/core 0.2.0 (major)
