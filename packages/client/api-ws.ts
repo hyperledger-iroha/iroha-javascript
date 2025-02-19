@@ -10,6 +10,12 @@ export class WebSocketAPI {
   public readonly toriiBaseURL: URL
   public readonly adapter: IsomorphicWebSocketAdapter
 
+  /**
+   * Create an instance.
+   * @param toriiBaseURL Torii base URL
+   * @param adapter A custom WebSocket adapter. Uses native by default.
+   * See the {@linkcode [web-socket]} module for more details.
+   */
   public constructor(toriiBaseURL: URL, adapter?: IsomorphicWebSocketAdapter) {
     this.toriiBaseURL = toriiBaseURL
     this.adapter = adapter ?? nativeWS
