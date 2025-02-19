@@ -10,7 +10,7 @@ Some functions which will help you to interact with [Hyperledger Iroha](https://
 ## Trying an example
 
  1. Clone this repository
- 2. Run Iroha http://iroha.readthedocs.io/en/latest/getting_started/
+ 2. Run Iroha http://iroha.readthedocs.io/en/main/getting_started/
  3. Run `grpc-web-proxy` for iroha https://gitlab.com/snippets/1713665
  4. `yarn build && npx ts-node example/index.ts`
 
@@ -125,24 +125,24 @@ const commandOptions = {
 }
 ```
 
-- [x] [addAssetQuantity](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#add-asset-quantity)
-- [x] [addPeer](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#add-peer)
-- [x] [addSignatory](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#add-signatory)
-- [x] [appendRole](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#append-role)
-- [x] [createAccount](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#create-account)
-- [x] [createAsset](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#create-asset)
-- [x] [createDomain](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#create-domain)
-- [x] [createRole](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#create-role)
-- [x] [detachRole](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#detach-role)
-- [x] [grantPermission](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#grant-permission)
-- [x] [removeSignatory](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#remove-signatory)
-- [x] [revokePermission](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#revoke-permission)
-- [x] [setAccountDetail](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#set-account-detail)
-- [x] [setAccountQuorum](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#set-account-quorum)
-- [x] [subtractAssetQuantity](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#subtract-asset-quantity)
-- [x] [transferAsset](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#transfer-asset)
-- [x] [сompareAndSetAccountDetail](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#compare-and-set-account-detail)
-- [x] [removePeer](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#remove-peer)
+- [x] [addAssetQuantity](https://iroha.readthedocs.io/en/main/develop/api/commands.html#add-asset-quantity)
+- [x] [addPeer](https://iroha.readthedocs.io/en/main/develop/api/commands.html#add-peer)
+- [x] [addSignatory](https://iroha.readthedocs.io/en/main/develop/api/commands.html#add-signatory)
+- [x] [appendRole](https://iroha.readthedocs.io/en/main/develop/api/commands.html#append-role)
+- [x] [createAccount](https://iroha.readthedocs.io/en/main/develop/api/commands.html#create-account)
+- [x] [createAsset](https://iroha.readthedocs.io/en/main/develop/api/commands.html#create-asset)
+- [x] [createDomain](https://iroha.readthedocs.io/en/main/develop/api/commands.html#create-domain)
+- [x] [createRole](https://iroha.readthedocs.io/en/main/develop/api/commands.html#create-role)
+- [x] [detachRole](https://iroha.readthedocs.io/en/main/develop/api/commands.html#detach-role)
+- [x] [grantPermission](https://iroha.readthedocs.io/en/main/develop/api/commands.html#grant-permission)
+- [x] [removeSignatory](https://iroha.readthedocs.io/en/main/develop/api/commands.html#remove-signatory)
+- [x] [revokePermission](https://iroha.readthedocs.io/en/main/develop/api/commands.html#revoke-permission)
+- [x] [setAccountDetail](https://iroha.readthedocs.io/en/main/develop/api/commands.html#set-account-detail)
+- [x] [setAccountQuorum](https://iroha.readthedocs.io/en/main/develop/api/commands.html#set-account-quorum)
+- [x] [subtractAssetQuantity](https://iroha.readthedocs.io/en/main/develop/api/commands.html#subtract-asset-quantity)
+- [x] [transferAsset](https://iroha.readthedocs.io/en/main/develop/api/commands.html#transfer-asset)
+- [x] [сompareAndSetAccountDetail](https://iroha.readthedocs.io/en/main/develop/api/commands.html#compare-and-set-account-detail)
+- [x] [removePeer](https://iroha.readthedocs.io/en/main/develop/api/commands.html#remove-peer)
 
 ## Queries
 For usage of any query you need to provide `queryOptions` as a first argument.
@@ -155,20 +155,20 @@ const queryOptions = {
 }
 ```
 
-- [x] [getAccount](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-account)
-- [x] [getBlock](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-block)
-- [x] [getSignatories](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-signatories)
-- [x] [getTransactions](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-transactions)
-- [x] [getPendingTransactions](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-pending-transactions)
-- [x] [getAccountTransactions](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-account-transactions)
-- [x] [getAccountAssetTransactions](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-account-asset-transactions)
-- [x] [getAccountAssets](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-account-assets)
-- [x] [getAccountDetail](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-account-detail)
-- [x] [getAssetInfo](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-asset-info)
-- [x] [getRoles](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-roles)
-- [x] [getRolePermissions](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#get-role-permissions)
-- [x] [getPeers](https://iroha.readthedocs.io/en/latest/develop/api/commands.html#remove-peer)
-- [x] [fetchCommits](https://iroha.readthedocs.io/en/latest/develop/api/queries.html#fetchcommits)
+- [x] [getAccount](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-account)
+- [x] [getBlock](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-block)
+- [x] [getSignatories](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-signatories)
+- [x] [getTransactions](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-transactions)
+- [x] [getPendingTransactions](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-pending-transactions)
+- [x] [getAccountTransactions](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-account-transactions)
+- [x] [getAccountAssetTransactions](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-account-asset-transactions)
+- [x] [getAccountAssets](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-account-assets)
+- [x] [getAccountDetail](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-account-detail)
+- [x] [getAssetInfo](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-asset-info)
+- [x] [getRoles](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-roles)
+- [x] [getRolePermissions](https://iroha.readthedocs.io/en/main/develop/api/queries.html#get-role-permissions)
+- [x] [getPeers](https://iroha.readthedocs.io/en/main/develop/api/commands.html#remove-peer)
+- [x] [fetchCommits](https://iroha.readthedocs.io/en/main/develop/api/queries.html#fetchcommits)
 
 ## Known issues
  - Please be careful: API might and WILL change.
