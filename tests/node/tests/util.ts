@@ -4,8 +4,8 @@ import { Client } from '../../../packages/client/mod.ts'
 import WS from '@iroha/client-web-socket-node'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
 import { createGenesis } from '@iroha/test-configuration/node'
-import { Bytes, KeyPair, PrivateKey, PublicKey } from '@iroha/core/crypto'
-import type * as dm from '@iroha/core/data-model'
+import { Bytes, KeyPair } from '@iroha/core/crypto'
+import * as dm from '@iroha/core/data-model'
 import * as TestPeer from '@iroha/test-peer'
 import { delay } from '@std/async'
 
@@ -15,13 +15,6 @@ async function waitForGenesisCommitted(f: () => Promise<dm.Status>) {
     if (blocks >= 1) return
     await delay(50)
   }
-}
-
-function getAccountKeyPair() {
-  const accountPublicKey = PublicKey.fromMultihash(ACCOUNT_KEY_PAIR.publicKey)
-  const accountPrivateKey = PrivateKey.fromMultihash(ACCOUNT_KEY_PAIR.privateKey)
-  const accountKeyPair = KeyPair.fromParts(accountPublicKey, accountPrivateKey)
-  return accountKeyPair
 }
 
 async function uniquePortsPair() {
@@ -72,8 +65,8 @@ export async function useNetwork(params: {
       const client = new Client({
         ws: WS,
         toriiBaseURL: new URL(`http://localhost:${ports.api}`),
-        accountKeyPair: getAccountKeyPair(),
-        accountDomain: DOMAIN,
+        authority: new dm.AccountId(ACCOUNT_KEY_PAIR.publicKey(), DOMAIN),
+        authorityPrivateKey: ACCOUNT_KEY_PAIR.privateKey(),
         chain: CHAIN,
       })
 

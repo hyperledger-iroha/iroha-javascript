@@ -604,7 +604,7 @@ describe('Roles & Permission', () => {
 
     const permissions = await client.find
       .permissionsByAccountId({
-        id: new dm.AccountId(dm.PublicKey.fromMultihash(ACCOUNT_KEY_PAIR.publicKey), DOMAIN),
+        id: new dm.AccountId(ACCOUNT_KEY_PAIR.publicKey(), DOMAIN),
       })
       .executeAll()
 

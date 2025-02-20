@@ -57,3 +57,16 @@ You can add this to `.git/hooks/pre-commit`:
 #!/bin/sh
 deno task ok
 ```
+
+## Preview Docs
+
+You can `cd` into a package directory (e.g. `packages/core`) and run these commands in parallel (requires `watchexec`
+and `jq` tools):
+
+```shell
+watchexec -e ts deno doc --html $(cat deno.json* | deno run npm:json5 | jq -r '.exports | .[]')
+```
+
+```shell
+deno run -A npm:vite serve docs
+```

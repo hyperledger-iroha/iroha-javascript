@@ -63,9 +63,9 @@ async function signGenesisWithKagami(json: unknown): Promise<dm.SignedBlock> {
       `sign`,
       path.join(dir, 'genesis.json'),
       `--public-key`,
-      GENESIS_KEY_PAIR.publicKey,
+      GENESIS_KEY_PAIR.publicKey().multihash(),
       `--private-key`,
-      GENESIS_KEY_PAIR.privateKey,
+      GENESIS_KEY_PAIR.privateKey().multihash(),
       // '--out-file',
       // path.join(dir, 'genesis.scale'),
     ], { stdio: ['ignore', 'pipe', 'inherit'] })

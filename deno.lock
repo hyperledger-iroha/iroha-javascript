@@ -50,6 +50,7 @@
     "npm:h3@^1.15.0": "1.15.0",
     "npm:immutable@^5.0.3": "5.0.3",
     "npm:jake@^10.9.2": "10.9.2",
+    "npm:json5@*": "2.2.3",
     "npm:listhen@^1.9.0": "1.9.0",
     "npm:npm-run-all@^4.1.5": "4.1.5",
     "npm:p-defer@^4.0.1": "4.0.1",
@@ -1818,6 +1819,9 @@
     },
     "json-stringify-safe@5.0.1": {
       "integrity": "sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA=="
+    },
+    "json5@2.2.3": {
+      "integrity": "sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg=="
     },
     "jsonfile@6.1.0": {
       "integrity": "sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==",
