@@ -8,7 +8,12 @@ import * as dprintTS from 'npm:@dprint/typescript'
 import * as colors from '@std/fmt/colors'
 
 const tsFormatter = dprint.createFromBuffer(await Deno.readFile(dprintTS.getPath()))
-const formatTS = (code: string) => tsFormatter.formatText({ filePath: 'file.ts', fileText: code })
+const formatTS = (code: string) => {
+  console.time('dprint')
+  const text = tsFormatter.formatText({ filePath: 'file.ts', fileText: code })
+  console.timeEnd('dprint')
+  return text
+}
 
 async function write({ file, code }: { file: string; code: string }) {
   let status: string

@@ -14,47 +14,41 @@
   ],
   "tasks": {
     "install": "deno install --allow-scripts=npm:cypress,npm:@parcel/watcher,npm:vue-demi",
-    "prep:iroha": "deno run --allow-all ./etc/task-prep-iroha.ts",
-    "prep:iroha:check": {
-      "description": "Ensure that Iroha is built",
-      "command": "deno task prep:iroha --check"
-    },
-    "prep:iroha:build": {
-      "description": "Build Iroha artifacts and produce `/prep/iroha` directory",
-      "command": "deno task prep:iroha --build"
+    "prep:iroha": {
+      "description": "Prepare Iroha. Must be manually linked first (via `--path` or `--git`)",
+      "command": "deno run -A ./etc/task-prep-iroha.ts"
     },
     "prep:crypto-wasm": {
-      "description": "Prepare crypto wasm and put into `@iroha/core`",
+      "description": "Prepare crypto wasm and put it into `@iroha/core`",
       "command": "deno run -A ./etc/task-prep-crypto-wasm.ts"
     },
-    "prep:crypto-wasm:copy": {
-      "description": "Only copy already built crypto wasm into `@iroha/core`",
-      "command": "deno task prep:crypto-wasm --copy"
-    },
     "prep:codegen": {
-      "command": "deno run --allow-write --allow-read ./etc/task-codegen.ts",
-      "dependencies": ["prep:iroha:check"]
+      "command": "deno run -WR ./etc/task-codegen.ts",
+      "dependencies": ["prep:iroha"]
     },
     "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
-    "prep:ensure-ready": {
-      "dependencies": ["prep:codegen", "prep:crypto-wasm:copy", "prep:iroha:check"]
+    "prep:ok": {
+      "dependencies": ["prep:codegen", "prep:crypto-wasm", "prep:iroha"]
     },
-    "check:all": {
+    "check": {
       "command": "deno check --doc .",
-      "dependencies": ["prep:ensure-ready"]
+      "dependencies": ["prep:ok"]
     },
-    "test:deno": "deno test --doc --allow-read",
+    "test:deno": {
+      "command": "deno test --doc",
+      "dependencies": ["prep:ok"]
+    },
     "test:vitest": {
-      "dependencies": ["prep:ensure-ready"],
+      "dependencies": ["prep:ok"],
       "description": "Run Vitest",
       "command": "vitest run"
     },
     "test:integration:node": {
-      "dependencies": ["prep:ensure-ready"],
+      "dependencies": ["prep:ok"],
       "command": "cd tests/node && deno task test"
     },
     "test:integration:browser": {
-      "dependencies": ["prep:ensure-ready"],
+      "dependencies": ["prep:ok"],
       "command": "cd tests/browser && deno task test"
     },
     "test": {
@@ -62,14 +56,20 @@
       "command": "deno task test:deno && deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
     },
     "dev:run-test-peer": {
-      "dependencies": ["prep:ensure-ready"],
+      "description": "Run an Iroha peer with test configuration. Could be useful for development",
+      "dependencies": ["prep:ok"],
       "command": "cd tests/support/test-peer && deno task run"
+    },
+    "ok": {
+      "description": "Run all checks",
+      "dependencies": ["prep:ok", "install"],
+      "command": "deno lint && deno fmt --check && deno task check && deno task test"
     },
     "publish": {
       // https://github.com/denoland/deno/issues/28096
       "description": "Publish workspace packages",
-      "command": "deno run --allow-read --allow-run --allow-env ./etc/task-publish.ts",
-      "dependencies": ["check:all"]
+      "command": "deno run -A ./etc/task-publish.ts",
+      "dependencies": ["ok"]
     }
   },
   "fmt": {
