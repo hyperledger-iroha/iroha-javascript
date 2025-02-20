@@ -16,7 +16,7 @@ import {
 import { urlJoinPath } from './util.ts'
 
 /**
- * Peer information returned from {@link ApiTelemetry.peers}
+ * Peer information returned from {@link TelemetryAPI.peers}
  */
 export interface PeerJson {
   /**
@@ -78,17 +78,26 @@ export class HttpTransport {
   }
 }
 
+/**
+ * Lower-level client to interact with Iroha HTTP APIs.
+ *
+ * It is separated from {@linkcode WebSocketAPI}.
+ *
+ * It is lower-level in a sense that, for example, {@linkcode MainAPI#transaction} accepts an already signed transaction
+ * and simply "fire and forget"s it, while {@linkcode Client#transaction} helps to construct a transaction, submit it,
+ * and verify that it is accepted.
+ */
 export class MainAPI {
   /**
    * Works only if Iroha is compiled with `telemetry` feature flag.
    */
-  public readonly telemetry: ApiTelemetry
+  public readonly telemetry: TelemetryAPI
 
   private readonly http: HttpTransport
 
   public constructor(http: HttpTransport) {
     this.http = http
-    this.telemetry = new ApiTelemetry(http)
+    this.telemetry = new TelemetryAPI(http)
   }
 
   public async health(): Promise<HealthResult> {
@@ -178,7 +187,7 @@ export class QueryValidationError extends Error {
 }
 
 // TODO: handle errors with a hint that Iroha might be not compiled with the needed features
-export class ApiTelemetry {
+export class TelemetryAPI {
   private readonly http: HttpTransport
 
   public constructor(http: HttpTransport) {

@@ -6,6 +6,9 @@ import type { SocketEmitMapBase } from './util.ts'
 import { setupWebSocket } from './util.ts'
 import { type IsomorphicWebSocketAdapter, nativeWS } from './web-socket/mod.ts'
 
+/**
+ * Lower-level client
+ */
 export class WebSocketAPI {
   public readonly toriiBaseURL: URL
   public readonly adapter: IsomorphicWebSocketAdapter

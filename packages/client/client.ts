@@ -1,4 +1,4 @@
-import type { KeyPair, PrivateKey } from '@iroha/core/crypto'
+import type { PrivateKey } from '@iroha/core/crypto'
 import * as types from '@iroha/core/data-model'
 import type { Except } from 'type-fest'
 import defer from 'p-defer'
@@ -31,9 +31,18 @@ export interface CreateClientParams {
    * The base URL of **Torii**, Iroha API Gateway.
    */
   toriiBaseURL: URL
+  /**
+   * Chain ID.
+   */
   chain: string
-  accountDomain: types.DomainId
-  accountKeyPair: KeyPair
+  /**
+   * Authority on which behalf to sign transactions and queries.
+   */
+  authority: types.AccountId
+  /**
+   * The private key of {@linkcode CreateClientParams.authority}.
+   */
+  authorityPrivateKey: types.PrivateKey
 }
 
 export interface SubmitParams {
@@ -62,6 +71,20 @@ export class TransactionExpiredError extends Error {
   }
 }
 
+/**
+ * All-in-one Iroha client.
+ *
+ * Through it, it is possible to perform all different kinds of interactions with Iroha, e.g.
+ * signing and submitting transactions and queries or listening to events through WebSockets.
+ *
+ * It is possible to use each layer of functionality separately, through lower-level layers:
+ *
+ * - {@linkcode MainAPI}
+ * - {@linkcode WebSocketAPI}
+ *
+ * It could be useful if e.g. you don't need to submit transactions (which requires an account with a key pair),
+ * but only want to check Iroha status.
+ */
 export class Client {
   public readonly params: CreateClientParams
 
@@ -83,21 +106,18 @@ export class Client {
     const http = new HttpTransport(params.toriiBaseURL, params.fetch)
     this.api = new MainAPI(http)
 
-    const executor = new QueryExecutor(this.api, this.authority(), this.authorityPrivateKey())
+    const executor = new QueryExecutor(this.api, this.authority, this.authorityPrivateKey)
     this.find = new FindAPI(executor)
 
     this.socket = new WebSocketAPI(params.toriiBaseURL, params.ws)
   }
 
-  public authority(): types.AccountId {
-    return new types.AccountId(
-      this.params.accountKeyPair.publicKey(),
-      this.params.accountDomain,
-    )
+  public get authority(): types.AccountId {
+    return this.params.authority
   }
 
-  public authorityPrivateKey(): PrivateKey {
-    return this.params.accountKeyPair.privateKey()
+  public get authorityPrivateKey(): PrivateKey {
+    return this.params.authorityPrivateKey
   }
 
   /**
@@ -114,10 +134,10 @@ export class Client {
     const tx = signTransaction(
       buildTransactionPayload(executable, {
         chain: this.params.chain,
-        authority: this.authority(),
+        authority: this.authority,
         ...params,
       }),
-      this.params.accountKeyPair.privateKey(),
+      this.authorityPrivateKey,
     )
 
     return new TransactionHandle(tx, this)
