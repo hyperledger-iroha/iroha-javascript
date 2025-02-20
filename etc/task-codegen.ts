@@ -8,7 +8,12 @@ import * as dprintTS from 'npm:@dprint/typescript'
 import * as colors from '@std/fmt/colors'
 
 const tsFormatter = dprint.createFromBuffer(await Deno.readFile(dprintTS.getPath()))
-const formatTS = (code: string) => tsFormatter.formatText({ filePath: 'file.ts', fileText: code })
+const formatTS = (code: string) => {
+  console.time('dprint')
+  const text = tsFormatter.formatText({ filePath: 'file.ts', fileText: code })
+  console.timeEnd('dprint')
+  return text
+}
 
 async function write({ file, code }: { file: string; code: string }) {
   let status: string
@@ -54,11 +59,11 @@ expect(Object.keys(SCHEMA)).not.toContain(Object.keys(EXTENSION))
 const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
 
 await write({
-  file: 'packages/core/data-model/generated.ts',
-  code: formatTS(generateDataModel(resolver, './generated.prelude.ts')),
+  file: 'packages/core/data-model/_generated_.ts',
+  code: formatTS(generateDataModel(resolver, './_generated_.prelude.ts')),
 })
 
 await write({
-  file: 'packages/client/find-api.generated.ts',
-  code: formatTS(generateClientFindAPI(resolver, './find-api.generated.prelude.ts')),
+  file: 'packages/client/find-api._generated_.ts',
+  code: formatTS(generateClientFindAPI(resolver, './find-api._generated_.prelude.ts')),
 })

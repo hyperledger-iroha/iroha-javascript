@@ -87,7 +87,7 @@ async function copySchemaJson() {
   await copy(path.join(PREP_OUTPUT_DIR, 'schema.json'), dest, { overwrite: true })
 }
 
-async function copyArtifacts() {
+async function copyFromRepoToPrep() {
   console.log(`  ${colors.yellow(`empty ${pathRel(PREP_OUTPUT_DIR)}`)}`)
   await emptyDir(PREP_OUTPUT_DIR)
 
@@ -104,8 +104,6 @@ async function copyArtifacts() {
     console.log(`  ` + colors.yellow(`write ${pathRel(out)}`))
     await copy(path.join(IROHA_REPO_DIR, artifactPath), out)
   }
-
-  await copySchemaJson()
 }
 
 async function artifactsReady(): Promise<boolean> {
@@ -139,15 +137,15 @@ if (args.git) {
 } else if (args.path) {
   assert(!args.git && !args['git-rev'], `--path conflicts with --git and --git-rev`)
   await linkPath(args.path)
-} else {
-  await assertRepoIsReady()
 }
 
 if (!args.force && (await artifactsReady())) {
   $.logStep(`Skipping build step (override with ${colors.cyan('--force')})`)
 } else {
+  await assertRepoIsReady()
   await buildBinaries()
   await buildWasmLibs()
+  await copyFromRepoToPrep()
 }
 
-await copyArtifacts()
+await copySchemaJson()
