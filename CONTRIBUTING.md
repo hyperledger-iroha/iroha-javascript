@@ -2,71 +2,58 @@
 
 This document explains how this repo works, and how to work with it.
 
-Steps, in short:
+## Pull Requests
 
-1. Install Rust and `wasm-pack`.
-2. Install Deno v2 and Node.js v22
-3. Link Iroha repository
-4. Explore `tasks` in the root `deno.json`
-5. Work with the code
+1. [Install the Deno CLI](https://docs.deno.com/runtime/manual/getting_started/installation).
+2. [Install Node.js v22+](https://nodejs.org/en/download).
+   - And enable Corepack by `corepack enable` (making `pnpm` available).
+3. Install [the Rust toolchain](https://rustup.rs/) and [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/).
+   - Also make sure to install components: `rustup component add rust-src --target wasm32-unknown-unknown`.
+4. Clone & fork this repository.
+5. Link Iroha repository (see [below](#linking--building-iroha)).
+6. Create a new branch for your changes.
+7. Make your changes to the repo and ensure `deno task ok` passes successfully.
+8. Commit your changes with clear messages, preferably following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+9. Submit a pull request.
 
-TODO: setting up commit hooks
 
-## Installing Rust and `wasm-pack`
 
-```sh
-# install rustup
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+## Linking & Building Iroha
 
-# add necessary components
-rustup component add rust-src --target wasm32-unknown-unknown
+For this project to function, you must link Iroha repository. There are two ways to do so.
 
-# install wasm-pack
-curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-```
-
-## Installing Deno & Node.js
-
-This must be pretty straightforward. A few notes though:
-
-- While this project is mostly driven by Deno, there are some Node.js parts, unfortunately. Specifically,
-  `tests/browser` is a `pnpm` project, because otherwise it's hard to make Cypress work.
-- Thus, run `corepack enable` (or install `npm i -g pnpm`) so that `pnpm` is also available.
-
-## Linking & building Iroha
-
-For this project to function, you must link Iroha repository. There are two ways to do so:
+**Clone Iroha repository:**
 
 ```sh
-# symlink to the local path
-deno task prep:iroha --path /path/to/local/iroha/clone
-```
-
-```sh
-# clone the repo
 deno task prep:iroha --git https://github.com/hyperledger-iroha/iroha.git --git-rev v2.0.0-rc.1.0
 ```
 
-After Iroha is linked, you need to prepare some artifacts from it (binaries such as `irohad`, `kagami`, `iroha_codec`;
-`executor.wasm`; `schema.json`):
+**Symlink to a local path:**
 
 ```sh
-deno task prep:iroha:build
+deno task prep:iroha --path /path/to/local/iroha/clone
 ```
 
-## Running tests
+## Making Releases
 
-Please explore `tasks` in the root `deno.jsonc`.
+[`@deno/bump-workspaces`](https://github.com/denoland/bump-workspaces) could be of help:
 
-```sh
-# run them all
-deno task test
-
-# unit, non-integration tests
-deno run npm:vitest
-# or
-pnpm dlx vitest
+```shell
+deno run -A jsr:@deno/bump-workspaces@0.1.22/cli --dry-run
 ```
 
-Tests are mostly written in Vitest (except the doctests), and it doesn't work very well with Deno (considering
-migration). To improve development experience, consider running Vitest via `pnpm dlx` or similar.
+Guideline:
+
+1. Bump versions using the tool.
+2. Submit a PR with the changes of the versions and `Releases.md`.
+3. Merge, tag the commit in format `release-2025-02-20`, and push it.
+4. Create a release on GitHub at this tag, using the new piece of `Releases.md` as a description and date (e.g. "2025.02.20") as a title.
+
+## Setting Up Commit Hooks _(optional)_
+
+You can add this to `.git/hooks/pre-commit`:
+
+```shell
+#!/bin/sh
+deno task ok
+```

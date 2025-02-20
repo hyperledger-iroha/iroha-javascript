@@ -1,5 +1,5 @@
 {
   "tasks": {
-    "test": "DEBUG=\"@iroha*\" vitest"
+    "test": "DEBUG=\"@iroha*\" vitest run"
   }
 }
