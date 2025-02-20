@@ -110,7 +110,9 @@
     "exclude": [
       "!**/*_generated_.ts",
       "!packages/core/crypto/wasm/",
-      "!packages/core/data-model/schema/schema.json"
+      "!packages/core/data-model/schema/schema.json",
+      "**/*.spec.ts",
+      "**/*.spec-d.ts"
     ]
   },
   "test": { "exclude": ["prep", "crypto-wasm"] }

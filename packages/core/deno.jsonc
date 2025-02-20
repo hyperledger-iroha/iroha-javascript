@@ -13,5 +13,8 @@
     "@scale-codec/core": "npm:@scale-codec/core@^2.0.1",
     "@std/encoding": "jsr:@std/encoding@^1.0.7",
     "type-fest": "npm:type-fest@^4.33.0"
+  },
+  "publish": {
+    "exclude": ["./test"]
   }
 }
