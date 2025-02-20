@@ -681,7 +681,7 @@ dependencies = [
 [[package]]
 name = "iroha_crypto"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "aead",
  "arrayref",
@@ -733,7 +733,7 @@ dependencies = [
 [[package]]
 name = "iroha_derive"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "darling",
  "iroha_macro_utils",
@@ -746,7 +746,7 @@ dependencies = [
 [[package]]
 name = "iroha_macro"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "iroha_derive",
 ]
@@ -754,7 +754,7 @@ dependencies = [
 [[package]]
 name = "iroha_macro_utils"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "darling",
  "drop_bomb",
@@ -767,7 +767,7 @@ dependencies = [
 [[package]]
 name = "iroha_numeric"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "derive_more",
  "displaydoc",
@@ -781,7 +781,7 @@ dependencies = [
 [[package]]
 name = "iroha_primitives"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "derive_more",
  "displaydoc",
@@ -800,7 +800,7 @@ dependencies = [
 [[package]]
 name = "iroha_primitives_derive"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "iroha_numeric",
  "manyhow",
@@ -812,7 +812,7 @@ dependencies = [
 [[package]]
 name = "iroha_schema"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "iroha_schema_derive",
  "serde",
@@ -821,7 +821,7 @@ dependencies = [
 [[package]]
 name = "iroha_schema_derive"
 version = "2.0.0-rc.1.0"
-source = "git+https://github.com/0x009922/iroha.git?branch=5302-expose-signature-payload#62884674440e95b706ef67f7aa5ba962858dc5bf"
+source = "git+https://github.com/hyperledger-iroha/iroha.git?rev=daa2d50fbe288aed1231c6f45c853698435477d6#daa2d50fbe288aed1231c6f45c853698435477d6"
 dependencies = [
  "darling",
  "iroha_macro_utils",

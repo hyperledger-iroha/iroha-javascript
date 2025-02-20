@@ -12,7 +12,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 # iroha_crypto = { path = "../.iroha/crates/iroha_crypto", default-features = false, features = ["rand"] }
-iroha_crypto = { git = "https://github.com/0x009922/iroha.git", branch = "5302-expose-signature-payload", default-features = false, features = ["rand"] }
+iroha_crypto = { git = "https://github.com/hyperledger-iroha/iroha.git", rev = "daa2d50fbe288aed1231c6f45c853698435477d6", default-features = false, features = ["rand"] }
 
 getrandom = { version = "0.2", features = ["js"] }
 
