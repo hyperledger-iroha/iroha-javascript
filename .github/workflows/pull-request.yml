@@ -5,8 +5,8 @@ on:
   push:
     branches: [main]
 env:
-  IROHA_GIT: https://github.com/0x009922/iroha.git
-  IROHA_REV: 5302-expose-signature-payload
+  IROHA_GIT: https://github.com/hyperledger-iroha/iroha.git
+  IROHA_REV: daa2d50fbe288aed1231c6f45c853698435477d6
 jobs:
   prep-crypto-wasm:
     runs-on: ubuntu-latest
