@@ -13,10 +13,9 @@ This document explains how this repo works, and how to work with it.
 5. Link Iroha repository (see [below](#linking--building-iroha)).
 6. Create a new branch for your changes.
 7. Make your changes to the repo and ensure `deno task ok` passes successfully.
-8. Commit your changes with clear messages, preferably following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+8. Commit your changes with clear messages, preferably following
+   [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 9. Submit a pull request.
-
-
 
 ## Linking & Building Iroha
 
@@ -47,7 +46,8 @@ Guideline:
 1. Bump versions using the tool.
 2. Submit a PR with the changes of the versions and `Releases.md`.
 3. Merge, tag the commit in format `release-2025-02-20`, and push it.
-4. Create a release on GitHub at this tag, using the new piece of `Releases.md` as a description and date (e.g. "2025.02.20") as a title.
+4. Create a release on GitHub at this tag, using the new piece of `Releases.md` as a description and date (e.g.
+   "2025.02.20") as a title.
 
 ## Setting Up Commit Hooks _(optional)_
 
