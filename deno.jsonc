@@ -28,7 +28,7 @@
     },
     "prep:codegen:watch": "watchexec -e ts deno task prep:codegen",
     "prep:ok": {
-      "dependencies": ["prep:codegen", "prep:crypto-wasm", "prep:iroha", "install"]
+      "dependencies": ["prep:codegen", "prep:crypto-wasm", "prep:iroha"]
     },
     "check": {
       "command": "deno check --doc .",
