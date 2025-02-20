@@ -4,7 +4,7 @@ import * as path from 'jsr:@std/path'
 import * as colors from 'jsr:@std/fmt/colors'
 import $ from 'jsr:@david/dax'
 import { assert, assertEquals } from '@std/assert'
-import { copy, emptyDir } from 'jsr:@std/fs'
+import { copy, emptyDir, ensureDir } from 'jsr:@std/fs'
 
 const IROHA_REPO_DIR = resolveFromRoot('.iroha')
 const PREP_OUTPUT_DIR = resolveFromRoot('prep/iroha')
@@ -37,7 +37,7 @@ or
   Deno.exit(1)
 }
 
-async function clean() {
+async function removeIroha() {
   console.log('  ' + colors.yellow(`remove ${pathRel(IROHA_REPO_DIR)}`))
   try {
     await Deno.remove(IROHA_REPO_DIR, { recursive: true })
@@ -47,7 +47,7 @@ async function clean() {
 }
 
 async function linkPath(target: string) {
-  await clean()
+  await removeIroha()
 
   const full = path.resolve(target)
   await Deno.symlink(full, IROHA_REPO_DIR)
@@ -56,9 +56,10 @@ async function linkPath(target: string) {
 }
 
 async function cloneRepo(repo: string, tagOrRevision: string) {
-  await clean()
+  await removeIroha()
 
   $.logStep(`Cloning repo ${colors.blue(repo)} at revision ${colors.yellow(tagOrRevision)}`)
+  await ensureDir(IROHA_REPO_DIR)
   await $`git init --quiet`.cwd(IROHA_REPO_DIR)
   await $`git remote add origin ${repo}`.cwd(IROHA_REPO_DIR)
   await $`git fetch origin ${tagOrRevision}`.cwd(IROHA_REPO_DIR)
@@ -134,6 +135,8 @@ if (args.git) {
   assert(args['git-rev'], '--git requires --git-rev')
   assert(!args.path, 'either --git or --path, not both')
   await cloneRepo(args.git, args['git-rev'])
+  console.log('  ' + colors.yellow(`empty ${pathRel(PREP_OUTPUT_DIR)}`))
+  await emptyDir(PREP_OUTPUT_DIR)
 } else if (args.path) {
   assert(!args.git && !args['git-rev'], `--path conflicts with --git and --git-rev`)
   await linkPath(args.path)
