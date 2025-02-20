@@ -20,8 +20,8 @@ export async function createGenesis(params: {
    */
   topology: PublicKey[]
 }): Promise<dm.SignedBlock> {
-  const alice = dm.AccountId.parse(`${ACCOUNT_KEY_PAIR.publicKey}@${DOMAIN.value}`)
-  const genesis = dm.AccountId.parse(`${GENESIS_KEY_PAIR.publicKey}@genesis`)
+  const alice = dm.AccountId.parse(`${ACCOUNT_KEY_PAIR.publicKey().multihash()}@${DOMAIN.value}`)
+  const genesis = dm.AccountId.parse(`${GENESIS_KEY_PAIR.publicKey().multihash()}@genesis`)
 
   const instructionsJson = await irohaCodecToJson(
     'Vec<InstructionBox>',
