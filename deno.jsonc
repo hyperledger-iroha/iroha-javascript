@@ -74,7 +74,7 @@
   },
   "fmt": {
     "include": ["."],
-    "exclude": ["**/*_generated_.ts", "**/pnpm-lock.yaml"],
+    "exclude": ["**/*generated.ts", "**/pnpm-lock.yaml"],
     "semiColons": false,
     "lineWidth": 120,
     "singleQuote": true
@@ -108,7 +108,7 @@
   },
   "publish": {
     "exclude": [
-      "!**/*_generated_.ts",
+      "!**/*.generated.ts",
       "!packages/core/crypto/wasm/",
       "!packages/core/data-model/schema/schema.json",
       "**/*.spec.ts",

@@ -13,7 +13,7 @@ import {
   WebSocketAPI,
 } from './api-ws.ts'
 import type { IsomorphicWebSocketAdapter } from './web-socket/mod.ts'
-import { FindAPI } from './find-api._generated_.ts'
+import { FindAPI } from './find-api..generated.ts'
 import { QueryExecutor } from './query.ts'
 
 export { FindAPI }

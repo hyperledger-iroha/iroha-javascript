@@ -12,6 +12,6 @@ v8-compile-cache-0
 /prep
 /.iroha
 /packages/core/crypto/wasm/
-**/*_generated_.ts
+**/*generated.ts
 /packages/core/data-model/schema/schema.json
 
