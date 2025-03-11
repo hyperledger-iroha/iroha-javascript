@@ -29,6 +29,12 @@ export type QueryBuilderCtorArgs<Q extends QueryKind> = GetQueryPayload<Q> exten
 
 export type DefaultQueryOutput<Q extends QueryKind> = SelectedTuple<prototypes.QuerySelectors[Q]>
 
+/**
+ * Utility to build queries in a safe and convenient way.
+ *
+ * It is a lower-level utility that only builds queries. For the higher-level
+ * implementation which actually sends the queries, see `QueryBuilder` from `@iroha/client` package.
+ */
 export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> {
   protected kind: Q
   protected payload: GetQueryPayload<Q>
@@ -37,7 +43,7 @@ export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> {
   protected predicate: types.CompoundPredicate<unknown> = types.CompoundPredicate.PASS
   protected parseOutput: (resp: types.QueryOutputBatchBoxTuple) => Generator<Output> = generateOutputTuples<Output>
 
-  constructor(...args: QueryBuilderCtorArgs<Q>) {
+  public constructor(...args: QueryBuilderCtorArgs<Q>) {
     this.kind = args[0]
 
     if ((QUERIES_WITH_PAYLOAD as Set<QueryKind>).has(this.kind)) {
@@ -58,6 +64,29 @@ export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> {
     }
   }
 
+  /**
+   * Specify selected tuple with a _prototype_ of the querying object.
+   *
+   * @example Select a single value
+   *
+   * ```ts
+   * import * as types from '@iroha/core/data-model'
+   *
+   * const builder: QueryBuilder<'FindAccounts', types.DomainId> =
+   *   new QueryBuilder('FindAccounts')
+   *     .selectWith((account) => account.id.domain)
+   * ```
+   *
+   * @example Select multiple values
+   *
+   * ```ts
+   * import * as types from '@iroha/core/data-model'
+   *
+   * const builder: QueryBuilder<'FindTransactions', [types.Hash, null | types.TransactionRejectionReason]> =
+   *   new QueryBuilder('FindTransactions')
+   *     .selectWith((tx) => [tx.value.hash, tx.error])
+   * ```
+   */
   public selectWith<const ProtoTuple>(
     fn: (prototype: prototypes.QuerySelectors[Q]) => ProtoTuple,
   ): QueryBuilder<Q, SelectedTuple<ProtoTuple>> {
@@ -67,6 +96,24 @@ export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> {
     return this as QueryBuilder<Q, SelectedTuple<ProtoTuple>>
   }
 
+  /**
+   * Specify predicate with a _prototype_ of the querying object.
+   *
+   * The returned type must be a variant {@linkcode [data-model].CompoundPredicate | CompoundPredicate} containing
+   * the actual predicate.
+   *
+   * @example Specifying a compound logical predicate
+   *
+   * ```ts
+   * import * as types from '@iroha/core/data-model'
+   *
+   * new QueryBuilder('FindAccounts')
+   *   .filterWith((account) => types.CompoundPredicate.Or(
+   *     types.CompoundPredicate.Atom(account.id.domain.name.startsWith('wonder')),
+   *     types.CompoundPredicate.Atom(account.id.domain.name.endsWith('land')),
+   *   ))
+   * ```
+   */
   public filterWith(fn: (prototype: prototypes.QueryPredicates[Q]) => types.CompoundPredicate<PredicateOf<Q>>): this {
     const proto = predicateProto<Q>()
     this.predicate = fn(proto)
