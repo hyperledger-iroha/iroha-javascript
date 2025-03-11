@@ -145,12 +145,12 @@
  * async function test(client: Client) {
  *   const accounts: types.Account[] = await client.find
  *     .accounts({
- *       predicate: types.CompoundPredicate.Atom(
- *         types.AccountProjectionPredicate.Id.Domain.Name.Atom.EndsWith('land')
- *       ),
  *       offset: 10,
  *       limit: new types.NonZero(50),
  *     })
+ *     .filterWith((account) =>
+ *       types.CompoundPredicate.Atom(account.id.domain.name.endsWith('land'))
+ *     )
  *     .executeAll()
  * }
  * ```
@@ -170,12 +170,8 @@
  * async function test(client: Client) {
  *    // use selectors and pagination
  *    const items: [types.Hash, types.AccountId][] = await client.find
- *      .transactions({
- *        selector: [
- *          types.CommittedTransactionProjectionSelector.BlockHash.Atom,
- *          types.CommittedTransactionProjectionSelector.Value.Authority.Atom,
- *        ],
- *      })
+ *      .transactions()
+ *      .selectWith((tx) => [tx.blockHash, tx.value.authority])
  *      .executeAll()
  * }
  * ```

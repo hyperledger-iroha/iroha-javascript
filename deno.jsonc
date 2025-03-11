@@ -35,7 +35,7 @@
       "dependencies": ["prep:ok"]
     },
     "test:deno": {
-      "command": "deno test --doc",
+      "command": "deno test -R --doc",
       "dependencies": ["prep:ok"]
     },
     "test:vitest": {

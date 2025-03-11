@@ -3,7 +3,8 @@
 import { CompoundPredicate } from './data-model/compound.ts'
 import * as types from './data-model/mod.ts'
 import type * as proto from './data-model/prototypes.generated.ts'
-import { type GetSingularQueryOutput, QueryBuilder, type SingularQueryOutputMap } from './query.ts'
+import type { QUERIES_WITH_PAYLOAD } from './query-internal.ts'
+import { type GetSingularQueryOutput, QueryBuilder, type QueryKind, type SingularQueryOutputMap } from './query.ts'
 
 type Expect<T extends true> = T
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
@@ -69,3 +70,12 @@ const filterAllKinds = new QueryBuilder('FindAssets').filterWith((asset) =>
     CompoundPredicate.Atom(asset.value.store.key(new types.Name('test')).equals(types.Json.fromValue([false, true]))),
   )
 )
+
+type TrueQueriesWithPayload = {
+  [K in QueryKind]: (types.QueryBox & { kind: K })['value'] extends types.QueryWithFilter<null, any, any> ? never
+    : K
+}[QueryKind]
+
+type HardcodedQueriesWithPayload = typeof QUERIES_WITH_PAYLOAD extends Set<infer T> ? T : never
+
+type test_queries_with_payload = Expect<Equal<HardcodedQueriesWithPayload, TrueQueriesWithPayload>>
