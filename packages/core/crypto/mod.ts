@@ -1,7 +1,7 @@
 /**
  * Port of `iroha_crypto` Rust crate via WebAssembly.
  *
- * ### Compatibility
+ * ## Compatibility
  *
  * This package uses native `.wasm` ES Module imports, **which isn't widely supported yet**.
  * However, there are some tricks in play to increase the compatibility.

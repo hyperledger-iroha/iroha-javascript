@@ -1,60 +1,62 @@
 // deno-lint-ignore-file no-unused-vars
 
-import * as dm from '@iroha/core/data-model'
-import type { Client, QueryHandle } from '@iroha/client'
+import * as types from '@iroha/core/data-model'
+import { type Client, QueryBuilder, type QueryExecutor } from '@iroha/client'
 
 type Expect<T extends true> = T
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
 
+declare const executor: QueryExecutor
 declare const client: Client
 
-type QueryHandleOutput<Handle extends QueryHandle<any>> = Handle extends QueryHandle<infer T> ? T : never
+const selectPeerKeys = await new QueryBuilder(executor, 'FindPeers')
+  .filterWith((proto) => types.CompoundPredicate.Atom(proto.publicKey.equals(types.PublicKey.fromMultihash('test'))))
+  .selectWith((proto) => proto.publicKey)
+  .executeAll()
+type test_select_peer_keys = Expect<Equal<typeof selectPeerKeys, types.PublicKey[]>>
 
-// const findAccs = client.query('FindAccounts')
-// type test_find_accounts_output = Expect<Equal<QueryHandleOutput<typeof findAccs>, dm.Account>>
+const selectAccountMulti = await new QueryBuilder(executor, 'FindAccounts', {
+  offset: 5n,
+  limit: new types.NonZero(5),
+})
+  .selectWith((
+    account,
+  ) => [
+    account.id.domain.name,
+    account.metadata.key(new types.Name('key1')),
+    account.metadata.key(new types.Name('key2')),
+  ])
+  .executeAll()
+type test_select_account_multi = Expect<Equal<typeof selectAccountMulti, [types.Name, types.Json, types.Json][]>>
+
+type BuilderOutput<Handle extends QueryBuilder<any, any>> = Handle extends QueryBuilder<any, infer T> ? T : never
 
 const findAccs = client.find.accounts()
-type test_find_accounts_output = Expect<Equal<QueryHandleOutput<typeof findAccs>, dm.Account>>
+type test_find_accounts_output = Expect<Equal<BuilderOutput<typeof findAccs>, types.Account>>
 
-const findAccsWithFilter = client.find.accounts({
-  predicate: dm.CompoundPredicate.Atom<dm.AccountProjectionPredicate>(
-    dm.AccountProjectionPredicate.Id.Domain.Name.Atom.Contains('alice'),
-  ),
-})
-type test_find_accs_with_filter = Expect<Equal<QueryHandleOutput<typeof findAccsWithFilter>, dm.Account>>
+const findAccsWithFilter = client.find.accounts()
+  .filterWith((proto) => types.CompoundPredicate.Atom(proto.id.domain.name.contains('alice')))
+type test_find_accs_with_filter = Expect<Equal<BuilderOutput<typeof findAccsWithFilter>, types.Account>>
 
-const findAccsWithSelector = client.find.accounts({
-  selector: dm.AccountProjectionSelector.Atom,
-})
-type test_find_accs_selector = Expect<Equal<QueryHandleOutput<typeof findAccsWithSelector>, dm.Account>>
+const findAccsWithSelector = client.find.accounts().selectWith((x) => x)
+type test_find_accs_selector = Expect<Equal<BuilderOutput<typeof findAccsWithSelector>, types.Account>>
 
-const findAccsWithSelector2 = client.find.accounts({
-  selector: [dm.AccountProjectionSelector.Atom],
-})
-type test_find_accs_selector2 = Expect<Equal<QueryHandleOutput<typeof findAccsWithSelector2>, dm.Account>>
+const findAccsWithSelector2 = client.find.accounts().selectWith((x) => [x])
+type test_find_accs_selector2 = Expect<Equal<BuilderOutput<typeof findAccsWithSelector2>, types.Account>>
 
-const findAccsWithSelector3 = client.find.accounts({
-  selector: [dm.AccountProjectionSelector.Id.Signatory.Atom, dm.AccountProjectionSelector.Id.Domain.Name.Atom],
-})
+const findAccsWithSelector3 = client.find.accounts()
+  .selectWith((acc) => [acc.id.signatory, acc.id.domain.name])
 type test_find_accs_selector3 = Expect<
-  Equal<QueryHandleOutput<typeof findAccsWithSelector3>, [dm.PublicKey, dm.Name]>
+  Equal<BuilderOutput<typeof findAccsWithSelector3>, [types.PublicKey, types.Name]>
 >
 
 const accountsExecuteAll = await client.find.accounts().executeAll()
-type test_accs_exec_all = Expect<Equal<typeof accountsExecuteAll, dm.Account[]>>
+type test_accs_exec_all = Expect<Equal<typeof accountsExecuteAll, types.Account[]>>
 
-const findBlockHeaderHashes = client.find.blockHeaders({ selector: dm.BlockHeaderProjectionSelector.Hash.Atom })
-type test_block_header_hashes = Expect<Equal<QueryHandleOutput<typeof findBlockHeaderHashes>, dm.Hash>>
+const findBlockHeaderHashes = client.find.blockHeaders().selectWith((x) => x.hash)
+type test_block_header_hashes = Expect<Equal<BuilderOutput<typeof findBlockHeaderHashes>, types.Hash>>
 
-const findDomainsMetadata = client.find.domains({ selector: dm.DomainProjectionSelector.Metadata.Atom })
-const findAccountsMetadata = client.find.accounts({
-  select: dm.DomainProjectionSelector.Metadata.Atom,
-  filter: '',
-  predicate: dm.CompoundPredicate.Atom(dm.AccountProjectionPredicate.Id.Domain.Name.Atom.Contains('test')),
-})
-
-const testExtraFields = client.find.accounts({
-  predicate: dm.CompoundPredicate.Atom(dm.AccountProjectionPredicate.Id.Domain.Name.Atom.EndsWith('test')),
-  filter: '',
-  select: 12,
-})
+const findDomainsMetadata = client.find.domains().selectWith((x) => x.metadata)
+const findAccountsMetadata = client.find.accounts()
+  .selectWith((x) => x.metadata)
+  .filterWith((x) => types.CompoundPredicate.Atom(x.id.domain.name.contains('test')))

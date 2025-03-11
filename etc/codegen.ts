@@ -1,7 +1,7 @@
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha/core/data-model/schema'
-import { toCamelCase as camelCase } from 'jsr:@std/text'
+import { toCamelCase as camelCase, toKebabCase } from 'jsr:@std/text'
 import { deepEqual } from 'npm:fast-equals'
-import { assert as assert, fail } from '@std/assert'
+import { assert, assertEquals, assertObjectMatch, fail } from '@std/assert'
 import { match, P } from 'ts-pattern'
 
 // TODO: return HashOf<..> ? Hard. Requires all hashable items to implement Hash on instances => why not all make all types as classes, finally...
@@ -14,7 +14,6 @@ export function generateDataModel(resolver: Resolver, libModule: string): string
   return [
     `import * as lib from '${libModule}'`,
     ...arranged.map((id) => renderEmit(id, emits)),
-    ...generateQueryMaps(emits),
   ].join('\n\n')
 }
 
@@ -27,7 +26,7 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
   assert(queryBox && queryBox.t === 'enum')
 
   const iterableQueryMethods = queryBox.variants.map((x) => {
-    const { payload, predicate, selector } = match(x.type)
+    const { payload } = match(x.type)
       .with(
         {
           t: 'local',
@@ -51,16 +50,14 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
     assert(x.tag.startsWith('Find'))
     const methodName = camelCase(x.tag.slice('Find'.length))
 
-    const payloadArg = payload ? `payload: dm.${payload}, ` : ''
-    const payloadArgValue = payload ? `payload` : `null`
+    const payloadArg = payload ? `payload: types.${payload}, ` : ''
+    const payloadArgValue = payload ? `payload, ` : ``
 
     return (
-      `/**\n* Convenience method for \`${x.tag}\` query, a variant of {@link dm.QueryBox} enum.\n` +
-      `* - Predicate type: {@link dm.${predicate}}\n` +
-      `* - Selector type: {@link dm.${selector}}\n */\n` +
-      `  public ${methodName}<const P extends core.BuildQueryParams<'${x.tag}'>>(${payloadArg}params?: P): ` +
-      `client.QueryHandle<core.GetQueryOutput<'${x.tag}', P>> {` +
-      `return client.buildQueryHandle(this._executor, '${x.tag}', ${payloadArgValue}, params) }\n`
+      `  /** Convenience method for \`${x.tag}\` query, a variant of {@linkcode types.QueryBox} enum. */\n` +
+      `  public ${methodName}(${payloadArg}params?: core.QueryBuilderParams): ` +
+      `client.QueryBuilder<'${x.tag}'> {\n` +
+      `    return new client.QueryBuilder(this._executor, '${x.tag}', ${payloadArgValue}params)\n  }\n`
     )
   })
 
@@ -74,16 +71,16 @@ export function generateClientFindAPI(resolver: Resolver, libClient: string): st
     // const predicateType =
 
     return (
-      `\n/** Convenience method for \`${x.tag}\` query, a variant of {@link dm.SingularQueryBox} enum. */` +
-      `  public ${methodName}(): Promise<core.GetSingularQueryOutput<'${x.tag}'>> {` +
-      `return client.executeSingularQuery(this._executor, '${x.tag}') }`
+      `  /** Convenience method for \`${x.tag}\` query, a variant of {@linkcode types.SingularQueryBox} enum. */\n` +
+      `  public ${methodName}(): Promise<core.GetSingularQueryOutput<'${x.tag}'>> {\n` +
+      `    return client.executeSingularQuery(this._executor, '${x.tag}')\n  }\n`
     )
   })
 
   return [
     `import * as client from '${libClient}'`,
     `import type * as core from '@iroha/core'`,
-    `import type * as dm from '@iroha/core/data-model'`,
+    `import type * as types from '@iroha/core/data-model'`,
     `export class FindAPI {`,
     `  private _executor: client.QueryExecutor`,
     `  public constructor(executor: client.QueryExecutor) { this._executor = executor; }`,
@@ -126,6 +123,7 @@ export interface EmitEnumVariant {
 export type TypeRef =
   | { t: 'local'; id: Ident; params?: TypeRef[]; lazy?: boolean }
   | { t: 'lib'; id: LibType; params?: TypeRef[] }
+  | { t: 'lib-any'; id: Ident; params?: TypeRef[] }
   | { t: 'lib-array'; len: number; type: TypeRef }
   | { t: 'lib-b-tree-set-with-cmp'; type: TypeRef; compareFn: string }
   | { t: 'param'; index: number }
@@ -1004,22 +1002,25 @@ function renderRef(ref: TypeRef): RefRender {
         valueId: lazy ? undefined : id,
       }
     })
-    .with({ t: 'lib', params: P.array() }, ({ id, params }) => {
-      const typeGenerics = `<${params.map((x) => renderRef(x).type).join(', ')}>`
-      const valueId = `lib.${id}.with(${params.map((x) => renderRef(x).codec).join(', ')})`
+    .with(
+      { t: P.union('lib', 'lib-any') },
+      ({ id, params }) => {
+        if (params?.length) {
+          const typeGenerics = `<${params.map((x) => renderRef(x).type).join(', ')}>`
+          const valueId = `lib.${id}.with(${params.map((x) => renderRef(x).codec).join(', ')})`
 
-      return {
-        type: `lib.${id}${typeGenerics}`,
-        codec: valueId,
-      }
-    })
-    .with({ t: 'lib' }, ({ id }) => {
-      return {
-        type: `lib.${id}`,
-        codec: renderGetCodec(`lib.${id}`),
-        valueId: `lib.${id}`,
-      }
-    })
+          return {
+            type: `lib.${id}${typeGenerics}`,
+            codec: valueId,
+          }
+        }
+        return {
+          type: `lib.${id}`,
+          codec: renderGetCodec(`lib.${id}`),
+          valueId: `lib.${id}`,
+        }
+      },
+    )
     .with({ t: 'lib-array' }, () => {
       throw new Error('This type of reference exists on pre-render stage only, really')
     })
@@ -1285,38 +1286,6 @@ function takeSelectorTypeName(selector: string): string | null {
   return selector.slice(0, -SELECTOR_SUFFIX.length)
 }
 
-function buildQuerySelectorMapEntries(emits: EmitsMap): { query: string; selector: string }[] {
-  const schema = emits.get('QueryBox')
-  assert(schema && schema.t === 'enum')
-  return schema.variants.map((variant) => {
-    const selector = match(variant.type)
-      .with(
-        {
-          t: 'local',
-          id: 'QueryWithFilter',
-          params: [P._, P._, { t: 'lib', id: 'Vec', params: [{ t: 'local', id: P.select() }] }],
-        },
-        (x) => takeSelectorTypeName(x),
-      )
-      .otherwise(() => fail('unexpected query box value'))
-
-    assert(selector)
-
-    return {
-      query: variant.tag,
-      selector,
-    }
-  })
-}
-
-function expectNestedSelector(type: TypeRef) {
-  assert(type.t === 'local')
-  const selector = takeSelectorTypeName(type.id)
-  assert(selector)
-  if (selector === 'MetadataKey') return 'Json'
-  return selector
-}
-
 /**
  * _Most_ of the selectors match directly with the variant in `QueryOutputBatchBox`.
  * For example, `AccountProjectionSelector` (selector = `Account`) matches directly with
@@ -1335,50 +1304,253 @@ function resolveSelectorAtomOutputBoxTag(selector: string) {
     .otherwise(() => selector)
 }
 
-function buildSelectorOutputMapEntries(
-  emits: EmitsMap,
-): { selector: string; entries: { name: string; value: string }[] }[] {
-  return [...emits].reduce(
-    (acc, [key, value]) => {
-      const selector = takeSelectorTypeName(key)
-      if (selector && selector !== 'MetadataKey') {
-        assert(value.t === 'enum', `not an enum: ${selector} (selector)`)
-        acc.push({
-          selector,
-          entries: value.variants.map((variant) => ({
-            name: variant.tag,
-            value: variant.tag === 'Atom'
-              ? resolveSelectorAtomOutputBoxTag(selector)
-              : expectNestedSelector(variant.type),
-          })),
-        })
-      }
-      return acc
-    },
-    [] as ReturnType<typeof buildSelectorOutputMapEntries>,
-  )
+type PredicateTreeEntry = {
+  t: 'nested'
+  nested: PredicateTree
+} | {
+  t: 'fn'
+  args: { name: string; type: TypeRef }[]
+  out: { t: 'nested'; tree: PredicateTree } | { t: 'final'; ref: TypeRef }
 }
 
-/**
- * Properties of the output to test:
- * - all values in query output map point to some key in the selector output map
- * - all `Atom` variants for each selector in selector output map point to some variant of
- *   query output batch box
- */
-function generateQueryMaps(emits: EmitsMap): string[] {
-  const querySelectorMap = buildQuerySelectorMapEntries(emits)
-    .map((x) => `${x.query}: '${x.selector}'`)
-    .join('; ')
+type PredicateTree = Map<string, PredicateTreeEntry>
 
-  const selectorOutputMap = buildSelectorOutputMapEntries(emits)
-    .map((x) => {
-      const inner = x.entries.map((y) => `${y.name}: '${y.value}'`).join(';')
-      return `${x.selector}: {\n${inner} }`
+function buildPredicateTree(emits: EmitsMap, id: string, start: string = id): PredicateTree {
+  const emit = emits.get(id)
+  assert(emit?.t === 'enum', `${id} is not a enum?`)
+
+  function* expandFinal(atom: TypeRef): Generator<[string, PredicateTreeEntry]> {
+    assert(atom.t === 'local')
+    const emit = emits.get(atom.id)
+    assert(emit?.t === 'enum')
+    for (const i of emit.variants) {
+      const tagCamel = camelCase(i.tag)
+      const args = i.type.t === 'null' ? [] : [{ name: 'value', type: localRefToLibRef(i.type) }]
+      yield [tagCamel, { t: 'fn', args, out: { t: 'final', ref: { t: 'lib-any', id: start } } }]
+    }
+  }
+
+  function* mapVariants(): Generator<[string, PredicateTreeEntry]> {
+    assert(emit?.t === 'enum')
+    if (!emit.variants.length) return
+    const [atom, ...delegates] = emit.variants
+    assert(atom.tag === 'Atom')
+    yield* expandFinal(atom.type)
+    for (const { tag, type } of delegates) {
+      const tagCamel = camelCase(tag)
+      assert(type.t === 'local')
+      if (type.id.startsWith('MetadataKeyProjection')) {
+        const emit = emits.get(type.id)
+        assert(emit?.t === 'struct')
+        const [key, projection] = emit.fields
+        assert(projection?.type?.t === 'local')
+        const tree = buildPredicateTree(emits, projection.type.id, start)
+        yield [tagCamel, { t: 'fn', args: [key], out: { t: 'nested', tree } }]
+        return
+      }
+
+      yield [tagCamel, { t: 'nested', nested: buildPredicateTree(emits, type.id, start) }]
+    }
+  }
+
+  return new Map(mapVariants())
+}
+
+type BuildTreeAcc = { root: string; tags: string[] }
+
+const BuildTreeAcc = {
+  create: (root: string): BuildTreeAcc => {
+    const ty = takeSelectorTypeName(root)
+    assert(ty)
+    return { root: ty, tags: [] }
+  },
+  push: (acc: BuildTreeAcc, tag: string): BuildTreeAcc => {
+    return { ...acc, tags: [...acc.tags, tag] }
+  },
+  selectorId: (acc: BuildTreeAcc): string => {
+    const chain = [acc.root, ...acc.tags]
+    return chain.map((x) => toKebabCase(x)).join('-')
+  },
+}
+
+type SelectorTreeChild = { t: 'plain'; field: string; tree: SelectorTree } | {
+  t: 'fn'
+  field: string
+  args: { name: string; type: TypeRef }[]
+  tree: SelectorTree
+}
+
+type SelectorTree = { id: string; output: TypeRef; children: SelectorTreeChild[] }
+
+function localRefToLibRef(ref: TypeRef): TypeRef {
+  function mapParams(params?: TypeRef[]) {
+    return (params ?? []).map((x) => localRefToLibRef(x))
+  }
+
+  if (ref.t === 'local') return { ...ref, t: 'lib-any', params: mapParams(ref.params) }
+  if (ref.t === 'lib') return { ...ref, params: mapParams(ref.params) }
+  // cover more if needed
+  return ref
+}
+
+function buildSelectorTree(emits: EmitsMap, id: string, acc: BuildTreeAcc): SelectorTree {
+  const emit = emits.get(id)
+
+  return match(emit)
+    .with({ t: 'enum' }, ({ variants }): SelectorTree => {
+      assertObjectMatch(variants[0], { tag: 'Atom', type: { t: 'null' } })
+      const children = variants.slice(1).map(({ tag, type }): SelectorTreeChild => {
+        const tagCamel = camelCase(tag)
+        assert(type.t === 'local')
+
+        if (type.id.startsWith('MetadataKeyProjection')) {
+          const emit = emits.get(type.id)
+          assert(emit?.t === 'struct')
+          const [key, projection] = emit.fields
+          assert(projection?.type?.t === 'local')
+          const tree = buildSelectorTree(emits, projection.type.id, BuildTreeAcc.push(acc, 'key'))
+          return { t: 'fn', field: tagCamel, args: [key], tree }
+        }
+
+        return { t: 'plain', field: tagCamel, tree: buildSelectorTree(emits, type.id, BuildTreeAcc.push(acc, tag)) }
+      })
+      const selectorType = takeSelectorTypeName(id)
+      assert(selectorType)
+
+      const outputTag = resolveSelectorAtomOutputBoxTag(selectorType)
+      const outputBox = emits.get('QueryOutputBatchBox')
+      assert(outputBox?.t === 'enum')
+      const outputVar = outputBox.variants.find((x) => x.tag === outputTag)
+      assert(outputVar)
+      const outputVec = outputVar.type
+      assert(outputVec.t === 'lib' && outputVec?.params)
+      const output = localRefToLibRef(outputVec.params[0])
+
+      return {
+        id: BuildTreeAcc.selectorId(acc),
+        output,
+        children,
+      }
     })
-    .join('; ')
+    .otherwise((other) => {
+      fail(`Could not match ${id}: ${Deno.inspect(other)}`)
+    })
+}
+
+function collectSelectorTreeIds(tree: SelectorTree): Set<string> {
+  function* visit(tree: SelectorTree): Generator<string> {
+    yield tree.id
+    for (const i of tree.children) {
+      yield* visit(i.tree)
+    }
+  }
+
+  return new Set(visit(tree))
+}
+
+function collectSelectorOutputs(tree: SelectorTree): Map<string, TypeRef> {
+  function* visit(tree: SelectorTree): Generator<[id: string, output: TypeRef]> {
+    yield [tree.id, tree.output]
+    for (const i of tree.children) {
+      yield* visit(i.tree)
+    }
+  }
+
+  return new Map(visit(tree))
+}
+
+function renderSelectorTree(tree: SelectorTree, indent: string): string {
+  const children = tree.children.map((child) => {
+    if (child.t === 'plain') return `${indent}  ${child.field}: ${renderSelectorTree(child.tree, indent + '  ')}\n`
+    const args = child.args.map((x) => `${x.name}: ${renderRef(x.type).type}`).join(', ')
+    return `${indent}  ${child.field}(${args}): ${renderSelectorTree(child.tree, indent + '  ')}\n`
+  }).join('')
+
+  return `{\n${indent}  __selector: '${tree.id}',\n${children}${indent}}`
+}
+
+function renderPredicateTree(tree: PredicateTree, indent: string): string {
+  if (!tree.size) return 'never'
+
+  function* iter() {
+    for (const [id, entry] of tree) {
+      if (entry.t === 'nested') {
+        yield `${id}: ${renderPredicateTree(entry.nested, indent + '  ')}`
+      } else {
+        const output = entry.out.t === 'nested'
+          ? renderPredicateTree(entry.out.tree, indent + '  ')
+          : renderRef(entry.out.ref).type
+        const args = entry.args.map((x) => `${x.name}: ${renderRef(x.type).type}`).join(', ')
+        yield `${id}: (${args}) => ${output}`
+      }
+    }
+  }
+
+  const items = [...iter()].map((x) => `${indent}  ${x}`).join('\n')
+  return `{\n${items}\n${indent}}`
+}
+
+export function generatePrototypes(resolver: Resolver, lib: string) {
+  const box = resolver.emits.get('QueryBox')
+  assert(box && box.t === 'enum')
+
+  const projections = box.variants.reduce(
+    (acc, variant) => {
+      const query = variant.tag
+      assert(variant.type.t === 'local' && variant.type.id === 'QueryWithFilter' && variant.type.params)
+      const [_payload, compound, selectorTuple] = variant.type.params
+      assert(compound.t === 'lib' && compound.id === 'CompoundPredicate' && compound.params?.length === 1)
+      const predicate = compound.params[0]
+      assert(selectorTuple.t === 'lib' && selectorTuple.id === 'Vec' && selectorTuple.params?.length === 1)
+      const selector = selectorTuple.params[0]
+      assert(selector.t === 'local' && predicate.t === 'local')
+
+      const selectorTree = buildSelectorTree(resolver.emits, selector.id, BuildTreeAcc.create(selector.id))
+      const selectorIds = collectSelectorTreeIds(selectorTree)
+      const selectorOutputs = collectSelectorOutputs(selectorTree)
+
+      const predicateTree = buildPredicateTree(resolver.emits, predicate.id)
+
+      acc.push({ query, predicate: predicateTree, selector: selectorTree, selectorIds, selectorOutputs })
+
+      return acc
+    },
+    [] as {
+      query: string
+      predicate: PredicateTree
+      selector: SelectorTree
+      selectorIds: Set<string>
+      selectorOutputs: Map<string, TypeRef>
+    }[],
+  )
+
+  const compatEntries = projections.map((x) => `  ${x.query}: ${[...x.selectorIds].map((y) => `'${y}'`).join(' | ')}`)
+    .join('\n')
+  const querySelectorCompat = `export type QueryCompatibleSelectors = {\n${compatEntries}\n}`
+
+  const outputEntries = [
+    ...projections.flatMap((x) => [...x.selectorOutputs])
+      .reduce((acc, [id, output]) => {
+        if (acc.has(id)) assertEquals(acc.get(id), output)
+        else acc.set(id, output)
+        return acc
+      }, new Map<string, TypeRef>()),
+  ]
+    .map(([id, output]) => `  '${id}': ${renderRef(output).type}`)
+    .join('\n')
+  const querySelectorOutput = `export type SelectorIdToOutput = {\n${outputEntries}\n}`
+
+  const selectorsEntries = projections.map((x) => `  ${x.query}: ${renderSelectorTree(x.selector, '  ')}`).join('\n')
+  const selectors = `export type QuerySelectors = {\n${selectorsEntries}\n}`
+
+  const predicatesEntries = projections.map((x) => `  ${x.query}: ${renderPredicateTree(x.predicate, '  ')}`).join('\n')
+  const predicates = `export type QueryPredicates = {\n${predicatesEntries}\n}`
 
   return [
-    `export type QuerySelectorMap = { ${querySelectorMap} }`,
-    `export type SelectorOutputMap = { ${selectorOutputMap} }`,
-  ]
+    `import type * as lib from '${lib}'`,
+    querySelectorCompat,
+    querySelectorOutput,
+    selectors,
+    predicates,
+  ].join('\n\n')
 }
