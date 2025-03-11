@@ -130,9 +130,8 @@ describe('Queries', () => {
 
     await expect(
       client.find
-        .assets({
-          predicate: dm.CompoundPredicate.FAIL,
-        })
+        .assets()
+        .filterWith(() => dm.CompoundPredicate.FAIL)
         .executeSingle(),
     ).rejects.toThrowErrorMatchingInlineSnapshot(`[TypeError: Expected query to return exactly one element, got 0]`)
   })
@@ -142,18 +141,18 @@ describe('Queries', () => {
     const { bob } = await submitTestData(client)
 
     const items = await client.find
-      .accounts({
-        predicate: dm.CompoundPredicate.Or<dm.AccountProjectionPredicate>(
-          dm.CompoundPredicate.Atom(dm.AccountProjectionPredicate.Id.Domain.Name.Atom.Contains('cert')),
+      .accounts()
+      .filterWith((account) =>
+        dm.CompoundPredicate.Or(
           dm.CompoundPredicate.Atom(
-            dm.AccountProjectionPredicate.Id.Signatory.Atom.Equals(bob.publicKey()),
+            account.id.domain.name.contains('cert'),
           ),
-        ),
-        selector: dm.AccountProjectionSelector.Metadata.Key({
-          key: new dm.Name('alias'),
-          projection: { kind: 'Atom' },
-        }),
-      })
+          dm.CompoundPredicate.Atom(
+            account.id.signatory.equals(bob.publicKey()),
+          ),
+        )
+      )
+      .selectWith((account) => account.metadata.key(new dm.Name('alias')))
       .executeAll()
 
     expect(items.map((x) => x.asValue())).toEqual(['Bob', 'Mad Hatter'])
@@ -168,13 +167,7 @@ describe('Queries', () => {
         {
           assetDefinition: dm.AssetDefinitionId.parse('neko_coin#wherever'),
         },
-        {
-          selector: dm.AccountProjectionSelector.Metadata.Key({
-            key: new dm.Name('alias'),
-            projection: { kind: 'Atom' },
-          }),
-        },
-      )
+      ).selectWith((acc) => acc.metadata.key(new dm.Name('alias')))
       .executeAll()
 
     expect(items.map((x) => x.asValue())).toEqual(['Bob'])
@@ -184,8 +177,8 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const blocks = await client.find.blocks({ selector: dm.SignedBlockProjectionSelector.Header.Atom }).executeAll()
-    const headers = await client.find.blockHeaders().executeAll()
+    const blocks: dm.BlockHeader[] = await client.find.blocks().selectWith((block) => block.header).executeAll()
+    const headers: dm.BlockHeader[] = await client.find.blockHeaders().executeAll()
 
     expect(blocks).toEqual(headers)
   })
@@ -203,8 +196,8 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const all = await client.find.triggers({ selector: dm.TriggerProjectionSelector.Id.Atom }).executeAll()
-    const activeOnes = await client.find.activeTriggerIds().executeAll()
+    const all: dm.Name[] = await client.find.triggers().selectWith((trigger) => trigger.id).executeAll()
+    const activeOnes: dm.Name[] = await client.find.activeTriggerIds().executeAll()
 
     expect(all).toEqual(activeOnes)
     expect(activeOnes).toMatchInlineSnapshot(`
@@ -219,11 +212,10 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const items = await client.find
-      .assets({
-        predicate: dm.CompoundPredicate.Atom(dm.AssetProjectionPredicate.Id.Definition.Name.Atom.EndsWith('_coin')),
-        selector: dm.AssetProjectionSelector.Id.Definition.Name.Atom,
-      })
+    const items: dm.Name[] = await client.find
+      .assets()
+      .filterWith((asset) => dm.CompoundPredicate.Atom(asset.id.definition.name.endsWith('_coin')))
+      .selectWith((asset) => asset.id.definition.name)
       .executeAll()
 
     expect(items.map((x) => x.value)).contain.all.members(['base_coin', 'neko_coin', 'gator_coin'])
@@ -236,10 +228,10 @@ describe('Queries', () => {
     const domains = await client.find.domains().executeAll()
     expect(domains.length).toBeGreaterThan(0)
 
-    const failed = await client.find.domains({ predicate: dm.CompoundPredicate.FAIL }).executeAll()
+    const failed = await client.find.domains().filterWith(() => dm.CompoundPredicate.FAIL).executeAll()
     expect(failed).toHaveLength(0)
 
-    const passed = await client.find.domains({ predicate: dm.CompoundPredicate.PASS }).executeAll()
+    const passed = await client.find.domains().filterWith(() => dm.CompoundPredicate.PASS).executeAll()
     expect(passed).toEqual(domains)
   })
 
@@ -247,12 +239,12 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const ids = await client.find
+    const ids: dm.Name[] = await client.find
       .domains({
         offset: 5,
         limit: new dm.NonZero(3),
-        selector: dm.DomainProjectionSelector.Id.Name.Atom,
       })
+      .selectWith((x) => x.id.name)
       .executeAll()
 
     expect(ids).toMatchInlineSnapshot(`
@@ -271,9 +263,9 @@ describe('Queries', () => {
     const stream = client.find
       .domains({
         fetchSize: new dm.NonZero(5),
-        selector: dm.DomainProjectionSelector.Id.Name.Atom,
       })
-      .batches()
+      .selectWith((x) => x.id.name)
+      .batches() satisfies AsyncGenerator<dm.Name[]>
 
     // TODO: include information about remaining items into the stream return value
     let batch = await stream.next()
@@ -339,13 +331,13 @@ describe('Queries', () => {
     const someBlock = (await client.find.blocks().executeAll()).at(1)!
 
     const found = await client.find
-      .blocks({
-        predicate: dm.CompoundPredicate.Atom(
-          dm.SignedBlockProjectionPredicate.Header.Hash.Atom.Equals(
+      .blocks().filterWith((block) =>
+        dm.CompoundPredicate.Atom(
+          block.header.hash.equals(
             blockHash(someBlock.value.payload.header),
           ),
-        ),
-      })
+        )
+      )
       .executeSingle()
 
     expect(found.value.payload.header).toEqual(someBlock.value.payload.header)
@@ -365,12 +357,13 @@ describe('Queries', () => {
     await submitTestData(client)
 
     const assets = await client.find
-      .assets({
-        predicate: dm.CompoundPredicate.Atom(
-          dm.AssetProjectionPredicate.Id.Definition.Atom.Equals(dm.AssetDefinitionId.parse('gator_coin#certainty')),
-        ),
-        selector: [dm.AssetProjectionSelector.Id.Account.Atom, dm.AssetProjectionSelector.Value.Numeric.Atom],
-      })
+      .assets()
+      .filterWith((asset) =>
+        dm.CompoundPredicate.Atom(
+          asset.id.definition.equals(dm.AssetDefinitionId.parse('gator_coin#certainty')),
+        )
+      )
+      .selectWith((asset) => [asset.id.account, asset.value.numeric])
       .executeAll()
 
     expect(assets).toMatchInlineSnapshot(`
@@ -399,10 +392,9 @@ describe('Queries', () => {
 
     await expect(
       client.find
-        .assets({
-          predicate: dm.CompoundPredicate.Atom(dm.AssetProjectionPredicate.Value.Atom.IsNumeric),
-          selector: [dm.AssetProjectionSelector.Value.Store.Atom],
-        })
+        .assets()
+        .filterWith((asset) => dm.CompoundPredicate.Atom(asset.value.isNumeric()))
+        .selectWith((asset) => asset.value.store)
         .executeAll(),
     ).rejects.toEqual(
       new QueryValidationError(dm.ValidationFail.QueryFailed.Conversion('Expected store value, got numeric')),
@@ -511,9 +503,8 @@ describe('Transactions', () => {
 
     const hash = tx.hash
     const _found = await client.find
-      .transactions({
-        predicate: dm.CompoundPredicate.Atom(dm.CommittedTransactionProjectionPredicate.Value.Hash.Atom.Equals(hash)),
-      })
+      .transactions()
+      .filterWith((tx) => dm.CompoundPredicate.Atom(tx.value.hash.equals(hash)))
       .executeSingle()
 
     // TODO:

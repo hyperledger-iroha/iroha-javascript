@@ -1,0 +1,695 @@
+export const snapshot = {};
+
+snapshot[`generate prototypes > prototypes snapshot 1`] = `
+"import type * as lib from 'prelude'
+
+export type QueryCompatibleSelectors = {
+  FindDomains: 'domain' | 'domain-id' | 'domain-id-name' | 'domain-metadata' | 'domain-metadata-key'
+  FindAccounts: 'account' | 'account-id' | 'account-id-domain' | 'account-id-domain-name' | 'account-id-signatory' | 'account-metadata' | 'account-metadata-key'
+  FindAssets: 'asset' | 'asset-id' | 'asset-id-account' | 'asset-id-account-domain' | 'asset-id-account-domain-name' | 'asset-id-account-signatory' | 'asset-id-definition' | 'asset-id-definition-domain' | 'asset-id-definition-domain-name' | 'asset-id-definition-name' | 'asset-value' | 'asset-value-numeric' | 'asset-value-store' | 'asset-value-store-key'
+  FindAssetsDefinitions: 'asset-definition' | 'asset-definition-id' | 'asset-definition-id-domain' | 'asset-definition-id-domain-name' | 'asset-definition-id-name' | 'asset-definition-metadata' | 'asset-definition-metadata-key'
+  FindRoles: 'role' | 'role-id' | 'role-id-name'
+  FindRoleIds: 'role-id' | 'role-id-name'
+  FindPermissionsByAccountId: 'permission'
+  FindRolesByAccountId: 'role-id' | 'role-id-name'
+  FindAccountsWithAsset: 'account' | 'account-id' | 'account-id-domain' | 'account-id-domain-name' | 'account-id-signatory' | 'account-metadata' | 'account-metadata-key'
+  FindPeers: 'peer-id' | 'peer-id-public-key'
+  FindActiveTriggerIds: 'trigger-id' | 'trigger-id-name'
+  FindTriggers: 'trigger' | 'trigger-id' | 'trigger-id-name' | 'trigger-action' | 'trigger-action-metadata' | 'trigger-action-metadata-key'
+  FindTransactions: 'committed-transaction' | 'committed-transaction-block-hash' | 'committed-transaction-value' | 'committed-transaction-value-hash' | 'committed-transaction-value-authority' | 'committed-transaction-value-authority-domain' | 'committed-transaction-value-authority-domain-name' | 'committed-transaction-value-authority-signatory' | 'committed-transaction-error'
+  FindBlocks: 'signed-block' | 'signed-block-header' | 'signed-block-header-hash'
+  FindBlockHeaders: 'block-header' | 'block-header-hash'
+}
+
+export type SelectorIdToOutput = {
+  'domain': lib.Domain
+  'domain-id': lib.DomainId
+  'domain-id-name': lib.Name
+  'domain-metadata': lib.Metadata
+  'domain-metadata-key': lib.Json
+  'account': lib.Account
+  'account-id': lib.AccountId
+  'account-id-domain': lib.DomainId
+  'account-id-domain-name': lib.Name
+  'account-id-signatory': lib.PublicKey
+  'account-metadata': lib.Metadata
+  'account-metadata-key': lib.Json
+  'asset': lib.Asset
+  'asset-id': lib.AssetId
+  'asset-id-account': lib.AccountId
+  'asset-id-account-domain': lib.DomainId
+  'asset-id-account-domain-name': lib.Name
+  'asset-id-account-signatory': lib.PublicKey
+  'asset-id-definition': lib.AssetDefinitionId
+  'asset-id-definition-domain': lib.DomainId
+  'asset-id-definition-domain-name': lib.Name
+  'asset-id-definition-name': lib.Name
+  'asset-value': lib.AssetValue
+  'asset-value-numeric': lib.Numeric
+  'asset-value-store': lib.Metadata
+  'asset-value-store-key': lib.Json
+  'asset-definition': lib.AssetDefinition
+  'asset-definition-id': lib.AssetDefinitionId
+  'asset-definition-id-domain': lib.DomainId
+  'asset-definition-id-domain-name': lib.Name
+  'asset-definition-id-name': lib.Name
+  'asset-definition-metadata': lib.Metadata
+  'asset-definition-metadata-key': lib.Json
+  'role': lib.Role
+  'role-id': lib.RoleId
+  'role-id-name': lib.Name
+  'permission': lib.Permission
+  'peer-id': lib.PeerId
+  'peer-id-public-key': lib.PublicKey
+  'trigger-id': lib.TriggerId
+  'trigger-id-name': lib.Name
+  'trigger': lib.Trigger
+  'trigger-action': lib.Action
+  'trigger-action-metadata': lib.Metadata
+  'trigger-action-metadata-key': lib.Json
+  'committed-transaction': lib.CommittedTransaction
+  'committed-transaction-block-hash': lib.Hash
+  'committed-transaction-value': lib.SignedTransaction
+  'committed-transaction-value-hash': lib.Hash
+  'committed-transaction-value-authority': lib.AccountId
+  'committed-transaction-value-authority-domain': lib.DomainId
+  'committed-transaction-value-authority-domain-name': lib.Name
+  'committed-transaction-value-authority-signatory': lib.PublicKey
+  'committed-transaction-error': lib.Option<lib.TransactionRejectionReason>
+  'signed-block': lib.SignedBlock
+  'signed-block-header': lib.BlockHeader
+  'signed-block-header-hash': lib.Hash
+  'block-header': lib.BlockHeader
+  'block-header-hash': lib.Hash
+}
+
+export type QuerySelectors = {
+  FindDomains: {
+    __selector: 'domain',
+    id: {
+      __selector: 'domain-id',
+      name: {
+        __selector: 'domain-id-name',
+      }
+    }
+    metadata: {
+      __selector: 'domain-metadata',
+      key(key: lib.Name): {
+        __selector: 'domain-metadata-key',
+      }
+    }
+  }
+  FindAccounts: {
+    __selector: 'account',
+    id: {
+      __selector: 'account-id',
+      domain: {
+        __selector: 'account-id-domain',
+        name: {
+          __selector: 'account-id-domain-name',
+        }
+      }
+      signatory: {
+        __selector: 'account-id-signatory',
+      }
+    }
+    metadata: {
+      __selector: 'account-metadata',
+      key(key: lib.Name): {
+        __selector: 'account-metadata-key',
+      }
+    }
+  }
+  FindAssets: {
+    __selector: 'asset',
+    id: {
+      __selector: 'asset-id',
+      account: {
+        __selector: 'asset-id-account',
+        domain: {
+          __selector: 'asset-id-account-domain',
+          name: {
+            __selector: 'asset-id-account-domain-name',
+          }
+        }
+        signatory: {
+          __selector: 'asset-id-account-signatory',
+        }
+      }
+      definition: {
+        __selector: 'asset-id-definition',
+        domain: {
+          __selector: 'asset-id-definition-domain',
+          name: {
+            __selector: 'asset-id-definition-domain-name',
+          }
+        }
+        name: {
+          __selector: 'asset-id-definition-name',
+        }
+      }
+    }
+    value: {
+      __selector: 'asset-value',
+      numeric: {
+        __selector: 'asset-value-numeric',
+      }
+      store: {
+        __selector: 'asset-value-store',
+        key(key: lib.Name): {
+          __selector: 'asset-value-store-key',
+        }
+      }
+    }
+  }
+  FindAssetsDefinitions: {
+    __selector: 'asset-definition',
+    id: {
+      __selector: 'asset-definition-id',
+      domain: {
+        __selector: 'asset-definition-id-domain',
+        name: {
+          __selector: 'asset-definition-id-domain-name',
+        }
+      }
+      name: {
+        __selector: 'asset-definition-id-name',
+      }
+    }
+    metadata: {
+      __selector: 'asset-definition-metadata',
+      key(key: lib.Name): {
+        __selector: 'asset-definition-metadata-key',
+      }
+    }
+  }
+  FindRoles: {
+    __selector: 'role',
+    id: {
+      __selector: 'role-id',
+      name: {
+        __selector: 'role-id-name',
+      }
+    }
+  }
+  FindRoleIds: {
+    __selector: 'role-id',
+    name: {
+      __selector: 'role-id-name',
+    }
+  }
+  FindPermissionsByAccountId: {
+    __selector: 'permission',
+  }
+  FindRolesByAccountId: {
+    __selector: 'role-id',
+    name: {
+      __selector: 'role-id-name',
+    }
+  }
+  FindAccountsWithAsset: {
+    __selector: 'account',
+    id: {
+      __selector: 'account-id',
+      domain: {
+        __selector: 'account-id-domain',
+        name: {
+          __selector: 'account-id-domain-name',
+        }
+      }
+      signatory: {
+        __selector: 'account-id-signatory',
+      }
+    }
+    metadata: {
+      __selector: 'account-metadata',
+      key(key: lib.Name): {
+        __selector: 'account-metadata-key',
+      }
+    }
+  }
+  FindPeers: {
+    __selector: 'peer-id',
+    publicKey: {
+      __selector: 'peer-id-public-key',
+    }
+  }
+  FindActiveTriggerIds: {
+    __selector: 'trigger-id',
+    name: {
+      __selector: 'trigger-id-name',
+    }
+  }
+  FindTriggers: {
+    __selector: 'trigger',
+    id: {
+      __selector: 'trigger-id',
+      name: {
+        __selector: 'trigger-id-name',
+      }
+    }
+    action: {
+      __selector: 'trigger-action',
+      metadata: {
+        __selector: 'trigger-action-metadata',
+        key(key: lib.Name): {
+          __selector: 'trigger-action-metadata-key',
+        }
+      }
+    }
+  }
+  FindTransactions: {
+    __selector: 'committed-transaction',
+    blockHash: {
+      __selector: 'committed-transaction-block-hash',
+    }
+    value: {
+      __selector: 'committed-transaction-value',
+      hash: {
+        __selector: 'committed-transaction-value-hash',
+      }
+      authority: {
+        __selector: 'committed-transaction-value-authority',
+        domain: {
+          __selector: 'committed-transaction-value-authority-domain',
+          name: {
+            __selector: 'committed-transaction-value-authority-domain-name',
+          }
+        }
+        signatory: {
+          __selector: 'committed-transaction-value-authority-signatory',
+        }
+      }
+    }
+    error: {
+      __selector: 'committed-transaction-error',
+    }
+  }
+  FindBlocks: {
+    __selector: 'signed-block',
+    header: {
+      __selector: 'signed-block-header',
+      hash: {
+        __selector: 'signed-block-header-hash',
+      }
+    }
+  }
+  FindBlockHeaders: {
+    __selector: 'block-header',
+    hash: {
+      __selector: 'block-header-hash',
+    }
+  }
+}
+
+export type QueryPredicates = {
+  FindDomains: {
+    id: {
+      equals: (value: lib.DomainId) => lib.DomainProjectionPredicate
+      name: {
+        equals: (value: lib.String) => lib.DomainProjectionPredicate
+        contains: (value: lib.String) => lib.DomainProjectionPredicate
+        startsWith: (value: lib.String) => lib.DomainProjectionPredicate
+        endsWith: (value: lib.String) => lib.DomainProjectionPredicate
+      }
+    }
+    metadata: {
+      key: (key: lib.Name) => {
+        equals: (value: lib.Json) => lib.DomainProjectionPredicate
+      }
+    }
+  }
+  FindAccounts: {
+    id: {
+      equals: (value: lib.AccountId) => lib.AccountProjectionPredicate
+      domain: {
+        equals: (value: lib.DomainId) => lib.AccountProjectionPredicate
+        name: {
+          equals: (value: lib.String) => lib.AccountProjectionPredicate
+          contains: (value: lib.String) => lib.AccountProjectionPredicate
+          startsWith: (value: lib.String) => lib.AccountProjectionPredicate
+          endsWith: (value: lib.String) => lib.AccountProjectionPredicate
+        }
+      }
+      signatory: {
+        equals: (value: lib.PublicKey) => lib.AccountProjectionPredicate
+      }
+    }
+    metadata: {
+      key: (key: lib.Name) => {
+        equals: (value: lib.Json) => lib.AccountProjectionPredicate
+      }
+    }
+  }
+  FindAssets: {
+    id: {
+      equals: (value: lib.AssetId) => lib.AssetProjectionPredicate
+      account: {
+        equals: (value: lib.AccountId) => lib.AssetProjectionPredicate
+        domain: {
+          equals: (value: lib.DomainId) => lib.AssetProjectionPredicate
+          name: {
+            equals: (value: lib.String) => lib.AssetProjectionPredicate
+            contains: (value: lib.String) => lib.AssetProjectionPredicate
+            startsWith: (value: lib.String) => lib.AssetProjectionPredicate
+            endsWith: (value: lib.String) => lib.AssetProjectionPredicate
+          }
+        }
+        signatory: {
+          equals: (value: lib.PublicKey) => lib.AssetProjectionPredicate
+        }
+      }
+      definition: {
+        equals: (value: lib.AssetDefinitionId) => lib.AssetProjectionPredicate
+        domain: {
+          equals: (value: lib.DomainId) => lib.AssetProjectionPredicate
+          name: {
+            equals: (value: lib.String) => lib.AssetProjectionPredicate
+            contains: (value: lib.String) => lib.AssetProjectionPredicate
+            startsWith: (value: lib.String) => lib.AssetProjectionPredicate
+            endsWith: (value: lib.String) => lib.AssetProjectionPredicate
+          }
+        }
+        name: {
+          equals: (value: lib.String) => lib.AssetProjectionPredicate
+          contains: (value: lib.String) => lib.AssetProjectionPredicate
+          startsWith: (value: lib.String) => lib.AssetProjectionPredicate
+          endsWith: (value: lib.String) => lib.AssetProjectionPredicate
+        }
+      }
+    }
+    value: {
+      isNumeric: () => lib.AssetProjectionPredicate
+      isStore: () => lib.AssetProjectionPredicate
+      numeric: never
+      store: {
+        key: (key: lib.Name) => {
+          equals: (value: lib.Json) => lib.AssetProjectionPredicate
+        }
+      }
+    }
+  }
+  FindAssetsDefinitions: {
+    id: {
+      equals: (value: lib.AssetDefinitionId) => lib.AssetDefinitionProjectionPredicate
+      domain: {
+        equals: (value: lib.DomainId) => lib.AssetDefinitionProjectionPredicate
+        name: {
+          equals: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+          contains: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+          startsWith: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+          endsWith: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+        }
+      }
+      name: {
+        equals: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+        contains: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+        startsWith: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+        endsWith: (value: lib.String) => lib.AssetDefinitionProjectionPredicate
+      }
+    }
+    metadata: {
+      key: (key: lib.Name) => {
+        equals: (value: lib.Json) => lib.AssetDefinitionProjectionPredicate
+      }
+    }
+  }
+  FindRoles: {
+    id: {
+      equals: (value: lib.RoleId) => lib.RoleProjectionPredicate
+      name: {
+        equals: (value: lib.String) => lib.RoleProjectionPredicate
+        contains: (value: lib.String) => lib.RoleProjectionPredicate
+        startsWith: (value: lib.String) => lib.RoleProjectionPredicate
+        endsWith: (value: lib.String) => lib.RoleProjectionPredicate
+      }
+    }
+  }
+  FindRoleIds: {
+    equals: (value: lib.RoleId) => lib.RoleIdProjectionPredicate
+    name: {
+      equals: (value: lib.String) => lib.RoleIdProjectionPredicate
+      contains: (value: lib.String) => lib.RoleIdProjectionPredicate
+      startsWith: (value: lib.String) => lib.RoleIdProjectionPredicate
+      endsWith: (value: lib.String) => lib.RoleIdProjectionPredicate
+    }
+  }
+  FindPermissionsByAccountId: never
+  FindRolesByAccountId: {
+    equals: (value: lib.RoleId) => lib.RoleIdProjectionPredicate
+    name: {
+      equals: (value: lib.String) => lib.RoleIdProjectionPredicate
+      contains: (value: lib.String) => lib.RoleIdProjectionPredicate
+      startsWith: (value: lib.String) => lib.RoleIdProjectionPredicate
+      endsWith: (value: lib.String) => lib.RoleIdProjectionPredicate
+    }
+  }
+  FindAccountsWithAsset: {
+    id: {
+      equals: (value: lib.AccountId) => lib.AccountProjectionPredicate
+      domain: {
+        equals: (value: lib.DomainId) => lib.AccountProjectionPredicate
+        name: {
+          equals: (value: lib.String) => lib.AccountProjectionPredicate
+          contains: (value: lib.String) => lib.AccountProjectionPredicate
+          startsWith: (value: lib.String) => lib.AccountProjectionPredicate
+          endsWith: (value: lib.String) => lib.AccountProjectionPredicate
+        }
+      }
+      signatory: {
+        equals: (value: lib.PublicKey) => lib.AccountProjectionPredicate
+      }
+    }
+    metadata: {
+      key: (key: lib.Name) => {
+        equals: (value: lib.Json) => lib.AccountProjectionPredicate
+      }
+    }
+  }
+  FindPeers: {
+    publicKey: {
+      equals: (value: lib.PublicKey) => lib.PeerIdProjectionPredicate
+    }
+  }
+  FindActiveTriggerIds: {
+    equals: (value: lib.TriggerId) => lib.TriggerIdProjectionPredicate
+    name: {
+      equals: (value: lib.String) => lib.TriggerIdProjectionPredicate
+      contains: (value: lib.String) => lib.TriggerIdProjectionPredicate
+      startsWith: (value: lib.String) => lib.TriggerIdProjectionPredicate
+      endsWith: (value: lib.String) => lib.TriggerIdProjectionPredicate
+    }
+  }
+  FindTriggers: {
+    id: {
+      equals: (value: lib.TriggerId) => lib.TriggerProjectionPredicate
+      name: {
+        equals: (value: lib.String) => lib.TriggerProjectionPredicate
+        contains: (value: lib.String) => lib.TriggerProjectionPredicate
+        startsWith: (value: lib.String) => lib.TriggerProjectionPredicate
+        endsWith: (value: lib.String) => lib.TriggerProjectionPredicate
+      }
+    }
+    action: {
+      metadata: {
+        key: (key: lib.Name) => {
+          equals: (value: lib.Json) => lib.TriggerProjectionPredicate
+        }
+      }
+    }
+  }
+  FindTransactions: {
+    blockHash: {
+      equals: (value: lib.Hash) => lib.CommittedTransactionProjectionPredicate
+    }
+    value: {
+      hash: {
+        equals: (value: lib.Hash) => lib.CommittedTransactionProjectionPredicate
+      }
+      authority: {
+        equals: (value: lib.AccountId) => lib.CommittedTransactionProjectionPredicate
+        domain: {
+          equals: (value: lib.DomainId) => lib.CommittedTransactionProjectionPredicate
+          name: {
+            equals: (value: lib.String) => lib.CommittedTransactionProjectionPredicate
+            contains: (value: lib.String) => lib.CommittedTransactionProjectionPredicate
+            startsWith: (value: lib.String) => lib.CommittedTransactionProjectionPredicate
+            endsWith: (value: lib.String) => lib.CommittedTransactionProjectionPredicate
+          }
+        }
+        signatory: {
+          equals: (value: lib.PublicKey) => lib.CommittedTransactionProjectionPredicate
+        }
+      }
+    }
+    error: {
+      isSome: () => lib.CommittedTransactionProjectionPredicate
+    }
+  }
+  FindBlocks: {
+    header: {
+      hash: {
+        equals: (value: lib.Hash) => lib.SignedBlockProjectionPredicate
+      }
+    }
+  }
+  FindBlockHeaders: {
+    hash: {
+      equals: (value: lib.Hash) => lib.BlockHeaderProjectionPredicate
+    }
+  }
+}"
+`;
+
+snapshot[`generate prototypes > find api snapshot 1`] = `
+"import * as client from 'prelude'
+import type * as core from '@iroha/core'
+import type * as types from '@iroha/core/data-model'
+export class FindAPI {
+  private _executor: client.QueryExecutor
+  public constructor(executor: client.QueryExecutor) { this._executor = executor; }
+  /** Convenience method for \`FindDomains\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public domains(params?: core.QueryBuilderParams): client.QueryBuilder<'FindDomains'> {
+    return new client.QueryBuilder(this._executor, 'FindDomains', params)
+  }
+
+  /** Convenience method for \`FindAccounts\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public accounts(params?: core.QueryBuilderParams): client.QueryBuilder<'FindAccounts'> {
+    return new client.QueryBuilder(this._executor, 'FindAccounts', params)
+  }
+
+  /** Convenience method for \`FindAssets\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public assets(params?: core.QueryBuilderParams): client.QueryBuilder<'FindAssets'> {
+    return new client.QueryBuilder(this._executor, 'FindAssets', params)
+  }
+
+  /** Convenience method for \`FindAssetsDefinitions\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public assetsDefinitions(params?: core.QueryBuilderParams): client.QueryBuilder<'FindAssetsDefinitions'> {
+    return new client.QueryBuilder(this._executor, 'FindAssetsDefinitions', params)
+  }
+
+  /** Convenience method for \`FindRoles\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public roles(params?: core.QueryBuilderParams): client.QueryBuilder<'FindRoles'> {
+    return new client.QueryBuilder(this._executor, 'FindRoles', params)
+  }
+
+  /** Convenience method for \`FindRoleIds\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public roleIds(params?: core.QueryBuilderParams): client.QueryBuilder<'FindRoleIds'> {
+    return new client.QueryBuilder(this._executor, 'FindRoleIds', params)
+  }
+
+  /** Convenience method for \`FindPermissionsByAccountId\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public permissionsByAccountId(payload: types.FindPermissionsByAccountId, params?: core.QueryBuilderParams): client.QueryBuilder<'FindPermissionsByAccountId'> {
+    return new client.QueryBuilder(this._executor, 'FindPermissionsByAccountId', payload, params)
+  }
+
+  /** Convenience method for \`FindRolesByAccountId\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public rolesByAccountId(payload: types.FindRolesByAccountId, params?: core.QueryBuilderParams): client.QueryBuilder<'FindRolesByAccountId'> {
+    return new client.QueryBuilder(this._executor, 'FindRolesByAccountId', payload, params)
+  }
+
+  /** Convenience method for \`FindAccountsWithAsset\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public accountsWithAsset(payload: types.FindAccountsWithAsset, params?: core.QueryBuilderParams): client.QueryBuilder<'FindAccountsWithAsset'> {
+    return new client.QueryBuilder(this._executor, 'FindAccountsWithAsset', payload, params)
+  }
+
+  /** Convenience method for \`FindPeers\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public peers(params?: core.QueryBuilderParams): client.QueryBuilder<'FindPeers'> {
+    return new client.QueryBuilder(this._executor, 'FindPeers', params)
+  }
+
+  /** Convenience method for \`FindActiveTriggerIds\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public activeTriggerIds(params?: core.QueryBuilderParams): client.QueryBuilder<'FindActiveTriggerIds'> {
+    return new client.QueryBuilder(this._executor, 'FindActiveTriggerIds', params)
+  }
+
+  /** Convenience method for \`FindTriggers\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public triggers(params?: core.QueryBuilderParams): client.QueryBuilder<'FindTriggers'> {
+    return new client.QueryBuilder(this._executor, 'FindTriggers', params)
+  }
+
+  /** Convenience method for \`FindTransactions\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public transactions(params?: core.QueryBuilderParams): client.QueryBuilder<'FindTransactions'> {
+    return new client.QueryBuilder(this._executor, 'FindTransactions', params)
+  }
+
+  /** Convenience method for \`FindBlocks\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public blocks(params?: core.QueryBuilderParams): client.QueryBuilder<'FindBlocks'> {
+    return new client.QueryBuilder(this._executor, 'FindBlocks', params)
+  }
+
+  /** Convenience method for \`FindBlockHeaders\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public blockHeaders(params?: core.QueryBuilderParams): client.QueryBuilder<'FindBlockHeaders'> {
+    return new client.QueryBuilder(this._executor, 'FindBlockHeaders', params)
+  }
+
+  /** Convenience method for \`FindExecutorDataModel\` query, a variant of {@linkcode types.SingularQueryBox} enum. */
+  public executorDataModel(): Promise<core.GetSingularQueryOutput<'FindExecutorDataModel'>> {
+    return client.executeSingularQuery(this._executor, 'FindExecutorDataModel')
+  }
+
+  /** Convenience method for \`FindParameters\` query, a variant of {@linkcode types.SingularQueryBox} enum. */
+  public parameters(): Promise<core.GetSingularQueryOutput<'FindParameters'>> {
+    return client.executeSingularQuery(this._executor, 'FindParameters')
+  }
+
+}"
+`;
+
+snapshot[`enum shortcuts > build shortcuts tree 1`] = `
+[
+  {
+    name: "Unit",
+    t: "unit",
+  },
+  {
+    name: "WithType",
+    t: "value",
+    value_ty: {
+      id: "Whichever",
+      t: "local",
+    },
+  },
+  {
+    name: "Nested",
+    t: "enum",
+    tree: {
+      id: "B",
+      variants: [
+        {
+          name: "Bunit",
+          t: "unit",
+        },
+        {
+          name: "Bnested",
+          t: "enum",
+          tree: {
+            id: "C",
+            variants: [
+              {
+                name: "CUnit",
+                t: "unit",
+              },
+              {
+                name: "Cfinal",
+                t: "value",
+                value_ty: {
+                  id: "Whichever",
+                  t: "local",
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  },
+]
+`;
+
+snapshot[`enum shortcuts > generate shortcut tree 1`] = `
+"
+    type test = { Unit: lib.VariantUnit<'Unit'>, WithType: <const T extends Whichever>(value: T) => lib.Variant<'WithType', T>, Nested: { Bunit: lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>, Bnested: { CUnit: lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>, Cfinal: <const T extends Whichever>(value: T) => lib.Variant<'Nested', lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>> } } }
+    const test = { Unit: Object.freeze({ kind: 'Unit' }), WithType: <const T extends Whichever>(value: T): lib.Variant<'WithType', T> => ({ kind: 'WithType', value }), Nested: { Bunit: Object.freeze<lib.Variant<'Nested', lib.VariantUnit<'Bunit'>>>({ kind: 'Nested', value: B.Bunit }), Bnested: { CUnit: Object.freeze<lib.Variant<'Nested', lib.Variant<'Bnested', lib.VariantUnit<'CUnit'>>>>({ kind: 'Nested', value: B.Bnested.CUnit }), Cfinal: <const T extends Whichever>(value: T): lib.Variant<'Nested', lib.Variant<'Bnested', lib.Variant<'Cfinal', T>>> => ({ kind: 'Nested', value: B.Bnested.Cfinal(value) }) } } }
+    "
+`;

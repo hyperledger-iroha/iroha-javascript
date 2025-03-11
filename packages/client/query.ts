@@ -1,25 +1,33 @@
-import { type BuildQueryResult, signQuery } from '@iroha/core'
-import * as dm from '@iroha/core/data-model'
+import {
+  type DefaultQueryOutput,
+  QueryBuilder as BaseQueryBuilder,
+  type QueryBuilderCtorArgs,
+  type QueryKind,
+  type SelectedTuple,
+  signQuery,
+} from '@iroha/core'
+import * as types from '@iroha/core/data-model'
 import type { PrivateKey } from '@iroha/core/crypto'
 import { assert } from '@std/assert'
 import type { MainAPI } from './api.ts'
+import type { QuerySelectors } from '../core/data-model/prototypes.generated.ts'
 
 export class QueryExecutor {
   private readonly api: MainAPI
-  private readonly authority: dm.AccountId
+  private readonly authority: types.AccountId
   private readonly privateKey: PrivateKey
 
-  public constructor(api: MainAPI, authority: dm.AccountId, authorityPrivateKey: PrivateKey) {
+  public constructor(api: MainAPI, authority: types.AccountId, authorityPrivateKey: PrivateKey) {
     this.api = api
     this.authority = authority
     this.privateKey = authorityPrivateKey
   }
 
-  public async *execute(query: dm.QueryWithParams): AsyncGenerator<dm.QueryOutput> {
-    let continueCursor: dm.ForwardCursor | null = null
+  public async *execute(query: types.QueryWithParams): AsyncGenerator<types.QueryOutput> {
+    let continueCursor: types.ForwardCursor | null = null
     do {
       const response = await this.api.query(
-        this.signQuery(continueCursor ? dm.QueryRequest.Continue(continueCursor) : dm.QueryRequest.Start(query)),
+        this.signQuery(continueCursor ? types.QueryRequest.Continue(continueCursor) : types.QueryRequest.Start(query)),
       )
 
       assert(response.kind === 'Iterable')
@@ -29,24 +37,30 @@ export class QueryExecutor {
     } while (continueCursor)
   }
 
-  public async executeSingular(query: dm.SingularQueryBox): Promise<dm.SingularQueryOutputBox> {
+  public async executeSingular(query: types.SingularQueryBox): Promise<types.SingularQueryOutputBox> {
     const response = await this.api.query(this.signQuery({ kind: 'Singular', value: query }))
     assert(response.kind === 'Singular')
     return response.value
   }
 
-  public signQuery(request: dm.QueryRequest): dm.SignedQuery {
+  public signQuery(request: types.QueryRequest): types.SignedQuery {
     return signQuery({ request, authority: this.authority }, this.privateKey)
   }
 }
 
-export class QueryHandle<Output> {
-  private readonly _query: BuildQueryResult<Output>
-  private readonly _executor: QueryExecutor
+export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> extends BaseQueryBuilder<Q, Output> {
+  #executor: QueryExecutor
 
-  public constructor(query: BuildQueryResult<Output>, executor: QueryExecutor) {
-    this._query = query
-    this._executor = executor
+  public constructor(executor: QueryExecutor, ...args: QueryBuilderCtorArgs<Q>) {
+    super(...args)
+    this.#executor = executor
+  }
+
+  public override selectWith<const ProtoTuple>(
+    fn: (prototype: QuerySelectors[Q]) => ProtoTuple,
+  ): QueryBuilder<Q, SelectedTuple<ProtoTuple>> {
+    super.selectWith(fn)
+    return this as QueryBuilder<Q, SelectedTuple<ProtoTuple>>
   }
 
   public async executeAll(): Promise<Output[]> {
@@ -70,8 +84,8 @@ export class QueryHandle<Output> {
   }
 
   public async *batches(): AsyncGenerator<Output[]> {
-    for await (const { batch } of this._executor.execute(this._query.query)) {
-      const items = [...this._query.parseResponse(batch)]
+    for await (const { batch } of this.#executor.execute(this.build())) {
+      const items = [...this.parseOutput(batch)]
       yield items
     }
   }
