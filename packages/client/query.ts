@@ -52,6 +52,7 @@ export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> e
   #executor: QueryExecutor
 
   public constructor(executor: QueryExecutor, ...args: QueryBuilderCtorArgs<Q>) {
+    // @ts-ignore causes `deno publish` to fail https://github.com/denoland/deno/issues/28472
     super(...args)
     this.#executor = executor
   }
