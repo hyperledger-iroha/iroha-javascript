@@ -1,5 +1,5 @@
 import { decodeHex, encodeHex } from '@std/encoding/hex'
-import type { Bytes as WasmBytes } from './wasm.js'
+import type { Bytes as WasmBytes } from './wasm/iroha_crypto_wasm.js'
 
 /**
  * Helper to work with binary data passed into the WASM

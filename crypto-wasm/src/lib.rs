@@ -5,6 +5,12 @@
 
 extern crate alloc;
 
+extern crate wee_alloc;
+
+// Use `wee_alloc` as the global allocator.
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 mod utils;
 
 use alloc::string::ToString;
@@ -326,9 +332,4 @@ impl TryFrom<Result<(), iroha_crypto::error::Error>> for VerifyResultJs {
 
         Ok(Self { obj: js_value })
     }
-}
-
-#[wasm_bindgen(start)]
-pub fn main_js() {
-    utils::set_panic_hook();
 }
