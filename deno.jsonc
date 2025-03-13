@@ -38,11 +38,6 @@
       "command": "deno test -R --doc",
       "dependencies": ["prep:ok"]
     },
-    "test:vitest": {
-      "dependencies": ["prep:ok"],
-      "description": "Run Vitest",
-      "command": "vitest run"
-    },
     "test:integration:node": {
       "dependencies": ["prep:ok"],
       "command": "cd tests/node && deno task test"
@@ -53,7 +48,7 @@
     },
     "test": {
       "description": "Run all tests, from unit to integration",
-      "command": "deno task test:deno && deno task test:vitest && deno task test:integration:node && deno task test:integration:browser"
+      "command": "deno task test:deno && deno task test:integration:node && deno task test:integration:browser"
     },
     "dev:run-test-peer": {
       "description": "Run an Iroha peer with test configuration. Could be useful for development",
@@ -114,7 +109,9 @@
       "!packages/core/crypto/wasm/",
       "!packages/core/data-model/schema/schema.json",
       "**/*.spec.ts",
-      "**/*.spec-d.ts"
+      "**/*.spec-d.ts",
+      "**/*test.ts",
+      "**/*test-d.ts"
     ]
   },
   "test": { "exclude": ["prep", "crypto-wasm"] }

@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'vitest'
+import { describe, test } from '@std/testing/bdd'
+import { expect } from '@std/expect'
 import { toSortedSet } from './util.ts'
 import type { Ord, OrdKnown } from './traits.ts'
 import { ordCompare } from './traits.ts'
