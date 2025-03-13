@@ -1,33 +1,15 @@
 /**
- * Port of `iroha_crypto` Rust crate via WebAssembly.
+ * Port of `iroha_crypto` into WebAssembly.
  *
  * ## Compatibility
  *
- * This package uses native `.wasm` ES Module imports, **which isn't widely supported yet**.
- * However, there are some tricks in play to increase the compatibility.
+ * Compatible with all runtimes.
  *
- * | Platform | Support | Version | Notes |
- * | - | - | - | - |
- * | Deno | ✅ | 2.1+ or 2.1.5+ | See [notes in `@deno/wasmbuild`](https://github.com/denoland/wasmbuild?tab=readme-ov-file#browser-nodejs-or-older-deno-support). |
- * | Node.js | ✅ | v24.0+, v22.0+, v20.0+ | Uses `import('node:fs')` to make it work. |
- * | Bun | ✅ ❓ | v1.2.2 | Checked only with `v1.2.2` |
- * | Bundlers | ✅ 🚧 | | Requires plugins to support importing `.wasm` (e.g. [`vite-plugin-wasm`](https://github.com/Menci/vite-plugin-wasm)). |
- * | Natively in the browser  | ✅ |  | Checked with https://esm.sh |
- * | Cloudflare Workers | ❓ | | Not checked |
+ * Since `0.3.0`, the `.wasm` blob __is inlined__. Therefore, it is compatible with any
+ * runtime that supports {@linkcode WebAssembly} (e.g. see
+ * [compatibility on MDN](https://developer.mozilla.org/en-US/docs/WebAssembly/Reference/JavaScript_interface/Instance/Instance#browser_compatibility)).
  *
- * An example of how this could be used in browser:
- *
- * ```html
- * <script type="module">
- *   import * as types from 'https://esm.sh/jsr/@iroha/core@0.2.0/data-model'
- *   console.log(types.KeyPair.random().publicKey().multihash())
- * </script>
- * ```
- *
- * Useful links:
- *
- * - [Proposal - WebAssembly/ES Module Integration](https://github.com/WebAssembly/esm-integration/tree/main/proposals/esm-integration?rgh-link-date=2025-02-17T23%3A57%3A24.000Z)
- * - [Vite - WebAssembly](https://vite.dev/guide/features#webassembly)
+ * This wasn't the case for `0.2.0`: it relied on `.wasm` ES Module Imports, which isn't widely supported (yet).
  *
  * @example Deriving a KeyPair from seed
  * ```ts

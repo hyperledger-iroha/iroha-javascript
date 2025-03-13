@@ -1,7 +1,7 @@
 # Iroha JavaScript
 
-The JavaScript (TypeScript) SDK of [Iroha 2](https://github.com/hyperledger-iroha/iroha) for Node.js, Deno, Bun and the
-browser\*.
+The JavaScript (TypeScript) SDK of [Iroha 2](https://github.com/hyperledger-iroha/iroha) for Node.js, Deno, Bun, and
+Browsers.
 
 Packages and documentation are available on JSR: https://jsr.io/@iroha
 
@@ -36,8 +36,14 @@ const client = new Client({
 })
 
 async function test() {
-  const { blocks } = await client.api.telemetry.status()
-  console.log(blocks) // => 3
+  await client.transaction(types.Executable.Instructions([
+    types.InstructionBox.Register.Domain({
+      id: new types.Name('wonderland'),
+      logo: null,
+      metadata: [],
+    }),
+  ]))
+    .submit({ verify: true })
 }
 ```
 
