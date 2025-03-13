@@ -1,12 +1,11 @@
 {
   "name": "@iroha/client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "exports": {
     ".": "./mod.ts",
     "./web-socket": "./web-socket/mod.ts"
   },
   "imports": {
-    // TODO: remove these deps
     "emittery": "npm:emittery@^1.1.0",
     "p-defer": "npm:p-defer@^4.0.1"
   }
