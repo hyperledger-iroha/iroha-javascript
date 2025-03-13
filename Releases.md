@@ -1,3 +1,9 @@
+### 2025.03.13a
+
+#### @iroha/core 0.3.1 (patch)
+
+- docs(core): update compatibility info
+
 ### 2025.03.13
 
 #### @iroha/client 0.3.0 (minor)
