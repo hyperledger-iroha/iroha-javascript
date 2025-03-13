@@ -58,7 +58,7 @@ import { enumCodec, GenCodec, structCodec } from '../codec.ts'
 import * as scale from '@scale-codec/core'
 import { assert } from '@std/assert/assert'
 import { BytesVec } from '../data-model/primitives.ts'
-import * as wasm from './wasm.js'
+import * as wasm from './wasm/iroha_crypto_wasm.js'
 
 export { Bytes }
 export type VerifyResult = wasm.VerifyResult

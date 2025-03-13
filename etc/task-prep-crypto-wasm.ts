@@ -12,13 +12,15 @@ const PREP_DIR = resolveFromRoot('prep/crypto-wasm')
 console.log(PROJECT_DIR)
 const CRATE_NAME = 'iroha_crypto_wasm'
 
+const GENERATED_FILES = new Set([`.d.ts`, '.internal.js', '.js'].map((x) => `${CRATE_NAME}${x}`))
+
 async function buildWasm() {
   const outDir = PREP_DIR
   console.log('  ' + colors.yellow(`empty ${pathRel(PREP_DIR)}`))
   await emptyDir(PREP_DIR)
 
   $.logStep(`Building with @deno/wasmbuild...`)
-  await $`deno run -A jsr:@deno/wasmbuild --out ${outDir}`.cwd(PROJECT_DIR)
+  await $`deno run -A jsr:@deno/wasmbuild@0.19.1 --out ${outDir} --inline`.cwd(PROJECT_DIR)
   console.log(`  ${colors.yellow(`write ${pathRel(outDir)}`)}`)
 }
 
@@ -29,7 +31,7 @@ async function checkBuildReady() {
       assert(i.isFile)
       files.add(i.name)
     }
-    assertEquals(files, new Set([`.d.ts`, '.internal.js', '.js', '.wasm'].map((x) => `${CRATE_NAME}${x}`)))
+    assertEquals(files, GENERATED_FILES)
     return true
   } catch (err) {
     $.logWarn('Error whiule checking build artifacts:', err)
@@ -37,19 +39,31 @@ async function checkBuildReady() {
   }
 }
 
+function patchWasmJsWrapCode(code: string): string {
+  return code.replace(/(__wbg_set_wasm\(wasm.exports\))/, '$1\nwasm.exports.__wbindgen_start()')
+}
+
+async function patchWasmJsWrap(file: string) {
+  const content = await Deno.readTextFile(file)
+  const patched = patchWasmJsWrapCode(content)
+  await Deno.writeTextFile(file, patched)
+}
+
 async function copyOutputs() {
   const targetDir = resolveFromRoot('packages/core/crypto/wasm')
-  const files = [`${CRATE_NAME}.d.ts`, `${CRATE_NAME}.wasm`, `${CRATE_NAME}.internal.js`]
 
   console.log('  ' + colors.yellow(`empty ${pathRel(targetDir)}`))
   await emptyDir(targetDir)
 
-  for (const i of files) {
+  for (const i of GENERATED_FILES) {
     const src = resolveFromRoot(PREP_DIR, i)
     const dest = path.join(targetDir, i)
     console.log(`  ${colors.yellow(`write ${pathRel(dest)}`)}`)
     await copy(src, dest)
   }
+
+  // https://github.com/denoland/wasmbuild/issues/156
+  await patchWasmJsWrap(path.join(targetDir, `${CRATE_NAME}.js`))
 }
 
 const args = parseArgs(Deno.args, {
