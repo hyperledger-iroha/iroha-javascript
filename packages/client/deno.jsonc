@@ -1,6 +1,6 @@
 {
   "name": "@iroha/client",
-  "version": "0.0.13",
+  "version": "0.2.0",
   "exports": {
     ".": "./mod.ts",
     "./web-socket": "./web-socket/mod.ts"
