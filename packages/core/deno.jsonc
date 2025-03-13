@@ -1,6 +1,6 @@
 {
   "name": "@iroha/core",
-  "version": "0.2.1",
+  "version": "0.0.13",
   "exports": {
     ".": "./mod.ts",
     "./codec": "./codec.ts",
