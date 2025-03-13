@@ -157,10 +157,6 @@
  *
  * This example finds all accounts whose domain name ends with `land`.
  *
- * > [!IMPORTANT]
- * > Current selectors and predicates implementation is not very intuitive and easy to use, and it most probably will change (see
- * > [tracking issue](https://github.com/hyperledger-iroha/iroha-javascript/issues/213)).
- *
  * @example Use query selectors
  *
  * ```ts
@@ -176,13 +172,9 @@
  * }
  * ```
  *
- * This example finds all transaction and retrieves them as tuples of their block hash and authority id.
+ * This example finds all transactions and retrieves them as tuples of their block hash and authority id.
  *
  * Note that resulting types are inferred automatically based on the selectors you pass.
- *
- * > [!IMPORTANT]
- * > Current selectors and predicates implementation is not very intuitive and easy to use, and it most probably will change (see
- * > [tracking issue](https://github.com/hyperledger-iroha/iroha-javascript/issues/213)).
  *
  * @example Make lower-level API calls
  * ```ts
