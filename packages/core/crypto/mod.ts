@@ -108,7 +108,7 @@ export class Hash {
   public static hash(input: Bytes): Hash {
     const repr = input.repr
     const inner = (repr.t === 'hex') ? wasm.Hash.hash_hex(repr.hex) : wasm.Hash.hash(repr.array)
-    return new Hash(inner, input)
+    return new Hash(inner, null)
   }
 
   public static fromRaw(payload: Bytes): Hash {
