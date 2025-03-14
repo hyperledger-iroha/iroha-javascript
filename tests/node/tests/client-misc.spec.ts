@@ -118,7 +118,7 @@ async function submitTestData(client: Client) {
   return { bob, madHatter }
 }
 
-test('Test data is valid', async () => {
+test('submit test data without errors', async () => {
   const { client } = await usePeer()
 
   await expect(submitTestData(client)).resolves.not.toThrow()
@@ -456,6 +456,13 @@ describe('Transactions', () => {
   function randomAccountId() {
     return new dm.AccountId(KeyPair.random().publicKey(), new dm.Name('wonderland'))
   }
+
+  test('fire a simple transaction', async () => {
+    const { client } = await usePeer()
+
+    await client.transaction(dm.Executable.Instructions([dm.InstructionBox.Log({ level: dm.Level.INFO, msg: 'test' })]))
+      .submit()
+  })
 
   test('invalid transaction with `verify: true` - throws', async () => {
     const { client } = await usePeer()

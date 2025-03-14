@@ -82,7 +82,14 @@ export interface HasPayload {
 const HASH_ARR_LEN = 32
 
 /**
- * Cryptographic hash used in Iroha.
+ * Cryptographic hash used in Iroha (blake2b-32).
+ *
+ * ```ts
+ * import { assertEquals } from '@std/assert'
+ *
+ * const hash = Hash.hash(Bytes.hex("01020304"))
+ * assertEquals(hash.payload.hex(), '28517e4cdf6c90798c1a983b03727ca7743c21a3880672429ccfc5bd15ea5f73')
+ * ```
  */
 export class Hash {
   public static [SYMBOL_CODEC]: GenCodec<Hash> = new GenCodec({
@@ -111,26 +118,49 @@ export class Hash {
     return new Hash(inner, null)
   }
 
+  /**
+   * Construct hash from "prehashed" data
+   * @param payload payload of an actual hash
+   * @returns hash
+   */
   public static fromRaw(payload: Bytes): Hash {
     return new Hash(null, payload)
   }
 
   #wasm: null | wasm.Hash
-  #bytes: null | Bytes
+  #payload: null | Bytes
 
-  private constructor(wasm: null | wasm.Hash, bytes: Bytes | null) {
+  private constructor(wasm: null | wasm.Hash, payload: Bytes | null) {
     this.#wasm = wasm
-    this.#bytes = bytes
+    this.#payload = payload
   }
 
   public get payload(): Bytes {
-    if (this.#bytes) return this.#bytes
+    if (this.#payload) return this.#payload
     return Bytes.array(this.#wasm!.payload())
+  }
+
+  public toJSON(): string {
+    return this.payload.hex()
   }
 }
 
 /**
- * Private key used in Iroha.
+ * Private key used in Iroha (used for signing).
+ *
+ * @example
+ *
+ * ```ts
+ * import { assertEquals } from '@std/assert'
+ *
+ * const multihash = '80262001F2DB2416255E79DB67D5AC807E55459ED8754F07586864948AEA00F6F81763'
+ * const key = PrivateKey.fromMultihash(multihash)
+ * assertEquals(key.multihash(), multihash)
+ * assertEquals(key.algorithm, 'ed25519')
+ * assertEquals(key.payload.hex(), '01f2db2416255e79db67d5ac807e55459ed8754f07586864948aea00f6f81763')
+ *
+ * const signature = key.sign(Bytes.array(new TextEncoder().encode('my message')))
+ * ```
  */
 export class PrivateKey implements HasAlgorithm, HasPayload {
   /**
@@ -168,12 +198,21 @@ export class PrivateKey implements HasAlgorithm, HasPayload {
     return Bytes.array(this.#wasm.payload())
   }
 
+  /**
+   * Get multihash representation.
+   * @returns multihash
+   */
   public multihash(): string {
     return this.#wasm.to_multihash_hex()
   }
 
+  /**
+   * Sign a given message with this private key.
+   * @param message any binary data
+   * @returns the signature
+   */
   public sign(message: Bytes): Signature {
-    return Signature.create(this, message)
+    return Signature.sign(this, message)
   }
 
   /**
@@ -182,8 +221,15 @@ export class PrivateKey implements HasAlgorithm, HasPayload {
   public get wasm(): wasm.PrivateKey {
     return this.#wasm
   }
+
+  public toJSON(): string {
+    return this.multihash()
+  }
 }
 
+/**
+ * Public key used in Iroha (used for verification).
+ */
 export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
   public static [SYMBOL_CODEC]: GenCodec<PublicKey> = structCodec(['algorithm', 'payload'], {
     algorithm: getCodec(Algorithm),
@@ -198,6 +244,9 @@ export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
     return new PublicKey(key)
   }
 
+  /**
+   * Derive public key from its corresponding private key
+   */
   public static fromPrivateKey(privateKey: PrivateKey): PublicKey {
     const key = wasm.PublicKey.from_private_key(privateKey.wasm)
     return new PublicKey(key)
@@ -237,12 +286,28 @@ export class PublicKey implements HasAlgorithm, HasPayload, Ord<PublicKey> {
     return this.#wasm.to_multihash_hex()
   }
 
+  /**
+   * Verify the signature of a given message
+   * @param signature signature of the message, that was created using the private key
+   * @param message the message itself
+   */
+  public verify(signature: Signature, message: Bytes) {
+    signature.verify(this, message)
+  }
+
+  /**
+   * @deprecated use {@linkcode PublicKey.verify}
+   */
   public verifySignature(signature: Signature, message: Bytes) {
     signature.verify(this, message)
   }
 
   public compare(other: PublicKey): number {
     return ordCompare(this.multihash(), other.multihash())
+  }
+
+  public toJSON(): string {
+    return this.multihash()
   }
 }
 
@@ -311,6 +376,10 @@ export class KeyPair implements HasAlgorithm {
   public get wasm(): wasm.KeyPair {
     return this.#wasm
   }
+
+  public toJSON(): { publicKey: PublicKey; privateKey: PrivateKey } {
+    return { publicKey: this.publicKey(), privateKey: this.privateKey() }
+  }
 }
 
 export class Signature implements HasPayload {
@@ -329,9 +398,16 @@ export class Signature implements HasPayload {
   }
 
   /**
-   * Creates an actual signature, signing the payload with the given private key
+   * @deprecated use {@linkcode Signature.sign}
    */
   public static create(privateKey: PrivateKey, payload: Bytes): Signature {
+    return Signature.sign(privateKey, payload)
+  }
+
+  /**
+   * Creates an actual signature, signing the payload with the given private key
+   */
+  public static sign(privateKey: PrivateKey, payload: Bytes): Signature {
     const repr = payload.repr
     const inner = (repr.t === 'hex')
       ? wasm.Signature.sign_hex(privateKey.wasm, repr.hex)
@@ -355,5 +431,9 @@ export class Signature implements HasPayload {
 
   public get payload(): Bytes {
     return Bytes.array(this.#wasm.payload())
+  }
+
+  public toJSON(): string {
+    return this.payload.hex()
   }
 }

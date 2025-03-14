@@ -1,4 +1,5 @@
 import * as dm from '@iroha/core/data-model'
+import { Bytes } from '@iroha/core/crypto'
 
 function* hexes(hex: string): Generator<number> {
   for (let i = 0; i < hex.length;) {
@@ -13,10 +14,8 @@ export function fromHexWithSpaces(hex: string): Uint8Array {
   return new Uint8Array(hexes(hex))
 }
 
-export function toHex(data: Iterable<number>): string {
-  return [...data].map((x) => x.toString(16).padStart(2, '0')).join('')
-}
+export const SAMPLE_KEY_PAIR = dm.KeyPair.deriveFromSeed(Bytes.hex('deadbeef'))
 
 export const SAMPLE_ACCOUNT_ID = dm.AccountId.parse(
-  'ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+  `${SAMPLE_KEY_PAIR.publicKey().multihash()}@badland`,
 )
