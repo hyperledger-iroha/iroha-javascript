@@ -1,6 +1,6 @@
 [package]
 name = "iroha_crypto_wasm"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["0x009922"]
 edition = "2021"
 

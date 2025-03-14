@@ -5,8 +5,13 @@ import { KeyPair } from '@iroha/core/crypto'
 import * as dm from '@iroha/core/data-model'
 import { getCodec } from '@iroha/core'
 import { fromHexWithSpaces, SAMPLE_ACCOUNT_ID } from './util.ts'
+import { Bytes } from '../crypto/util.ts'
 
-describe('JSON/string serialisation', () => {
+function jsonSerDe(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value))
+}
+
+describe('JSON/string representations', () => {
   test('AccountId', () => {
     const SIGNATORY = `ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E`
     const DOMAIN = 'badland'
@@ -50,44 +55,55 @@ describe('JSON/string serialisation', () => {
   test('Timestamp serialises as ISO string', () => {
     expect(dm.Timestamp.fromDate(new Date(-41234040100)).toJSON()).toBe('1968-09-10T18:05:59.900Z')
   })
-})
 
-describe('Validation', () => {
-  test('Empty JSON string', () => {
+  test('Json returns the value, not string', () => {
+    const value = ['foo', 'bar']
+    expect(dm.Json.fromValue(value).toJSON()).toEqual(value)
+    expect(dm.Json.fromJsonString(JSON.stringify(value)).toJSON()).toEqual(value)
+  })
+
+  test('Json from empty string throws', () => {
     expect(() => dm.Json.fromJsonString('')).toThrow(`JSON string cannot be empty`)
   })
 
-  // test.each(['  alice  ', 'ali ce', 'ali@ce', '', 'ali#ce'])('Name validation fails for %o', (sample) => {
-  //   expect(() => new dm.Name(sample)).toThrowError()
-  // })
-})
+  test('Parse AssetId with different domains', () => {
+    const parsed = dm.AssetId.parse(
+      'rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
+    )
 
-test('Parse AssetId with different domains', () => {
-  const parsed = dm.AssetId.parse(
-    'rose#wonderland#ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E@badland',
-  )
+    expect(parsed.definition.name.value).toEqual('rose')
+    expect(parsed.definition.domain.value).toEqual('wonderland')
+    expect(parsed.account.signatory.algorithm).toEqual('ed25519')
+    expect(parsed.account.signatory.payload.hex()).toEqual(
+      'b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e',
+    )
+    expect(parsed.account.domain.value).toEqual('badland')
+  })
 
-  expect(parsed.definition.name.value).toEqual('rose')
-  expect(parsed.definition.domain.value).toEqual('wonderland')
-  expect(parsed.account.signatory.algorithm).toEqual('ed25519')
-  expect(parsed.account.signatory.payload.hex()).toEqual(
-    'b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e',
-  )
-  expect(parsed.account.domain.value).toEqual('badland')
-})
+  test('Fails to parse invalid account id with bad signatory', () => {
+    expect(() => console.log(dm.AccountId.parse('test@test'))).toThrow(
+      `Invalid character 't' at position 0`,
+    )
+  })
 
-test('Fails to parse invalid account id with bad signatory', () => {
-  expect(() => console.log(dm.AccountId.parse('test@test'))).toThrow(
-    `Invalid character 't' at position 0`,
-  )
-})
+  test('Fails to parse account id with multiple @', () => {
+    expect(() => dm.AccountId.parse('a@b@c')).toThrow(
+      new SyntaxError(
+        `AccountId should have format '⟨signatory⟩@⟨domain⟩, got: 'a@b@c'`,
+      ),
+    )
+  })
 
-test('Fails to parse account id with multiple @', () => {
-  expect(() => dm.AccountId.parse('a@b@c')).toThrow(
-    new SyntaxError(
-      `AccountId should have format '⟨signatory⟩@⟨domain⟩, got: 'a@b@c'`,
-    ),
-  )
+  test('crypto toJSON', () => {
+    const kp = KeyPair.deriveFromSeed(Bytes.hex('aaabbb'))
+    expect(jsonSerDe(kp)).toEqual({ publicKey: kp.publicKey().multihash(), privateKey: kp.privateKey().multihash() })
+    expect(jsonSerDe(kp.publicKey())).toEqual(kp.publicKey().multihash())
+    expect(jsonSerDe(kp.privateKey())).toEqual(kp.privateKey().multihash())
+    expect(jsonSerDe(kp.privateKey().sign(Bytes.hex('babe')))).toEqual(
+      '6f6cf4dbd6cde045a0cf475ca470fbf41da782008d9267d55edaaf151115ec0fe281b2777bdee4a2f91ae9eb92ce2a818fbae8c15cfe6c5c24fb23e5899d2502',
+    )
+    expect(jsonSerDe(dm.Hash.zeroed())).toEqual('0000000000000000000000000000000000000000000000000000000000000001')
+  })
 })
 
 describe('Status', () => {
@@ -125,26 +141,5 @@ describe('Status', () => {
         'viewChanges': 0n,
       },
     )
-  })
-})
-
-describe('construct pub key', () => {
-  function assertMatches(key: dm.PublicKey) {
-    expect(key.algorithm).toEqual('ed25519')
-    expect(key.payload.hex()).toEqual('b23e14f659b91736aab980b6addce4b1db8a138ab0267e049c082a744471714e')
-  }
-
-  test('from multihash', () => {
-    const key = dm.PublicKey.fromMultihash('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
-
-    assertMatches(key)
-  })
-
-  test('by decoding', () => {
-    const key = dm.PublicKey.fromMultihash('ed0120B23E14F659B91736AAB980B6ADDCE4B1DB8A138AB0267E049C082A744471714E')
-    const bytes = getCodec(dm.PublicKey).encode(key)
-    const key2 = getCodec(dm.PublicKey).decode(bytes)
-
-    assertMatches(key2)
   })
 })
