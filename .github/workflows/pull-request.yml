@@ -62,7 +62,6 @@ jobs:
         if: steps.prep-cache.outputs.cache-hit != 'true'
         run: |
           deno task prep:iroha --git $IROHA_GIT --git-rev $IROHA_REV
-          deno task prep:iroha:build
 
   check-only:
     if: github.event_name == 'pull_request'
