@@ -1,3 +1,15 @@
+### 2025.04.16
+
+#### @iroha/client 0.4.0-beta.1 (prerelease)
+
+- refactor(client)!: updated config endpoints (#251)
+- docs(client): remove redundant note about selectors design (#247)
+
+#### @iroha/core 0.4.0-beta.1 (prerelease)
+
+- refactor(core)!: support of wip `rc.2` (NFTs & empty blocks) (#251)
+- perf(core)!: optimise interop with crypto wasm, change some crypto apis (#248)
+
 ### 2025.03.13a
 
 #### @iroha/core 0.3.1 (patch)
