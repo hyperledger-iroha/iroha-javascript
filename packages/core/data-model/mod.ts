@@ -34,8 +34,8 @@
  * ```ts
  * import * as types from '@iroha/core/data-model'
  *
- * const store: types.AssetType = { kind: 'Store' }
- * const numeric: types.AssetType = { kind: 'Numeric', value: { scale: 5 } }
+ * const repeats1: types.Repeats = { kind: 'Indefinitely' }
+ * const repeats2: types.Repeats = { kind: 'Exactly', value: 5 }
  * ```
  *
  * Alternatively, enums could be constructed with pre-generated constructors, which makes it less verbose:
@@ -44,11 +44,11 @@
  * import * as types from '@iroha/core/data-model'
  * import { assertEquals } from '@std/assert/equals'
  *
- * const store = types.AssetType.Store
- * const numeric = types.AssetType.Numeric({ scale: 5 })
+ * const repeats1 = types.Repeats.Indefinitely
+ * const repeats2 = types.Repeats.Exactly(5)
  *
- * assertEquals(store, { kind: "Store" })
- * assertEquals(numeric, { kind: "Numeric", value: { scale: 5 } })
+ * assertEquals(repeats1, { kind: 'Indefinitely' })
+ * assertEquals(repeats2, { kind: 'Exactly', value: 5 })
  * ```
  *
  * Constructors approach is especially useful when it comes to enums nested into each other, e.g. {@link Parameter}:

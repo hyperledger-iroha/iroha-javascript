@@ -150,12 +150,14 @@ export type LibType =
   | 'Bool'
   | 'Timestamp'
   | 'Duration'
+  | 'DurationCompact'
   | 'Name'
   | 'CompoundPredicate'
   | 'DomainId'
   | `AccountId`
   | `AssetDefinitionId`
   | `AssetId`
+  | 'NftId'
   | 'Algorithm'
   | 'Signature'
   | 'Hash'
@@ -250,6 +252,7 @@ export class Resolver {
                 'DomainId',
                 'AccountId',
                 'AssetId',
+                'NftId',
                 'AssetDefinitionId',
                 'Compact',
                 'Algorithm',
@@ -276,6 +279,21 @@ export class Resolver {
                 { name: 'peer_topology_index', type: this.resolve(index) },
                 { name: 'signature', type: this.resolve(signature) },
               ],
+            }),
+          }),
+        )
+        .with(
+          { refStr: 'Uptime', schema: { Tuple: ['Compact<u64>', 'u32'] } },
+          ({ refStr }) => ({
+            t: 'local',
+            id: refStr,
+            // TODO: merge with duration? change Status in schema?
+            emit: () => ({
+              t: 'struct',
+              fields: [{ name: 'secs', type: { t: 'lib', id: 'Compact' } }, {
+                name: 'nanos',
+                type: { t: 'lib', id: 'U32' },
+              }],
             }),
           }),
         )
@@ -721,7 +739,18 @@ export class Resolver {
               params: [{ t: 'lib', id: 'NonZero', params: [{ t: 'lib', id: rewriteWith }] }],
             }),
           )
+          .with(
+            [
+              'Duration',
+              { t: 'lib', id: 'Compact' },
+            ],
+            () => ({
+              t: 'lib',
+              id: 'DurationCompact',
+            }),
+          )
           .otherwise(() => {
+            console.debug(this.resolve(x.type))
             throw new Error(`Unexpected type of a field with _ms suffix: ${x.type}`)
           })
         return { name: x.name.slice(0, -3), type }

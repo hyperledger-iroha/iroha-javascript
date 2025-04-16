@@ -7,15 +7,6 @@ import uniquePort from 'get-port'
 import { ACCOUNT_KEY_PAIR, CHAIN, DOMAIN } from '@iroha/test-configuration'
 import { createGenesis } from '@iroha/test-configuration/node'
 import * as TestPeer from '@iroha/test-peer'
-import { delay } from '@std/async'
-
-async function waitForGenesisCommitted(f: () => Promise<dm.Status>) {
-  while (true) {
-    const { blocks } = await f()
-    if (blocks >= 1) return
-    await delay(50)
-  }
-}
 
 async function uniquePortsPair() {
   return {
@@ -24,22 +15,30 @@ async function uniquePortsPair() {
   }
 }
 
-export async function usePeer(): Promise<{ client: Client }> {
+export type SeedParams = {
+  seed?: Uint8Array | string
+}
+
+export async function usePeer(params?: SeedParams): Promise<{ client: Client }> {
   const {
     peers: [peer],
-  } = await useNetwork({ peers: 1 })
+  } = await useNetwork({ peers: 1, ...params })
 
   return peer
 }
 
-export async function useNetwork(params: {
-  peers: number
-  seed?: Uint8Array
-}): Promise<{ peers: { client: Client; keypair: KeyPair; ports: { api: number; p2p: number } }[] }> {
+export async function useNetwork(
+  params: {
+    peers: number
+  } & SeedParams,
+): Promise<{ peers: { client: Client; keypair: KeyPair; ports: { api: number; p2p: number } }[] }> {
   const configs = await Promise.all(
     Array.from({ length: params.peers }, async (_v, i) => {
+      const seed = params.seed
+        ? typeof params.seed === 'string' ? new TextEncoder().encode(params.seed) : [...params.seed]
+        : []
       const key = params.seed
-        ? KeyPair.deriveFromSeed(Bytes.array(new Uint8Array([...params.seed, i, i, i])))
+        ? KeyPair.deriveFromSeed(Bytes.array(new Uint8Array([...seed, i, i, i])))
         : KeyPair.random()
       return { key, ports: await uniquePortsPair() }
     }),
@@ -68,8 +67,6 @@ export async function useNetwork(params: {
         authorityPrivateKey: ACCOUNT_KEY_PAIR.privateKey(),
         chain: CHAIN,
       })
-
-      await waitForGenesisCommitted(() => client.api.telemetry.status())
 
       return { keypair: key, ports, client }
     }),

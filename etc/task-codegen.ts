@@ -1,7 +1,5 @@
-import type { Schema } from '@iroha/core/data-model/schema'
 import SCHEMA from '@iroha/core/data-model/schema-json'
 import { generateClientFindAPI, generateDataModel, generatePrototypes, Resolver } from './codegen.ts'
-import { expect } from '@std/expect'
 import * as colors from '@std/fmt/colors'
 import { parseArgs } from 'jsr:@std/cli/parse-args'
 import { assertEquals } from '@std/assert/equals'
@@ -41,31 +39,7 @@ async function writeAll(entries: { file: string; code: () => string }[]) {
   }
 }
 
-/**
- * There are not included into the schema for some reason, but are useful to generate code for.
- */
-const EXTENSION: Schema = {
-  Status: {
-    Struct: [
-      { name: 'peers', type: 'Compact<u128>' },
-      { name: 'blocks', type: 'Compact<u128>' },
-      { name: 'txs_accepted', type: 'Compact<u128>' },
-      { name: 'txs_rejected', type: 'Compact<u128>' },
-      { name: 'uptime', type: 'Uptime' },
-      { name: 'view_changes', type: 'Compact<u128>' },
-      { name: 'queue_size', type: 'Compact<u128>' },
-    ],
-  },
-  Uptime: {
-    Struct: [
-      { name: 'secs', type: 'Compact<u128>' },
-      { name: 'nanos', type: 'u32' },
-    ],
-  },
-}
-expect(Object.keys(SCHEMA)).not.toContain(Object.keys(EXTENSION))
-
-const resolver = new Resolver({ ...SCHEMA, ...EXTENSION })
+const resolver = new Resolver(SCHEMA)
 
 console.time('codegen')
 await writeAll([

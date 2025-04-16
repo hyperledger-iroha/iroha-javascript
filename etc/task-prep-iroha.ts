@@ -69,7 +69,7 @@ async function cloneRepo(repo: string, tagOrRevision: string) {
 }
 
 async function buildBinaries() {
-  const binaries = ['irohad', 'iroha_kagami', 'iroha_codec']
+  const binaries = ['irohad', 'iroha_kagami']
   $.logStep('Building binaries:', binaries)
   const args = binaries.map((x) => ['-p', x])
   await $`cargo build --release ${args}`.cwd(IROHA_REPO_DIR)
@@ -95,7 +95,6 @@ async function copyFromRepoToPrep() {
   for (
     const artifactPath of [
       'target/release/irohad',
-      'target/release/iroha_codec',
       'target/release/kagami',
       'defaults/executor.wasm',
       'docs/source/references/schema.json',
@@ -116,7 +115,7 @@ async function artifactsReady(): Promise<boolean> {
     }
     assertEquals(
       files,
-      new Set(['irohad', 'iroha_codec', 'kagami', 'executor.wasm', 'schema.json']),
+      new Set(['irohad', 'kagami', 'executor.wasm', 'schema.json']),
       'all artifacts must be present',
     )
     return true

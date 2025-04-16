@@ -40,7 +40,7 @@ async function waitForGenesis(url: URL, abort: AbortSignal) {
     }
 
     try {
-      const { blocks } = await new MainAPI(new HttpTransport(url)).telemetry.status()
+      const { blocksNonEmpty: blocks } = await new MainAPI(new HttpTransport(url)).telemetry.status()
       if (blocks === 1n) break
       throw `blocks: ${blocks}`
     } catch (error) {
