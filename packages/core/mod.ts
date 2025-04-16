@@ -16,7 +16,7 @@
  *
  * | Iroha | `@iroha/core` |
  * | --: | :-- |
- * | `2.0.0-rc.2.x` (wip) | `0.4.x` (wip) |
+ * | `2.0.0-rc.2.x` | `0.4.x` |
  * | `2.0.0-rc.1.x` | `0.3.x`, `0.2.x`, ~~`0.1.0`~~ ([broken](https://github.com/hyperledger-iroha/iroha-javascript/issues/210#issuecomment-2662231135)) |
  * | `2.0.0-pre-rc.20.x` and before | not supported, use the **Legacy SDK** |
  *
