@@ -6,8 +6,9 @@ snapshot[`generate prototypes > prototypes snapshot 1`] = `
 export type QueryCompatibleSelectors = {
   FindDomains: 'domain' | 'domain-id' | 'domain-id-name' | 'domain-metadata' | 'domain-metadata-key'
   FindAccounts: 'account' | 'account-id' | 'account-id-domain' | 'account-id-domain-name' | 'account-id-signatory' | 'account-metadata' | 'account-metadata-key'
-  FindAssets: 'asset' | 'asset-id' | 'asset-id-account' | 'asset-id-account-domain' | 'asset-id-account-domain-name' | 'asset-id-account-signatory' | 'asset-id-definition' | 'asset-id-definition-domain' | 'asset-id-definition-domain-name' | 'asset-id-definition-name' | 'asset-value' | 'asset-value-numeric' | 'asset-value-store' | 'asset-value-store-key'
+  FindAssets: 'asset' | 'asset-id' | 'asset-id-account' | 'asset-id-account-domain' | 'asset-id-account-domain-name' | 'asset-id-account-signatory' | 'asset-id-definition' | 'asset-id-definition-domain' | 'asset-id-definition-domain-name' | 'asset-id-definition-name' | 'asset-value'
   FindAssetsDefinitions: 'asset-definition' | 'asset-definition-id' | 'asset-definition-id-domain' | 'asset-definition-id-domain-name' | 'asset-definition-id-name' | 'asset-definition-metadata' | 'asset-definition-metadata-key'
+  FindNfts: 'nft' | 'nft-id' | 'nft-id-domain' | 'nft-id-domain-name' | 'nft-id-name' | 'nft-metadata' | 'nft-metadata-key' | 'nft-account-id' | 'nft-account-id-domain' | 'nft-account-id-domain-name' | 'nft-account-id-signatory'
   FindRoles: 'role' | 'role-id' | 'role-id-name'
   FindRoleIds: 'role-id' | 'role-id-name'
   FindPermissionsByAccountId: 'permission'
@@ -44,10 +45,7 @@ export type SelectorIdToOutput = {
   'asset-id-definition-domain': lib.DomainId
   'asset-id-definition-domain-name': lib.Name
   'asset-id-definition-name': lib.Name
-  'asset-value': lib.AssetValue
-  'asset-value-numeric': lib.Numeric
-  'asset-value-store': lib.Metadata
-  'asset-value-store-key': lib.Json
+  'asset-value': lib.Numeric
   'asset-definition': lib.AssetDefinition
   'asset-definition-id': lib.AssetDefinitionId
   'asset-definition-id-domain': lib.DomainId
@@ -55,6 +53,17 @@ export type SelectorIdToOutput = {
   'asset-definition-id-name': lib.Name
   'asset-definition-metadata': lib.Metadata
   'asset-definition-metadata-key': lib.Json
+  'nft': lib.Nft
+  'nft-id': lib.NftId
+  'nft-id-domain': lib.DomainId
+  'nft-id-domain-name': lib.Name
+  'nft-id-name': lib.Name
+  'nft-metadata': lib.Metadata
+  'nft-metadata-key': lib.Json
+  'nft-account-id': lib.AccountId
+  'nft-account-id-domain': lib.DomainId
+  'nft-account-id-domain-name': lib.Name
+  'nft-account-id-signatory': lib.PublicKey
   'role': lib.Role
   'role-id': lib.RoleId
   'role-id-name': lib.Name
@@ -151,15 +160,6 @@ export type QuerySelectors = {
     }
     value: {
       __selector: 'asset-value',
-      numeric: {
-        __selector: 'asset-value-numeric',
-      }
-      store: {
-        __selector: 'asset-value-store',
-        key(key: lib.Name): {
-          __selector: 'asset-value-store-key',
-        }
-      }
     }
   }
   FindAssetsDefinitions: {
@@ -180,6 +180,39 @@ export type QuerySelectors = {
       __selector: 'asset-definition-metadata',
       key(key: lib.Name): {
         __selector: 'asset-definition-metadata-key',
+      }
+    }
+  }
+  FindNfts: {
+    __selector: 'nft',
+    id: {
+      __selector: 'nft-id',
+      domain: {
+        __selector: 'nft-id-domain',
+        name: {
+          __selector: 'nft-id-domain-name',
+        }
+      }
+      name: {
+        __selector: 'nft-id-name',
+      }
+    }
+    metadata: {
+      __selector: 'nft-metadata',
+      key(key: lib.Name): {
+        __selector: 'nft-metadata-key',
+      }
+    }
+    accountId: {
+      __selector: 'nft-account-id',
+      domain: {
+        __selector: 'nft-account-id-domain',
+        name: {
+          __selector: 'nft-account-id-domain-name',
+        }
+      }
+      signatory: {
+        __selector: 'nft-account-id-signatory',
       }
     }
   }
@@ -378,16 +411,7 @@ export type QueryPredicates = {
         }
       }
     }
-    value: {
-      isNumeric: () => lib.AssetProjectionPredicate
-      isStore: () => lib.AssetProjectionPredicate
-      numeric: never
-      store: {
-        key: (key: lib.Name) => {
-          equals: (value: lib.Json) => lib.AssetProjectionPredicate
-        }
-      }
-    }
+    value: never
   }
   FindAssetsDefinitions: {
     id: {
@@ -411,6 +435,46 @@ export type QueryPredicates = {
     metadata: {
       key: (key: lib.Name) => {
         equals: (value: lib.Json) => lib.AssetDefinitionProjectionPredicate
+      }
+    }
+  }
+  FindNfts: {
+    id: {
+      equals: (value: lib.NftId) => lib.NftProjectionPredicate
+      domain: {
+        equals: (value: lib.DomainId) => lib.NftProjectionPredicate
+        name: {
+          equals: (value: lib.String) => lib.NftProjectionPredicate
+          contains: (value: lib.String) => lib.NftProjectionPredicate
+          startsWith: (value: lib.String) => lib.NftProjectionPredicate
+          endsWith: (value: lib.String) => lib.NftProjectionPredicate
+        }
+      }
+      name: {
+        equals: (value: lib.String) => lib.NftProjectionPredicate
+        contains: (value: lib.String) => lib.NftProjectionPredicate
+        startsWith: (value: lib.String) => lib.NftProjectionPredicate
+        endsWith: (value: lib.String) => lib.NftProjectionPredicate
+      }
+    }
+    metadata: {
+      key: (key: lib.Name) => {
+        equals: (value: lib.Json) => lib.NftProjectionPredicate
+      }
+    }
+    accountId: {
+      equals: (value: lib.AccountId) => lib.NftProjectionPredicate
+      domain: {
+        equals: (value: lib.DomainId) => lib.NftProjectionPredicate
+        name: {
+          equals: (value: lib.String) => lib.NftProjectionPredicate
+          contains: (value: lib.String) => lib.NftProjectionPredicate
+          startsWith: (value: lib.String) => lib.NftProjectionPredicate
+          endsWith: (value: lib.String) => lib.NftProjectionPredicate
+        }
+      }
+      signatory: {
+        equals: (value: lib.PublicKey) => lib.NftProjectionPredicate
       }
     }
   }
@@ -527,6 +591,7 @@ export type QueryPredicates = {
     }
   }
   FindBlocks: {
+    isEmpty: () => lib.SignedBlockProjectionPredicate
     header: {
       hash: {
         equals: (value: lib.Hash) => lib.SignedBlockProjectionPredicate
@@ -566,6 +631,11 @@ export class FindAPI {
   /** Convenience method for \`FindAssetsDefinitions\` query, a variant of {@linkcode types.QueryBox} enum. */
   public assetsDefinitions(params?: core.QueryBuilderParams): client.QueryBuilder<'FindAssetsDefinitions'> {
     return new client.QueryBuilder(this._executor, 'FindAssetsDefinitions', params)
+  }
+
+  /** Convenience method for \`FindNfts\` query, a variant of {@linkcode types.QueryBox} enum. */
+  public nfts(params?: core.QueryBuilderParams): client.QueryBuilder<'FindNfts'> {
+    return new client.QueryBuilder(this._executor, 'FindNfts', params)
   }
 
   /** Convenience method for \`FindRoles\` query, a variant of {@linkcode types.QueryBox} enum. */

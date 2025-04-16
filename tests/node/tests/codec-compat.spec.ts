@@ -2,7 +2,7 @@ import type { Except, JsonValue } from 'type-fest'
 import { type CodecContainer, defineCodec, getCodec } from '@iroha/core/codec'
 import * as dm from '@iroha/core/data-model'
 import type SCHEMA from '@iroha/core/data-model/schema-json'
-import { irohaCodecToScale } from 'iroha-build-utils'
+import { kagamiCodecToScale } from 'iroha-build-utils'
 import { describe, expect, test } from 'vitest'
 import { Bytes, KeyPair } from '@iroha/core/crypto'
 
@@ -308,18 +308,18 @@ test.each([
   }),
   // TODO: add SignedBlock
 ] as Case<unknown>[])(
-  `Check encoding against iroha_codec of type $type: $value`,
+  `Check encoding against kagami codec of type $type: $value`,
   async <T>(data: Case<T>) => {
-    const referenceEncoded = await irohaCodecToScale(data.type, data.json)
+    const referenceEncoded = await kagamiCodecToScale(data.type, data.json)
     const actualEncoded = getCodec(data.codec).encode(data.value)
     expect(toHex(actualEncoded)).toEqual(toHex(referenceEncoded))
   },
 )
 
 describe('BTree{Set/Map}', () => {
-  test('Metadata encoding matches with iroha_codec', async () => {
+  test('Metadata encoding matches with kagami codec', async () => {
     const CODEC = getCodec(dm.Metadata)
-    const reference = await irohaCodecToScale('Metadata', {
+    const reference = await kagamiCodecToScale('Metadata', {
       foo: 'bar',
       bar: [1, 2, 3],
       '1': 2,
@@ -373,7 +373,7 @@ describe('BTree{Set/Map}', () => {
       ) => [new dm.AccountId(key, domain), new dm.AccountId(key, domain)])
     )
 
-    const reference = await irohaCodecToScale(
+    const reference = await kagamiCodecToScale(
       'SortedVec<AccountId>',
       ids.map((x) => x.toJSON()),
     )
@@ -385,7 +385,7 @@ describe('BTree{Set/Map}', () => {
 
   test('BTreeSet<Permission> - encoding matches', async () => {
     const codec = getCodec(dm.PermissionsSet)
-    const reference = await irohaCodecToScale('SortedVec<Permission>', [
+    const reference = await kagamiCodecToScale('SortedVec<Permission>', [
       { name: 'foo', payload: [1, 2, 3] },
       { name: 'foo', payload: [3, 2, 1] },
       { name: 'bar', payload: false },

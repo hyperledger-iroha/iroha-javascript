@@ -14,6 +14,7 @@ import {
   HEALTHY_RESPONSE,
 } from './const.ts'
 import { urlJoinPath } from './util.ts'
+import type { PartialDeep } from 'type-fest'
 
 /**
  * Peer information returned from {@link TelemetryAPI.peers}
@@ -29,11 +30,44 @@ export interface PeerJson {
   id: dm.PublicKey
 }
 
-export interface PeerConfig {
+export type PeerGetConfig = {
   logger: {
     level: dm.Level['kind']
+    /**
+     * Filter directives, e.g. `info,iroha_core=debug`.
+     */
+    filter: string
+  }
+  network: {
+    blockGossipPeriod: dm.Duration
+    blockGossipSize: number
+    transactionGossipPeriod: dm.Duration
+    transactionGossipSize: number
+  }
+  publicKey: dm.PublicKey
+  queue: {
+    capacity: number
   }
 }
+
+type PeerGetConfigRaw = {
+  logger: {
+    level: dm.Level['kind']
+    filter: string
+  }
+  network: {
+    block_gossip_period_ms: number
+    block_gossip_size: number
+    transaction_gossip_period_ms: number
+    transaction_gossip_size: number
+  }
+  public_key: string
+  queue: {
+    capacity: number
+  }
+}
+
+export type PeerSetConfig = PartialDeep<Pick<PeerGetConfig, 'logger'>>
 
 export type Fetch = typeof fetch
 
@@ -136,13 +170,25 @@ export class MainAPI {
       .then(handleQueryResponse)
   }
 
-  public async getConfig(): Promise<PeerConfig> {
+  public async getConfig(): Promise<PeerGetConfig> {
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_CONFIGURATION))
     await ResponseError.assertStatus(response, 200)
-    return response.json()
+    // TODO: use schema parser e.g. zod?
+    const raw: PeerGetConfigRaw = await response.json()
+    return {
+      publicKey: dm.PublicKey.fromMultihash(raw.public_key),
+      logger: raw.logger,
+      network: {
+        blockGossipSize: raw.network.block_gossip_size,
+        blockGossipPeriod: dm.Duration.fromMillis(raw.network.block_gossip_period_ms),
+        transactionGossipSize: raw.network.transaction_gossip_size,
+        transactionGossipPeriod: dm.Duration.fromMillis(raw.network.transaction_gossip_period_ms),
+      },
+      queue: raw.queue,
+    }
   }
 
-  public async setConfig(config: PeerConfig): Promise<void> {
+  public async setConfig(config: PeerSetConfig): Promise<void> {
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_CONFIGURATION), {
       method: 'POST',
       body: JSON.stringify(config),
@@ -202,6 +248,7 @@ export class TelemetryAPI {
     return response.arrayBuffer().then((buffer) => getCodec(dm.Status).decode(new Uint8Array(buffer)))
   }
 
+  // TODO: move once metrics are updated
   public async peers(): Promise<PeerJson[]> {
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_PEERS))
     await ResponseError.assertStatus(response, 200)

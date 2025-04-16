@@ -7,7 +7,7 @@ it('Register new domain and wait until commitment', () => {
   cy.visit('/')
 
   // wait for the genesis block
-  cy.get('h3').contains('Status').closest('div').contains('Blocks: 1')
+  cy.get('h3').contains('Status').closest('div').contains('Blocks: 2')
 
   cy.get('button').contains('Listen').click().contains('Stop')
 
@@ -15,8 +15,8 @@ it('Register new domain and wait until commitment', () => {
   cy.get('button').contains('Register domain').click()
 
   // Ensure that block count is incremented
-  cy.contains('Blocks: 2')
+  cy.contains('Blocks: 4')
 
   // And all events are caught
-  cy.get('ul.events-list').children('li').should('have.length', 6).last().contains('Block').contains('Applied')
+  cy.get('ul.events-list').children('li').should('have.length', 10).last().contains('Block').contains('Applied')
 })

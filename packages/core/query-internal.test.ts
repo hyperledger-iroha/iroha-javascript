@@ -53,11 +53,6 @@ describe('predicateProto()', () => {
       proto.id.account.signatory.equals(SAMPLE_ACC.signatory),
       dm.AssetProjectionPredicate.Id.Account.Signatory.Atom.Equals(SAMPLE_ACC.signatory),
     )
-
-    compare(
-      proto.value.isNumeric(),
-      dm.AssetProjectionPredicate.Value.Atom.IsNumeric,
-    )
   })
 
   test('FindTransactions', () => {

@@ -5,6 +5,7 @@
     "jsr:@david/path@0.2": "0.2.0",
     "jsr:@david/which@~0.4.1": "0.4.1",
     "jsr:@dprint/formatter@*": "0.4.1",
+    "jsr:@iroha/core@0.3.1": "0.3.1",
     "jsr:@luca/cases@*": "1.0.0",
     "jsr:@std/assert@0.221": "0.221.0",
     "jsr:@std/assert@^1.0.10": "1.0.11",
@@ -102,6 +103,14 @@
     },
     "@dprint/formatter@0.4.1": {
       "integrity": "96449ab83aa9f72df98caa5030d3f4a921c5c29d9b0e0d0da83d79e2024a9637"
+    },
+    "@iroha/core@0.3.1": {
+      "integrity": "ca1ed1d249b70a09bf7f558a868107a34d3c312fa3f3b76d0e1f584e3716b11f",
+      "dependencies": [
+        "jsr:@std/assert@^1.0.11",
+        "jsr:@std/encoding@^1.0.7",
+        "npm:@scale-codec/core"
+      ]
     },
     "@luca/cases@1.0.0": {
       "integrity": "b5f9471f1830595e63a2b7d62821ac822a19e16899e6584799be63f17a1fbc30"

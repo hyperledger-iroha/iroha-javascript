@@ -3,17 +3,20 @@ import { describe, expect, test } from 'vitest'
 import { Bytes, KeyPair } from '@iroha/core/crypto'
 import { blockHash } from '@iroha/core'
 import * as dm from '@iroha/core/data-model'
-import { type Client, QueryValidationError } from '@iroha/client'
+import type { Client } from '@iroha/client'
 import { usePeer } from './util.ts'
-import { match, P } from 'ts-pattern'
 import { ACCOUNT_KEY_PAIR, DOMAIN } from '@iroha/test-configuration'
 
+/**
+ * TODO: describe structure, re-shape it
+ */
 async function submitTestData(client: Client) {
   const bob = KeyPair.deriveFromSeed(Bytes.hex('bbbb'))
   const bobAcc = new dm.AccountId(bob.publicKey(), new dm.DomainId('based'))
   const bobPub = bob.publicKey().multihash()
 
   const madHatter = KeyPair.deriveFromSeed(Bytes.hex('aaaa'))
+  const madHatterAcc = new dm.AccountId(madHatter.publicKey(), new dm.Name('certainty'))
 
   const EMPTY_LOGO_META = { logo: null, metadata: [] } satisfies Pick<dm.NewDomain, 'logo' | 'metadata'>
 
@@ -33,25 +36,20 @@ async function submitTestData(client: Client) {
       metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Bob') }],
     }),
     dm.InstructionBox.Register.Account({
-      id: new dm.AccountId(madHatter.publicKey(), new dm.Name('certainty')),
+      id: madHatterAcc,
       metadata: [{ key: new dm.Name('alias'), value: dm.Json.fromValue('Mad Hatter') }],
     }),
-    dm.InstructionBox.Register.AssetDefinition({
-      id: dm.AssetDefinitionId.parse('base_coin#based'),
-      type: dm.AssetType.Store,
-      mintable: dm.Mintable.Not,
-      ...EMPTY_LOGO_META,
+    dm.InstructionBox.Register.Nft({
+      id: dm.NftId.parse('base_coin$based'),
+      content: [],
     }),
-    dm.InstructionBox.Register.AssetDefinition({
-      id: dm.AssetDefinitionId.parse('neko_coin#wherever'),
-      type: dm.AssetType.Store,
-      mintable: dm.Mintable.Not,
-      logo: null,
-      metadata: [{ key: new dm.Name('foo'), value: dm.Json.fromValue(['bar', false]) }],
+    dm.InstructionBox.Register.Nft({
+      id: dm.NftId.parse('neko_coin$wherever'),
+      content: [{ key: new dm.Name('foo'), value: dm.Json.fromValue(['bar', false]) }],
     }),
     dm.InstructionBox.Register.AssetDefinition({
       id: dm.AssetDefinitionId.parse('gator_coin#certainty'),
-      type: dm.AssetType.Numeric({ scale: null }),
+      spec: { scale: null },
       mintable: dm.Mintable.Infinitely,
       ...EMPTY_LOGO_META,
     }),
@@ -69,15 +67,25 @@ async function submitTestData(client: Client) {
       destination: dm.AssetId.parse(`gator_coin##${madHatter.publicKey().multihash()}@certainty`),
     }),
 
-    dm.InstructionBox.SetKeyValue.Asset({
-      object: dm.AssetId.parse(`neko_coin#wherever#${bobAcc}`),
+    dm.InstructionBox.SetKeyValue.Nft({
+      object: dm.NftId.parse(`neko_coin$wherever`),
       key: new dm.Name('mewo?'),
       value: dm.Json.fromValue({ me: 'wo' }),
     }),
-    dm.InstructionBox.SetKeyValue.Asset({
-      object: dm.AssetId.parse(`base_coin#based#${madHatter.publicKey().multihash()}@certainty`),
+    dm.InstructionBox.Transfer.Nft({
+      object: dm.NftId.parse('neko_coin$wherever'),
+      source: client.authority,
+      destination: bobAcc,
+    }),
+    dm.InstructionBox.SetKeyValue.Nft({
+      object: dm.NftId.parse(`base_coin$based`),
       key: new dm.Name('hey'),
       value: dm.Json.fromValue([1, 2, 3]),
+    }),
+    dm.InstructionBox.Transfer.Nft({
+      object: dm.NftId.parse('base_coin$based'),
+      source: client.authority,
+      destination: madHatterAcc,
     }),
     dm.InstructionBox.Register.Trigger({
       // TODO: make just Name
@@ -85,7 +93,7 @@ async function submitTestData(client: Client) {
       action: {
         filter: dm.EventFilterBox.Data.Asset({
           idMatcher: null,
-          eventSet: new Set(['MetadataInserted', 'MetadataRemoved', 'Created', 'Deleted', 'Added', 'Removed']),
+          eventSet: new Set(['Created', 'Deleted', 'Added', 'Removed']),
         }),
         executable: dm.Executable.Instructions([dm.InstructionBox.Log({ level: { kind: 'WARN' }, msg: 'MEWO!' })]),
         repeats: dm.Repeats.Indefinitely,
@@ -165,12 +173,12 @@ describe('Queries', () => {
     const items = await client.find
       .accountsWithAsset(
         {
-          assetDefinition: dm.AssetDefinitionId.parse('neko_coin#wherever'),
+          assetDefinition: dm.AssetDefinitionId.parse('gator_coin#certainty'),
         },
       ).selectWith((acc) => acc.metadata.key(new dm.Name('alias')))
       .executeAll()
 
-    expect(items.map((x) => x.asValue())).toEqual(['Bob'])
+    expect(items.map((x) => x.asValue())).toEqual(['Bob', 'Mad Hatter'])
   })
 
   test('find blocks and block headers', async () => {
@@ -189,7 +197,7 @@ describe('Queries', () => {
     const txs = await client.find.transactions().executeAll()
     const status = await client.api.telemetry.status()
 
-    expect(txs).toHaveLength(Number(status.txsAccepted))
+    expect(txs).toHaveLength(Number(status.txsApproved + status.txsRejected))
   })
 
   test('find triggers', async () => {
@@ -208,17 +216,17 @@ describe('Queries', () => {
     `)
   })
 
-  test('filter assets by the ending of its definition name', async () => {
+  test('filter nfts by containing string in its name', async () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const items: dm.Name[] = await client.find
-      .assets()
-      .filterWith((asset) => dm.CompoundPredicate.Atom(asset.id.definition.name.endsWith('_coin')))
-      .selectWith((asset) => asset.id.definition.name)
-      .executeAll()
+    const items: dm.Name = await client.find
+      .nfts()
+      .filterWith((nft) => dm.CompoundPredicate.Atom(nft.id.name.contains('neko')))
+      .selectWith((nft) => nft.id.name)
+      .executeSingle()
 
-    expect(items.map((x) => x.value)).contain.all.members(['base_coin', 'neko_coin', 'gator_coin'])
+    expect(items.value).toEqual('neko_coin')
   })
 
   test('FAIL returns nothing, PASS returns all', async () => {
@@ -297,29 +305,48 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const unsorted = await client.find.assets().executeAll()
-    const sorted = await client.find.assets({ sorting: { byMetadataKey: new dm.Name('mewo?') } }).executeAll()
+    const unsorted = await client.find.nfts().executeAll()
+    const sorted = await client.find.nfts({ sorting: { byMetadataKey: new dm.Name('mewo?') } })
+      .executeAll()
 
     expect(new Set(sorted)).toEqual(new Set(unsorted))
     expect(sorted).not.toEqual(unsorted)
 
-    expect(
-      sorted.map((asset) =>
-        match(asset)
-          .with(
-            { value: { kind: 'Store', value: P.array({ key: { value: 'mewo?' }, value: P.select() }) } },
-            ([val]) => val,
-          )
-          .otherwise(() => null)
-      ),
-    ).toMatchInlineSnapshot(`
+    expect(sorted).toMatchInlineSnapshot(`
       [
         {
-          "me": "wo",
+          "content": [
+            {
+              "key": "foo",
+              "value": [
+                "bar",
+                false,
+              ],
+            },
+            {
+              "key": "mewo?",
+              "value": {
+                "me": "wo",
+              },
+            },
+          ],
+          "id": "neko_coin$wherever",
+          "ownedBy": "ed0120B6F3A798AA75B19102B0B2F5F675B1248D5DB7ADD770EB9684FE5ED19014F9F2@based",
         },
-        null,
-        null,
-        null,
+        {
+          "content": [
+            {
+              "key": "hey",
+              "value": [
+                1,
+                2,
+                3,
+              ],
+            },
+          ],
+          "id": "base_coin$based",
+          "ownedBy": "ed01205DEE97BBA67AE39F87D94D3C66E4E4701685D483BCFF2657B44DF40B06DBDA71@certainty",
+        },
       ]
     `)
   })
@@ -363,7 +390,7 @@ describe('Queries', () => {
           asset.id.definition.equals(dm.AssetDefinitionId.parse('gator_coin#certainty')),
         )
       )
-      .selectWith((asset) => [asset.id.account, asset.value.numeric])
+      .selectWith((asset) => [asset.id.account, asset.value])
       .executeAll()
 
     expect(assets).toMatchInlineSnapshot(`
@@ -384,21 +411,6 @@ describe('Queries', () => {
         ],
       ]
     `)
-  })
-
-  test('when numeric assets filtered, but store is selected, validation error happens and passed', async () => {
-    const { client } = await usePeer()
-    await submitTestData(client)
-
-    await expect(
-      client.find
-        .assets()
-        .filterWith((asset) => dm.CompoundPredicate.Atom(asset.value.isNumeric()))
-        .selectWith((asset) => asset.value.store)
-        .executeAll(),
-    ).rejects.toEqual(
-      new QueryValidationError(dm.ValidationFail.QueryFailed.Conversion('Expected store value, got numeric')),
-    )
   })
 })
 

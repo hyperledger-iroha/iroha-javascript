@@ -66,8 +66,7 @@ const filterAllKinds = new QueryBuilder('FindAssets').filterWith((asset) =>
         CompoundPredicate.Atom(asset.id.definition.name.contains('test')),
       ),
     ),
-    CompoundPredicate.Atom(asset.value.isStore()),
-    CompoundPredicate.Atom(asset.value.store.key(new types.Name('test')).equals(types.Json.fromValue([false, true]))),
+    CompoundPredicate.Atom(asset.id.definition.name.startsWith('test')),
   )
 )
 

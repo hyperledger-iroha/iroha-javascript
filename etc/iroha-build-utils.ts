@@ -17,12 +17,11 @@ const resolvePrepIroha = (...paths: string[]) => {
   return path.resolve(dirname, '../prep/iroha', ...paths)
 }
 
-export type Binary = 'irohad' | 'kagami' | 'iroha_codec'
+export type Binary = 'irohad' | 'kagami'
 
 export const BIN_PATHS: Record<Binary, string> = {
   irohad: resolvePrepIroha('irohad'),
   kagami: resolvePrepIroha('kagami'),
-  iroha_codec: resolvePrepIroha('iroha_codec'),
 }
 
 export const EXECUTOR_WASM_PATH: string = resolvePrepIroha('executor.wasm')
@@ -36,14 +35,14 @@ for (const filePath of [...Object.values(BIN_PATHS), EXECUTOR_WASM_PATH]) {
   }
 }
 
-export async function irohaCodecToScale(
+export async function kagamiCodecToScale(
   type: keyof typeof SCHEMA,
   json: JsonValue,
 ): Promise<Uint8Array> {
   const input = JSON.stringify(json, undefined, 2)
 
   return new Promise((resolve, reject) => {
-    const child = spawn(BIN_PATHS.iroha_codec, ['json-to-scale', '--type', type], {
+    const child = spawn(BIN_PATHS.kagami, ['codec', 'json-to-scale', '--type', type], {
       stdio: ['pipe', 'pipe', 'inherit'],
     })
 
@@ -54,7 +53,7 @@ export async function irohaCodecToScale(
     })
 
     child.on('close', (code) => {
-      if (code !== 0) reject(new Error('non-zero exit code of iroha_codec'))
+      if (code !== 0) reject(new Error('non-zero exit code of kagami'))
       resolve(Uint8Array.from(Buffer.concat(chunks)))
     })
 
@@ -63,12 +62,12 @@ export async function irohaCodecToScale(
   })
 }
 
-export async function irohaCodecToJson(
+export async function kagamiCodecToJson(
   type: keyof typeof SCHEMA,
   scale: Uint8Array,
 ): Promise<JsonValue> {
   return new Promise<JsonValue>((resolve, reject) => {
-    const child = spawn(BIN_PATHS.iroha_codec, ['scale-to-json', '--type', type], {
+    const child = spawn(BIN_PATHS.kagami, ['codec', 'scale-to-json', '--type', type], {
       stdio: ['pipe', 'pipe', 'inherit'],
     })
 

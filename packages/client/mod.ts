@@ -64,7 +64,7 @@
  *
  *   const newAsset: types.NewAssetDefinition = {
  *     id: new types.AssetDefinitionId(new types.Name('time'), newDomain.id),
- *     type: types.AssetType.Numeric({ scale: 1 }),
+ *     spec: { scale: 1 },
  *     mintable: types.Mintable.Infinitely,
  *     logo: null,
  *     metadata: [],
@@ -118,19 +118,10 @@
  *   }
  *
  *   for (const asset of await client.find.assets().executeAll()) {
- *     console.log('Asset', asset.id.toString())
- *     if (asset.value.kind === 'Numeric') {
- *       console.log('  Numeric:', asset.value.value.mantissa, asset.value.value.scale)
- *     } else {
- *       for (const { key, value } of asset.value.value) {
- *         console.log(`  Metadata: key="${key.value}" value=${value.asJsonString()}`)
- *       }
- *     }
- *     // => Asset rose##ed0120CE7FA46C9DCE7EA4B125E2E36BDB63EA33073E7590AC92816AE1E861B7048B03@wonderland
- *     // =>   Numeric: 42n 0n
- *     // => Asset registry#wonderland#ed0120CE7FA46C9DCE7EA4B125E2E36BDB63EA33073E7590AC92816AE1E861B7048B03@looking_glass
- *     // =>   Metadata: key="foo" value=['foo', 'bar']
- *     // =>   Metadata: key="bar" value={"whatever":"whichever"}
+ *     console.log('Asset:', asset.id.toString())
+ *     console.log('Asset value:', asset.value.mantissa, asset.value.scale)
+ *     // => Asset: rose##ed0120CE7FA46C9DCE7EA4B125E2E36BDB63EA33073E7590AC92816AE1E861B7048B03@wonderland
+ *     // => Asset value: 42n 0n
  *     // ...
  *   }
  * }

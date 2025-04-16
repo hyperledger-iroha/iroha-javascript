@@ -3,7 +3,7 @@ import type { JsonValue } from 'type-fest'
 import { enumCodec, type GenCodec, getCodec, lazyCodec, structCodec, SYMBOL_CODEC } from '../codec.ts'
 import { type IsZero, type Ord, ordCompare } from '../traits.ts'
 import type { Variant } from '../util.ts'
-import { String, U64, Vec } from './primitives.ts'
+import { Compact, String, U64, Vec } from './primitives.ts'
 
 // TODO document that parse/stringify json lazily when needed
 export class Json<T extends JsonValue = JsonValue> implements Ord<Json> {
@@ -95,6 +95,9 @@ export class Timestamp {
 
 export { Timestamp as TimestampU128 }
 
+/**
+ * Convenience wrapper around `u64` numbers representing durations.
+ */
 export class Duration implements IsZero {
   public static [SYMBOL_CODEC]: GenCodec<Duration> = getCodec(U64).wrap({
     fromBase: (x) => Duration.fromMillis(x),
@@ -103,6 +106,39 @@ export class Duration implements IsZero {
 
   public static fromMillis(ms: number | bigint): Duration {
     return new Duration(BigInt(ms))
+  }
+
+  private readonly _ms: bigint
+
+  protected constructor(ms: bigint) {
+    if (ms < 0n) throw new TypeError(`Duration could not be negative, got: ${ms}`)
+    this._ms = ms
+  }
+
+  public asMillis(): bigint {
+    return this._ms
+  }
+
+  public isZero(): boolean {
+    return this._ms === 0n
+  }
+
+  public toJSON(): { ms: bigint } {
+    return { ms: this._ms }
+  }
+}
+
+/**
+ * Convenience wrapper around `Compact` integers representing durations.
+ */
+export class DurationCompact implements IsZero {
+  public static [SYMBOL_CODEC]: GenCodec<DurationCompact> = getCodec(Compact).wrap({
+    fromBase: (x) => DurationCompact.fromMillis(x),
+    toBase: (y) => y.asMillis(),
+  })
+
+  public static fromMillis(ms: number | bigint): DurationCompact {
+    return new DurationCompact(BigInt(ms))
   }
 
   private readonly _ms: bigint
@@ -206,8 +242,8 @@ export class Name implements Ord<Name> {
     if (/[\s#@]/.test(name)) {
       throw new SyntaxError(
         `Invalid name: "${name}". Name should not contain whitespace characters, ` +
-          `'@' (reserved for '⟨signatory⟩@⟨domain⟩' constructs, e.g. 'ed....@wonderland'), ` +
-          `and '#' (reserved for '⟨asset⟩#⟨domain⟩' constructs, e.g. 'rose#wonderland') `,
+          `"@" (reserved for "⟨signatory⟩@⟨domain⟩" constructs, e.g. "ed....@wonderland"), ` +
+          `and "#" (reserved for "⟨asset⟩#⟨domain⟩" constructs, e.g. "rose#wonderland") `,
       )
     }
 
@@ -250,6 +286,7 @@ export class AccountId implements Ord<AccountId> {
 
   public readonly signatory: crypto.PublicKey
   public readonly domain: DomainId
+  private __brand!: 'AccountId'
 
   public constructor(signatory: crypto.PublicKey, domain: DomainId) {
     this.signatory = signatory
@@ -281,7 +318,7 @@ function accountIdFromObj({ signatory, domain }: { signatory: string; domain: st
 function accountIdFromStr(str: string): AccountId {
   const parts = str.split('@')
   if (parts.length !== 2) {
-    throw new SyntaxError(`AccountId should have format '⟨signatory⟩@⟨domain⟩, got: '${str}'`)
+    throw new SyntaxError(`AccountId should have format "⟨signatory⟩@⟨domain⟩", got: "${str}"`)
   }
   const [signatory, domain] = parts
   return accountIdFromObj({ signatory, domain })
@@ -310,6 +347,7 @@ export class AssetDefinitionId {
 
   public readonly name: Name
   public readonly domain: DomainId
+  private __brand!: 'AssetDefinitionId'
 
   public constructor(name: Name, domain: DomainId) {
     this.name = name
@@ -336,7 +374,7 @@ function assetDefIdFromStr(input: string) {
   const parts = input.split('#')
   if (parts.length !== 2) {
     throw new SyntaxError(
-      `AssetDefinitionId should have format '⟨name⟩#⟨domain⟩, e.g. 'rose#wonderland', got '${input}'`,
+      `AssetDefinitionId should have format "⟨name⟩#⟨domain⟩", e.g. "rose#wonderland", got "${input}"`,
     )
   }
   const [name, domain] = parts
@@ -369,6 +407,7 @@ export class AssetId {
 
   public readonly account: AccountId
   public readonly definition: AssetDefinitionId
+  private __brand!: 'AssetId'
 
   public constructor(account: AccountId, definition: AssetDefinitionId) {
     this.account = account
@@ -393,8 +432,8 @@ function assetIdFromStr(input: string) {
   const match = input.match(/^(.+)#(.+)?#(.+)@(.+)$/)
   if (!match) {
     throw new SyntaxError(
-      `AssetId should have format '⟨name⟩#⟨asset domain⟩#⟨account signatory⟩@⟨account domain⟩' ` +
-        `or '⟨name⟩##⟨account signatory⟩@⟨account domain⟩' (when asset and account domains are the same), got '${input}'`,
+      `AssetId should have format "⟨name⟩#⟨asset domain⟩#⟨account signatory⟩@⟨account domain⟩" ` +
+        `or "⟨name⟩##⟨account signatory⟩@⟨account domain⟩" (when asset and account domains are the same), got "${input}"`,
     )
   }
   const [, asset, domain1, account, domain2] = match
@@ -402,4 +441,67 @@ function assetIdFromStr(input: string) {
     accountIdFromObj({ signatory: account, domain: domain2 }),
     assetDefIdFromObj({ name: asset, domain: domain1 ?? domain2 }),
   )
+}
+
+/**
+ * Identification of Non-Fungible Token (asset).
+ */
+export class NftId {
+  public static [SYMBOL_CODEC]: GenCodec<NftId> = structCodec(['domain', 'name'], {
+    domain: getCodec(DomainId),
+    name: getCodec(Name),
+  }).wrap<NftId>({ toBase: (x) => x, fromBase: (x) => new NftId(x.name, x.domain) })
+
+  /**
+   * Parse NFT ID from its string representation.
+   *
+   * @example
+   * ```ts
+   * import { assertEquals } from '@std/assert'
+   *
+   * const id = NftId.parse('nft$domain')
+   *
+   * assertEquals(id.name.value, 'nft')
+   * assertEquals(id.domain.value, 'domain')
+   * ```
+   */
+  public static parse(str: string): NftId {
+    const parts = str.split('$')
+    if (parts.length !== 2) {
+      throw new SyntaxError(
+        `NfdId should have format "⟨name⟩$⟨domain⟩", e.g. "nft$domain", got "${str}"`,
+      )
+    }
+    const [name, domain] = parts
+    return new NftId(new Name(name), new DomainId(domain))
+  }
+
+  public readonly domain: DomainId
+  public readonly name: Name
+  private __brand!: 'NftId'
+
+  public constructor(name: Name, domain: DomainId) {
+    this.domain = domain
+    this.name = name
+  }
+
+  /**
+   * Returns string representation of NFT ID.
+   *
+   * @example
+   * ```ts
+   * import { assertEquals } from '@std/assert'
+   *
+   * const id = new NftId(new Name('nft'), new DomainId('domain'))
+   *
+   * assertEquals(id.toString(), 'nft$domain')
+   * ```
+   */
+  public toString(): string {
+    return `${this.name.value}$${this.domain.value}`
+  }
+
+  public toJSON(): string {
+    return this.toString()
+  }
 }

@@ -3,7 +3,7 @@ import { getCodec } from '@iroha/core'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { temporaryDirectory } from 'tempy'
-import { BIN_PATHS, EXECUTOR_WASM_PATH, irohaCodecToJson } from 'iroha-build-utils'
+import { BIN_PATHS, EXECUTOR_WASM_PATH, kagamiCodecToJson } from 'iroha-build-utils'
 import type { PublicKey } from '@iroha/core/crypto'
 import { ACCOUNT_KEY_PAIR, CHAIN, GENESIS_KEY_PAIR } from './mod.ts'
 import { spawn } from 'node:child_process'
@@ -23,7 +23,7 @@ export async function createGenesis(params: {
   const alice = dm.AccountId.parse(`${ACCOUNT_KEY_PAIR.publicKey().multihash()}@${DOMAIN.value}`)
   const genesis = dm.AccountId.parse(`${GENESIS_KEY_PAIR.publicKey().multihash()}@genesis`)
 
-  const instructionsJson = await irohaCodecToJson(
+  const instructionsJson = await kagamiCodecToJson(
     'Vec<InstructionBox>',
     dm.Vec.with(getCodec(dm.InstructionBox)).encode([
       dm.InstructionBox.Register.Domain({ id: DOMAIN, metadata: [], logo: null }),

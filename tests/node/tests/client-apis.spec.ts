@@ -21,23 +21,43 @@ describe('Various API methods', () => {
 
   describe('configuration', () => {
     test('update and retrieve', async () => {
-      const { client } = await usePeer()
+      const { client } = await usePeer({ seed: 'config-test' })
 
       let config = await client.api.getConfig()
-      expect(config.logger.level).toBe('debug')
+      expect(config).toMatchInlineSnapshot(`
+        {
+          "logger": {
+            "filter": null,
+            "level": "DEBUG",
+          },
+          "network": {
+            "blockGossipPeriod": {
+              "ms": 10000n,
+            },
+            "blockGossipSize": 4,
+            "transactionGossipPeriod": {
+              "ms": 1000n,
+            },
+            "transactionGossipSize": 500,
+          },
+          "publicKey": "ed0120ADEF9FC53F7705DCD2C0059097470B15A961B16C94EA4A4D01AB0B7E5DD6F91B",
+          "queue": {
+            "capacity": 65536,
+          },
+        }
+      `)
 
       await client.api.setConfig({ logger: { level: 'TRACE' } })
 
       config = await client.api.getConfig()
-      expect(config.logger.level).toBe('trace')
+      expect(config.logger.level).toBe('TRACE')
     })
 
-    // FIXME: re-enable after fix of https://github.com/hyperledger-iroha/iroha/issues/5247
-    test.skip('throws an error when trying to set an invalid configuration', async () => {
+    test('throws an error when trying to set an invalid configuration', async () => {
       const { client } = await usePeer()
 
       await expect(client.api.setConfig({ logger: { level: 'TR' as any } })).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[Error: 400: Bad Request]`,
+        `[Error: 422 (Unprocessable Entity): Failed to deserialize the JSON body into the target type: logger.level: unknown variant \`TR\`, expected one of \`TRACE\`, \`DEBUG\`, \`INFO\`, \`WARN\`, \`ERROR\` at line 1 column 23]`,
       )
     })
   })
@@ -58,7 +78,7 @@ describe('Telemetry API methods', () => {
     const metrics = await client.api.telemetry.metrics()
 
     // just some line from Prometheus metrics
-    expect(metrics).toMatch('block_height 1')
+    expect(metrics).toMatch('block_height 2')
   })
 
   test('status', async () => {
@@ -67,15 +87,16 @@ describe('Telemetry API methods', () => {
     const { uptime, ...rest } = await client.api.telemetry.status()
 
     expect(rest).toMatchInlineSnapshot(`
-    {
-      "blocks": 1n,
-      "peers": 0n,
-      "queueSize": 0n,
-      "txsAccepted": 3n,
-      "txsRejected": 0n,
-      "viewChanges": 0n,
-    }
-  `)
+      {
+        "blocks": 2n,
+        "blocksNonEmpty": 1n,
+        "peers": 0n,
+        "queueSize": 0n,
+        "txsApproved": 3n,
+        "txsRejected": 0n,
+        "viewChanges": 0n,
+      }
+    `)
     expect(uptime).toEqual(
       expect.objectContaining({
         nanos: expect.any(Number),

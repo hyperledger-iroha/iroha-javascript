@@ -6,6 +6,7 @@ import * as dm from '@iroha/core/data-model'
 import { getCodec } from '@iroha/core'
 import { fromHexWithSpaces, SAMPLE_ACCOUNT_ID } from './util.ts'
 import { Bytes } from '../crypto/util.ts'
+import { decodeHex, encodeHex } from '@std/encoding/hex'
 
 function jsonSerDe(value: unknown): unknown {
   return JSON.parse(JSON.stringify(value))
@@ -89,7 +90,7 @@ describe('JSON/string representations', () => {
   test('Fails to parse account id with multiple @', () => {
     expect(() => dm.AccountId.parse('a@b@c')).toThrow(
       new SyntaxError(
-        `AccountId should have format '⟨signatory⟩@⟨domain⟩, got: 'a@b@c'`,
+        `AccountId should have format "⟨signatory⟩@⟨domain⟩", got: "a@b@c"`,
       ),
     )
   })
@@ -111,7 +112,8 @@ describe('Status', () => {
     const STATUS: dm.Status = {
       peers: 4n,
       blocks: 5n,
-      txsAccepted: 31n,
+      blocksNonEmpty: 3n,
+      txsApproved: 31n,
       txsRejected: 3n,
       uptime: {
         secs: 5n,
@@ -120,25 +122,26 @@ describe('Status', () => {
       viewChanges: 2n,
       queueSize: 18n,
     }
-    const ENCODED = '10 14 7C 0C 14 40 7C D9 37 08 48'
+    const ENCODED = '10140C7C0C14407CD9370848'
 
-    expect(getCodec(dm.Status).encode(STATUS)).toEqual(fromHexWithSpaces(ENCODED))
-    expect(getCodec(dm.Status).decode(fromHexWithSpaces(ENCODED))).toEqual(STATUS)
+    expect(encodeHex(getCodec(dm.Status).encode(STATUS)).toUpperCase()).toEqual(ENCODED)
+    expect(getCodec(dm.Status).decode(decodeHex(ENCODED))).toEqual(STATUS)
   })
 
   test('From zeros', () => {
-    expect(getCodec(dm.Status).decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00'))).toEqual(
+    expect(getCodec(dm.Status).decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00 00'))).toEqual(
       {
-        'blocks': 0n,
-        'peers': 0n,
-        'queueSize': 0n,
-        'txsAccepted': 0n,
-        'txsRejected': 0n,
-        'uptime': {
-          'nanos': 0,
-          'secs': 0n,
+        blocks: 0n,
+        blocksNonEmpty: 0n,
+        peers: 0n,
+        queueSize: 0n,
+        txsApproved: 0n,
+        txsRejected: 0n,
+        uptime: {
+          nanos: 0,
+          secs: 0n,
         },
-        'viewChanges': 0n,
+        viewChanges: 0n,
       },
     )
   })
