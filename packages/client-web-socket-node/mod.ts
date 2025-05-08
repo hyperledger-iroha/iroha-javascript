@@ -1,7 +1,22 @@
 /**
- * WebSocket adapter for Node.js environment. Build on top of `npm:ws`.
+ * Client WebSocket adapter for Node.js (and Bun). Wrapper over the [`npm:ws`](https://www.npmjs.com/package/ws).
  *
- * @example
+ * @example Use with `Client`
+ *
+ * ```ts
+ * import ws from '@iroha/client-web-socket-node'
+ * import { Client, type CreateClientParams } from '@iroha/client'
+ *
+ * declare const params: CreateClientParams
+ *
+ * const client = new Client({
+ *    ...params,
+ *    ws,
+ * })
+ * ```
+ *
+ * @example Use with `WebSocketAPI`
+ *
  * ```ts
  * import ws from '@iroha/client-web-socket-node'
  * import { WebSocketAPI } from '@iroha/client'
