@@ -28,14 +28,14 @@
  * import ws from '@iroha/client-web-socket-node'
  * import { Client, type CreateClientParams } from '@iroha/client'
  *
- * declare const params: CreateClientParams
+ * function createClient(params: CreateClientParams) {
+ *   const client = new Client({
+ *      ...params,
  *
- * const client = new Client({
- *    ...params,
- *
- *    // provide WebSocket adapter here
- *    ws,
- * })
+ *      // provide WebSocket adapter here
+ *      ws,
+ *   })
+ * }
  * ```
  *
  * @example Construct a client with a random account

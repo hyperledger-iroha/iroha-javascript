@@ -7,12 +7,14 @@
  * import ws from '@iroha/client-web-socket-node'
  * import { Client, type CreateClientParams } from '@iroha/client'
  *
- * declare const params: CreateClientParams
+ * function createClient(params: CreateClientParams) {
+ *   const client = new Client({
+ *      ...params,
  *
- * const client = new Client({
- *    ...params,
- *    ws,
- * })
+ *      // provide WebSocket adapter here
+ *      ws,
+ *   })
+ * }
  * ```
  *
  * @example Use with `WebSocketAPI`
