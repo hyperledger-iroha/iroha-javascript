@@ -113,6 +113,7 @@ describe('Status', () => {
       peers: 4n,
       blocks: 5n,
       blocksNonEmpty: 3n,
+      commitTime: dm.DurationCompact.fromMillis(130),
       txsApproved: 31n,
       txsRejected: 3n,
       uptime: {
@@ -122,17 +123,18 @@ describe('Status', () => {
       viewChanges: 2n,
       queueSize: 18n,
     }
-    const ENCODED = '10140C7C0C14407CD9370848'
+    const ENCODED = '10140C09027C0C14407CD9370848'
 
     expect(encodeHex(getCodec(dm.Status).encode(STATUS)).toUpperCase()).toEqual(ENCODED)
     expect(getCodec(dm.Status).decode(decodeHex(ENCODED))).toEqual(STATUS)
   })
 
   test('From zeros', () => {
-    expect(getCodec(dm.Status).decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00 00'))).toEqual(
+    expect(getCodec(dm.Status).decode(fromHexWithSpaces('00 00 00 00 00 00 00 00 00 00 00 00 00'))).toEqual(
       {
         blocks: 0n,
         blocksNonEmpty: 0n,
+        commitTime: dm.DurationCompact.fromMillis(0),
         peers: 0n,
         queueSize: 0n,
         txsApproved: 0n,
