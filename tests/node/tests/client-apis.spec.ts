@@ -90,6 +90,9 @@ describe('Telemetry API methods', () => {
       {
         "blocks": 2n,
         "blocksNonEmpty": 1n,
+        "commitTime": {
+          "ms": 0n,
+        },
         "peers": 0n,
         "queueSize": 0n,
         "txsApproved": 3n,
