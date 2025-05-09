@@ -1,3 +1,18 @@
+### 2025.05.09
+
+#### @iroha/client 0.4.0 (minor)
+
+- feat(core, client): include `commitTime` into `Status` (#258)
+- refactor(client): move `.peers()` method from TelemetryAPI to MainAPI (#259)
+
+#### @iroha/client-web-socket-node 0.4.0 (minor)
+
+- bump version to be compabible with `@iroha/client@^0.4.0`
+
+#### @iroha/core 0.4.0 (minor)
+
+- feat(core, client): include `commitTime` into `Status` (#258)
+
 ### 2025.04.16
 
 #### @iroha/client 0.4.0-beta.1 (prerelease)
