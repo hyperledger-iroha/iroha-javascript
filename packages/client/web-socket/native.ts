@@ -10,6 +10,9 @@ async function handleIncomingData(data: any): Promise<IncomingData> {
   throw new Error('Unable to parse incoming data')
 }
 
+/**
+ * Implementation of {@linkcode IsomorphicWebSocketAdapter} based on the native {@link WebSocket}.
+ */
 const adapter: IsomorphicWebSocketAdapter = {
   initWebSocket: (params) => {
     const socket = new WebSocket(params.url)
