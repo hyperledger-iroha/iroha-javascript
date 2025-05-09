@@ -208,20 +208,8 @@ export class MainAPI {
     return response.json()
   }
 
-  public async peers(): Promise<PeerJson[]> {
-    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_PEERS))
-    await ResponseError.assertStatus(response, 200)
-    return response.json().then(
-      // array of strings in format `<pub key multihash>@<socket addr>`
-      (ids: string[]) => {
-        assert(Array.isArray(ids))
-        return ids.map((id) => {
-          assert(typeof id === 'string')
-          const [pubkey, address] = id.split('@')
-          return { id: dm.PublicKey.fromMultihash(pubkey), address }
-        })
-      },
-    )
+  public peers(): Promise<PeerJson[]> {
+    return getPeers(this.http)
   }
 }
 
@@ -264,9 +252,32 @@ export class TelemetryAPI {
     return response.arrayBuffer().then((buffer) => getCodec(dm.Status).decode(new Uint8Array(buffer)))
   }
 
+  /**
+   * @deprecated use {@linkcode MainAPI#peers}
+   */
+  public peers(): Promise<PeerJson[]> {
+    return getPeers(this.http)
+  }
+
   public async metrics(): Promise<string> {
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_METRICS))
     await ResponseError.assertStatus(response, 200)
     return response.text()
   }
+}
+
+async function getPeers(http: HttpTransport) {
+  const response = await http.getFetch()(urlJoinPath(http.toriiBaseURL, ENDPOINT_PEERS))
+  await ResponseError.assertStatus(response, 200)
+  return response.json().then(
+    // array of strings in format `<pub key multihash>@<socket addr>`
+    (ids: string[]) => {
+      assert(Array.isArray(ids))
+      return ids.map((id) => {
+        assert(typeof id === 'string')
+        const [pubkey, address] = id.split('@')
+        return { id: dm.PublicKey.fromMultihash(pubkey), address }
+      })
+    },
+  )
 }
