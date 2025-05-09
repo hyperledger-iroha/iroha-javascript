@@ -108,7 +108,7 @@ describe('Telemetry API methods', () => {
   test('peers (network of 4)', async () => {
     const { peers } = await useNetwork({ peers: 4, seed: new Uint8Array(Buffer.from('deadbeef', 'hex')) })
 
-    const peersData = await peers[0].client.api.telemetry.peers()
+    const peersData = await peers[0].client.api.peers()
 
     expect(peersData.map((x) => x.id.multihash())).contain.all.members(
       peers.slice(1).map((x) => x.keypair.publicKey().multihash()),

@@ -207,6 +207,22 @@ export class MainAPI {
     await ResponseError.assertStatus(response, 200)
     return response.json()
   }
+
+  public async peers(): Promise<PeerJson[]> {
+    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_PEERS))
+    await ResponseError.assertStatus(response, 200)
+    return response.json().then(
+      // array of strings in format `<pub key multihash>@<socket addr>`
+      (ids: string[]) => {
+        assert(Array.isArray(ids))
+        return ids.map((id) => {
+          assert(typeof id === 'string')
+          const [pubkey, address] = id.split('@')
+          return { id: dm.PublicKey.fromMultihash(pubkey), address }
+        })
+      },
+    )
+  }
 }
 
 async function handleQueryResponse(resp: Response): Promise<dm.QueryResponse> {
@@ -246,23 +262,6 @@ export class TelemetryAPI {
     })
     await ResponseError.assertStatus(response, 200)
     return response.arrayBuffer().then((buffer) => getCodec(dm.Status).decode(new Uint8Array(buffer)))
-  }
-
-  // TODO: move once metrics are updated
-  public async peers(): Promise<PeerJson[]> {
-    const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_PEERS))
-    await ResponseError.assertStatus(response, 200)
-    return response.json().then(
-      // array of strings in format `<pub key multihash>@<socket addr>`
-      (ids: string[]) => {
-        assert(Array.isArray(ids))
-        return ids.map((id) => {
-          assert(typeof id === 'string')
-          const [pubkey, address] = id.split('@')
-          return { id: dm.PublicKey.fromMultihash(pubkey), address }
-        })
-      },
-    )
   }
 
   public async metrics(): Promise<string> {
