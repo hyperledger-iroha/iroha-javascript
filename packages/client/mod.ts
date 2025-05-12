@@ -3,6 +3,41 @@
  *
  * The primary functionality is exposed via the {@linkcode Client}.
  *
+ * ## WebSocket Support
+ *
+ * Some APIs (e.g. {@linkcode Client#events}, {@linkcode Client#blocks}) require {@link WebSocket} support.
+ *
+ * WebSocket is not supported uniformly across environments, so adapters are used to provide a consistent interface.
+ *
+ * In Deno and browsers, no setup is needed - the adapter over the native {@link WebSocket} is used by default.
+ * In Node and Bun, you **must** explicitly provide a compatible WebSocket adapter.
+ *
+ * You can also implement your own by conforming to the {@linkcode [web-socket].IsomorphicWebSocketAdapter} interface.
+ *
+ * In summary:
+ *
+ * | Environment | Adapter |
+ * | - | - |
+ * | Deno, Web (browsers) | Native adapter used by default ({@linkcode [web-socket].nativeWS}) |
+ * | Node, Bun | Use [`@iroha/client-web-socket-node`](https://jsr.io/@iroha/client-web-socket-node) |
+ * | Custom | Implement {@linkcode [web-socket].IsomorphicWebSocketAdapter} |
+ *
+ * ### Example: using `@iroha/client-web-socket-node`
+ *
+ * ```ts
+ * import ws from '@iroha/client-web-socket-node'
+ * import { Client, type CreateClientParams } from '@iroha/client'
+ *
+ * function createClient(params: CreateClientParams) {
+ *   const client = new Client({
+ *      ...params,
+ *
+ *      // provide WebSocket adapter here
+ *      ws,
+ *   })
+ * }
+ * ```
+ *
  * @example Construct a client with a random account
  * ```ts
  * import { Client } from '@iroha/client'
