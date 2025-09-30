@@ -1,4 +1,4 @@
-import $ from 'jsr:@david/dax'
+import $ from '@david/dax'
 import { resolveFromRoot } from './util.ts'
 
 const PATHS = [

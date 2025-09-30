@@ -1,4 +1,4 @@
-import $ from 'jsr:@david/dax'
+import $ from '@david/dax'
 import { delay, retry } from '@std/async'
 import { PORT_PEER_API, PORT_PEER_P2P, PORT_PEER_SERVER, PORT_VITE } from './meta.ts'
 import { assert } from '@std/assert'

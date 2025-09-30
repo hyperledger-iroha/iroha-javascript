@@ -1,5 +1,5 @@
 import { startPeer } from '@iroha/test-peer'
-import * as colors from 'jsr:@std/fmt/colors'
+import * as colors from '@std/fmt/colors'
 import { KeyPair } from '@iroha/core/crypto'
 import { createGenesis } from '@iroha/test-configuration/node'
 
