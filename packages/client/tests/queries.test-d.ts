@@ -53,7 +53,7 @@ type test_find_accs_selector3 = Expect<
 const accountsExecuteAll = await client.find.accounts().executeAll()
 type test_accs_exec_all = Expect<Equal<typeof accountsExecuteAll, types.Account[]>>
 
-const findBlockHeaderHashes = client.find.blockHeaders().selectWith((x) => x.hash)
+const findBlockHeaderHashes = client.find.blockHeaders({ order: types.Order.Ascending }).selectWith((x) => x.hash)
 type test_block_header_hashes = Expect<Equal<BuilderOutput<typeof findBlockHeaderHashes>, types.Hash>>
 
 const findDomainsMetadata = client.find.domains().selectWith((x) => x.metadata)

@@ -155,7 +155,7 @@ export class MainAPI {
   public async transaction(transaction: dm.SignedTransaction): Promise<void> {
     const body = getCodec(dm.SignedTransaction).encode(transaction)
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_TRANSACTION), {
-      body,
+      body: [body],
       method: 'POST',
     })
     await ResponseError.assertStatus(response, 200)
@@ -165,7 +165,7 @@ export class MainAPI {
     return this.http
       .getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_QUERY), {
         method: 'POST',
-        body: getCodec(dm.SignedQuery).encode(query),
+        body: [getCodec(dm.SignedQuery).encode(query)],
       })
       .then(handleQueryResponse)
   }

@@ -185,10 +185,12 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const blocks: dm.BlockHeader[] = await client.find.blocks().selectWith((block) => block.header).executeAll()
-    const headers: dm.BlockHeader[] = await client.find.blockHeaders().executeAll()
+    const blocks: dm.BlockHeader[] = await client.find
+      .blocks({ order: dm.Order.Descending })
+      .selectWith((block) => block.header).executeAll()
+    const headers: dm.BlockHeader[] = await client.find.blockHeaders({ order: dm.Order.Ascending }).executeAll()
 
-    expect(blocks).toEqual(headers)
+    expect(blocks).toEqual(headers.toReversed())
   })
 
   test('find transactions', async () => {
@@ -355,10 +357,10 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const someBlock = (await client.find.blocks().executeAll()).at(1)!
+    const someBlock = (await client.find.blocks({ order: dm.Order.Ascending }).executeAll()).at(1)!
 
     const found = await client.find
-      .blocks().filterWith((block) =>
+      .blocks({ order: dm.Order.Ascending }).filterWith((block) =>
         dm.CompoundPredicate.Atom(
           block.header.hash.equals(
             blockHash(someBlock.value.payload.header),
@@ -427,10 +429,12 @@ describe('Singular queries', () => {
         },
         "custom": [],
         "executor": {
+          "executionDepth": 3,
           "fuel": 55000000n,
           "memory": 55000000n,
         },
         "smartContract": {
+          "executionDepth": 3,
           "fuel": 55000000n,
           "memory": 55000000n,
         },
@@ -523,7 +527,7 @@ describe('Transactions', () => {
     const hash = tx.hash
     const _found = await client.find
       .transactions()
-      .filterWith((tx) => dm.CompoundPredicate.Atom(tx.value.hash.equals(hash)))
+      .filterWith((tx) => dm.CompoundPredicate.Atom(tx.transactionEntrypointHash.equals(hash)))
       .executeSingle()
 
     // TODO:

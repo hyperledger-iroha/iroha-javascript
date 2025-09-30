@@ -4,7 +4,13 @@ import type * as prototypes from './data-model/prototypes.generated.ts'
 import { Name } from './data-model/compound.ts'
 
 export const QUERIES_WITH_PAYLOAD = new Set(
-  ['FindAccountsWithAsset', 'FindPermissionsByAccountId', 'FindRolesByAccountId'] as const,
+  [
+    'FindAccountsWithAsset',
+    'FindPermissionsByAccountId',
+    'FindRolesByAccountId',
+    'FindBlocks',
+    'FindBlockHeaders',
+  ] as const,
 )
 
 // deno-lint-ignore ban-types

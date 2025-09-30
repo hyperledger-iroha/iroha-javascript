@@ -40,7 +40,7 @@ export class WebSocketAPI {
     ee.on('open', () => {
       sendRaw(
         getCodec(dm.BlockSubscriptionRequest).encode({
-          fromBlockHeight: params?.fromBlockHeight?.map(BigInt) ?? new dm.NonZero(1n),
+          height: params?.fromBlockHeight?.map(BigInt) ?? new dm.NonZero(1n),
         }).buffer,
       )
     })

@@ -7,6 +7,7 @@ on:
 env:
   IROHA_GIT: https://github.com/hyperledger-iroha/iroha.git
   IROHA_REV: v2.0.0-rc.2.0
+  DENO_VERSION: v2.5.2
 jobs:
   prep-crypto-wasm:
     runs-on: ubuntu-latest
@@ -32,7 +33,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         if: steps.prep-cache.outputs.cache-hit != 'true'
         with:
-          deno-version: v2.x
+          deno-version: ${{ env.DENO_VERSION }}
       - name: Build packages
         if: steps.prep-cache.outputs.cache-hit != 'true'
         run: deno task prep:crypto-wasm
@@ -57,7 +58,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         if: steps.prep-cache.outputs.cache-hit != 'true'
         with:
-          deno-version: v2.x
+          deno-version: ${{ env.DENO_VERSION }}
       - name: Prepare Iroha artifacts
         if: steps.prep-cache.outputs.cache-hit != 'true'
         run: |
@@ -83,7 +84,7 @@ jobs:
             prep/crypto-wasm
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.2.x
+          deno-version: ${{ env.DENO_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -118,7 +119,7 @@ jobs:
             prep/crypto-wasm
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.2.x
+          deno-version: ${{ env.DENO_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22

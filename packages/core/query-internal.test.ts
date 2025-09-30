@@ -2,6 +2,7 @@ import { describe, test } from '@std/testing/bdd'
 import { expect } from '@std/expect'
 import { getActualSelector, predicateProto, selectorProto } from './query-internal.ts'
 import * as dm from './data-model/mod.ts'
+import { Bytes } from './crypto/util.ts'
 
 describe('predicateProto()', () => {
   function compare<T>(actual: T, expected: T) {
@@ -59,8 +60,18 @@ describe('predicateProto()', () => {
     const proto = predicateProto<'FindTransactions'>()
 
     compare(
-      proto.error.isSome(),
-      dm.CommittedTransactionProjectionPredicate.Error.Atom.IsSome,
+      proto.transactionResult.isOk(),
+      dm.CommittedTransactionProjectionPredicate.TransactionResult.Atom.IsOk,
+    )
+
+    compare(
+      proto.transactionResult.containsDataTrigger(new dm.TriggerId('trig')),
+      dm.CommittedTransactionProjectionPredicate.TransactionResult.Atom.ContainsDataTrigger(new dm.TriggerId('trig')),
+    )
+
+    compare(
+      proto.transactionResultHash.equals(dm.Hash.hash(Bytes.hex('aacc'))),
+      dm.CommittedTransactionProjectionPredicate.TransactionResultHash.Atom.Equals(dm.Hash.hash(Bytes.hex('aacc'))),
     )
 
     compare(
@@ -69,8 +80,8 @@ describe('predicateProto()', () => {
     )
 
     compare(
-      proto.value.authority.domain.name.contains('wuw'),
-      dm.CommittedTransactionProjectionPredicate.Value.Authority.Domain.Name.Atom.Contains('wuw'),
+      proto.transactionEntrypoint.authority.domain.name.contains('wuw'),
+      dm.CommittedTransactionProjectionPredicate.TransactionEntrypoint.Authority.Domain.Name.Atom.Contains('wuw'),
     )
   })
 
@@ -115,10 +126,10 @@ describe('selectorProto()', () => {
     const proto = selectorProto<'FindTransactions'>()
 
     compare(proto, dm.CommittedTransactionProjectionSelector.Atom)
-    compare(proto.error, dm.CommittedTransactionProjectionSelector.Error.Atom)
+    compare(proto.transactionResult, dm.CommittedTransactionProjectionSelector.TransactionResult.Atom)
     compare(
-      proto.value.authority.domain.name,
-      dm.CommittedTransactionProjectionSelector.Value.Authority.Domain.Name.Atom,
+      proto.transactionEntrypoint.authority.domain.name,
+      dm.CommittedTransactionProjectionSelector.TransactionEntrypoint.Authority.Domain.Name.Atom,
     )
     compare(proto.blockHash, dm.CommittedTransactionProjectionSelector.BlockHash.Atom)
   })

@@ -34,7 +34,7 @@ async function checkBuildReady() {
     assertEquals(files, GENERATED_FILES)
     return true
   } catch (err) {
-    $.logWarn('Error whiule checking build artifacts:', err)
+    $.logWarn('Error while checking build artifacts:', err)
     return false
   }
 }

@@ -290,20 +290,20 @@ test.each([
     }),
   }),
   defCase({
-    type: 'SortedMap<u64, TransactionRejectionReason>',
-    json: { 1: { WasmExecution: 'whichever' }, 0: { LimitCheck: 'mewo' } },
-    codec: dm.TransactionErrors,
+    type: 'Vec<TransactionResult>',
+    json: [
+      { Ok: [{ id: 'test', instructions: [{ Log: { level: 'TRACE', msg: 'mewo' } }] }] },
+      { Err: { WasmExecution: 'whichever' } },
+      { Err: { LimitCheck: 'mewo' } },
+    ],
+    codec: defineCodec(dm.Vec.with(getCodec(dm.TransactionResult))),
     value: [
-      {
-        index: 1n,
-        error: dm.TransactionRejectionReason.WasmExecution({
-          reason: 'whichever',
-        }),
-      },
-      {
-        index: 0n,
-        error: dm.TransactionRejectionReason.LimitCheck({ reason: 'mewo' }),
-      },
+      dm.TransactionResult.Ok([{
+        id: new dm.TriggerId('test'),
+        instructions: [dm.InstructionBox.Log({ level: dm.Level.TRACE, msg: 'mewo' })],
+      }]),
+      dm.TransactionResult.Err.WasmExecution({ reason: 'whichever' }),
+      dm.TransactionResult.Err.LimitCheck({ reason: 'mewo' }),
     ],
   }),
   // TODO: add SignedBlock
