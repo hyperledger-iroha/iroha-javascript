@@ -5,6 +5,7 @@ import { ENDPOINT_BLOCKS_STREAM, ENDPOINT_EVENTS } from './const.ts'
 import type { SocketEmitMapBase } from './util.ts'
 import { setupWebSocket } from './util.ts'
 import { type IsomorphicWebSocketAdapter, nativeWS } from './web-socket/mod.ts'
+import pDefer from 'p-defer'
 
 /**
  * Lower-level client
@@ -24,6 +25,8 @@ export class WebSocketAPI {
     this.adapter = adapter ?? nativeWS
   }
 
+  // TODO: refine the API with async generator; document, provide code sample
+  // TODO: provide dispose symbol
   public async blocksStream(params?: SetupBlocksStreamParams): Promise<SetupBlocksStreamReturn> {
     const {
       ee,
@@ -39,20 +42,29 @@ export class WebSocketAPI {
 
     ee.on('open', () => {
       sendRaw(
-        getCodec(dm.BlockSubscriptionRequest).encode({
-          fromBlockHeight: params?.fromBlockHeight?.map(BigInt) ?? new dm.NonZero(1n),
-        }).buffer,
+        getCodec(dm.BlockStreamMessage).encode(
+          dm.BlockStreamMessage.Subscribe({
+            height: params?.fromBlockHeight?.map(BigInt) ?? new dm.NonZero(1n),
+          }),
+        ).buffer,
       )
     })
 
     ee.on('message', (raw) => {
-      const block = getCodec(dm.SignedBlock).decode(raw)
-      ee.emit('block', block)
+      const block = getCodec(dm.BlockStreamMessage).decode(raw)
+      if (block.kind !== 'Block') throw new TypeError(`Expected a block, got BlockStreamMessage::${block.kind}`)
+      ee.emit('block', block.value)
     })
 
     await accepted()
 
+    const stream = lazyBlocks(
+      ee,
+      () => sendRaw(getCodec(dm.BlockStreamMessage).encode(dm.BlockStreamMessage.Next).buffer),
+    )
+
     return {
+      stream,
       ee:
         // Emittery typing bug
         ee as unknown as Emittery<BlocksStreamEmitteryMap>,
@@ -95,6 +107,24 @@ export class WebSocketAPI {
   }
 }
 
+async function* lazyBlocks(
+  ee: Emittery<BlocksStreamEmitteryMap>,
+  sendNext: () => void,
+): AsyncGenerator<dm.SignedBlock> {
+  while (true) {
+    sendNext()
+
+    const resultDeferred = pDefer<{ t: 'cont'; block: dm.SignedBlock } | { t: 'halt' }>()
+
+    ee.once('close').then(() => resultDeferred.resolve({ t: 'halt' }))
+    ee.once('block').then((block) => resultDeferred.resolve({ t: 'cont', block }))
+
+    const result = await resultDeferred.promise
+    if (result.t === 'cont') yield result.block
+    else return
+  }
+}
+
 export interface SetupBlocksStreamParams {
   fromBlockHeight?: dm.NonZero<number | bigint>
 }
@@ -104,6 +134,7 @@ export interface BlocksStreamEmitteryMap extends SocketEmitMapBase {
 }
 
 export interface SetupBlocksStreamReturn {
+  stream: AsyncGenerator<dm.SignedBlock>
   stop: () => Promise<void>
   isClosed: () => boolean
   ee: Emittery<BlocksStreamEmitteryMap>

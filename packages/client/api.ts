@@ -3,6 +3,7 @@ import { getCodec, type Variant, type VariantUnit } from '@iroha/core'
 import * as dm from '@iroha/core/data-model'
 import type { Schema as DataModelSchema } from '@iroha/core/data-model/schema'
 import {
+  CONTENT_TYPE_SCALE,
   ENDPOINT_CONFIGURATION,
   ENDPOINT_HEALTH,
   ENDPOINT_METRICS,
@@ -153,10 +154,14 @@ export class MainAPI {
   }
 
   public async transaction(transaction: dm.SignedTransaction): Promise<void> {
-    const body = getCodec(dm.SignedTransaction).encode(transaction)
+    const bytes = getCodec(dm.SignedTransaction).encode(transaction)
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_TRANSACTION), {
-      body,
+      // FIXME: some typing issue in Deno? worked fine before
+      body: bytes as unknown as BodyInit,
       method: 'POST',
+      headers: {
+        'Content-Type': CONTENT_TYPE_SCALE,
+      },
     })
     await ResponseError.assertStatus(response, 200)
   }
@@ -165,7 +170,7 @@ export class MainAPI {
     return this.http
       .getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_QUERY), {
         method: 'POST',
-        body: getCodec(dm.SignedQuery).encode(query),
+        body: [getCodec(dm.SignedQuery).encode(query)],
       })
       .then(handleQueryResponse)
   }
@@ -246,7 +251,7 @@ export class TelemetryAPI {
 
   public async status(): Promise<dm.Status> {
     const response = await this.http.getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_STATUS), {
-      headers: { accept: 'application/x-parity-scale' },
+      headers: { accept: CONTENT_TYPE_SCALE },
     })
     await ResponseError.assertStatus(response, 200)
     return response.arrayBuffer().then((buffer) => getCodec(dm.Status).decode(new Uint8Array(buffer)))

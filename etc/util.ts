@@ -1,8 +1,8 @@
-import * as path from 'jsr:@std/path'
+import * as path from '@std/path'
 import { assert } from '@std/assert'
-import { expandGlob } from 'jsr:@std/fs'
-import { crypto } from 'jsr:@std/crypto'
-import { encodeHex } from 'jsr:@std/encoding'
+import { expandGlob } from '@std/fs'
+import { crypto } from '@std/crypto'
+import { encodeHex } from '@std/encoding'
 
 export function resolveFromRoot(...paths: (string)[]) {
   const dirname = import.meta.dirname

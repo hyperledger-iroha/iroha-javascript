@@ -17,6 +17,14 @@ it('Register new domain and wait until commitment', () => {
   // Ensure that block count is incremented
   cy.contains('Blocks: 4')
 
+  // tx queued + approved, block approved + committed + applied (+ empty block)
+  const EXPECTED_EVENTS = 8
+
   // And all events are caught
-  cy.get('ul.events-list').children('li').should('have.length', 10).last().contains('Block').contains('Applied')
+  cy.get('ul.events-list')
+    .children('li')
+    .should('have.length', EXPECTED_EVENTS)
+    .last()
+    .contains('Block')
+    .contains('Applied')
 })

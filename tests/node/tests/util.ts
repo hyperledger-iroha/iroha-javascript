@@ -56,7 +56,7 @@ export async function useNetwork(
       const { kill } = await TestPeer.startPeer({
         keypair: key,
         ports,
-        genesis: i === 0 ? genesis : undefined,
+        genesis,
         trustedPeers: trustedPeers(i),
       })
       onTestFinished(kill)

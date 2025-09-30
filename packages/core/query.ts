@@ -82,9 +82,9 @@ export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> {
    * ```ts
    * import * as types from '@iroha/core/data-model'
    *
-   * const builder: QueryBuilder<'FindTransactions', [types.Hash, null | types.TransactionRejectionReason]> =
-   *   new QueryBuilder('FindTransactions')
-   *     .selectWith((tx) => [tx.value.hash, tx.error])
+   * const builder: QueryBuilder<'FindAssets', [types.Name, types.Numeric]> =
+   *   new QueryBuilder('FindAssets')
+   *     .selectWith((asset) => [asset.id.account.domain, asset.value])
    * ```
    */
   public selectWith<const ProtoTuple>(
@@ -167,7 +167,7 @@ export interface QueryBuilderParams {
 }
 
 function* generateOutputTuples<Output>(response: types.QueryOutputBatchBoxTuple): Generator<Output> {
-  // FIXME: this is redundant in runtime, just a safe guard
+  // NOTE: this is redundant in runtime, just a safe guard
   //   invariant(
   //     response.length === tuple.length,
   //     () => `Expected response to have exactly ${tuple.length} elements, got ${response.length}`,

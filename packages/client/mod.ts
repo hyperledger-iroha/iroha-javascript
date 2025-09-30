@@ -193,7 +193,7 @@
  *    // use selectors and pagination
  *    const items: [types.Hash, types.AccountId][] = await client.find
  *      .transactions()
- *      .selectWith((tx) => [tx.blockHash, tx.value.authority])
+ *      .selectWith((tx) => [tx.blockHash, tx.transactionEntrypoint.authority])
  *      .executeAll()
  * }
  * ```

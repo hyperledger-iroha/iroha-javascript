@@ -38,9 +38,6 @@ importers:
       vite:
         specifier: ^6.1.0
         version: 6.1.0(@types/node@22.13.1)(sass@1.84.0)(tsx@4.19.2)
-      vite-plugin-wasm:
-        specifier: ^3.4.1
-        version: 3.4.1(vite@6.1.0(@types/node@22.13.1)(sass@1.84.0)(tsx@4.19.2))
       vue:
         specifier: ^3.2.47
         version: 3.5.13(typescript@5.7.3)
@@ -1769,11 +1766,6 @@ packages:
   verror@1.10.0:
     resolution: {integrity: sha512-ZZKSmDAEFOijERBLkmYfJ+vmk3w+7hOLYDNkRCuRuMJGEmqYNCNLyBBFwWKVMhfwaEF3WOd0Zlw86U/WC/+nYw==}
     engines: {'0': node >=0.6.0}
-
-  vite-plugin-wasm@3.4.1:
-    resolution: {integrity: sha512-ja3nSo2UCkVeitltJGkS3pfQHAanHv/DqGatdI39ja6McgABlpsZ5hVgl6wuR8Qx5etY3T5qgDQhOWzc5RReZA==}
-    peerDependencies:
-      vite: ^2 || ^3 || ^4 || ^5 || ^6
 
   vite@6.1.0:
     resolution: {integrity: sha512-RjjMipCKVoR4hVfPY6GQTgveinjNuyLw+qruksLDvA5ktI1150VmcMBKmQaEWJhg/j6Uaf6dNCNA0AfdzUb/hQ==}
@@ -3653,10 +3645,6 @@ snapshots:
       assert-plus: 1.0.0
       core-util-is: 1.0.2
       extsprintf: 1.3.0
-
-  vite-plugin-wasm@3.4.1(vite@6.1.0(@types/node@22.13.1)(sass@1.84.0)(tsx@4.19.2)):
-    dependencies:
-      vite: 6.1.0(@types/node@22.13.1)(sass@1.84.0)(tsx@4.19.2)
 
   vite@6.1.0(@types/node@22.13.1)(sass@1.84.0)(tsx@4.19.2):
     dependencies:

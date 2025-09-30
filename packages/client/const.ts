@@ -10,3 +10,4 @@ export const ENDPOINT_PEERS = '/peers'
 export const ENDPOINT_METRICS = '/metrics'
 
 export const HEALTHY_RESPONSE = `Healthy`
+export const CONTENT_TYPE_SCALE = `application/x-parity-scale`

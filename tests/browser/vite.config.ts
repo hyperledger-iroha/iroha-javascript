@@ -1,12 +1,11 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import deno from '@deno/vite-plugin'
-import wasm from 'vite-plugin-wasm'
 import { PORT_PEER_API, PORT_PEER_SERVER, PORT_VITE } from './etc/meta.ts'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue(), deno(), (wasm as any)()],
+  plugins: [vue(), deno()],
   optimizeDeps: {
     esbuildOptions: {
       target: 'esnext',

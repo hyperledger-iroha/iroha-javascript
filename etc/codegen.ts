@@ -1,6 +1,6 @@
 import type { EnumDefinition, NamedStructDefinition, Schema, SchemaTypeDefinition } from '@iroha/core/data-model/schema'
-import { toCamelCase as camelCase, toKebabCase } from 'jsr:@std/text'
-import { deepEqual } from 'npm:fast-equals'
+import { toCamelCase as camelCase, toKebabCase } from '@std/text'
+import { deepEqual } from 'fast-equals'
 import { assert, assertEquals, assertObjectMatch, fail } from '@std/assert'
 import { match, P } from 'ts-pattern'
 
@@ -126,6 +126,7 @@ export type TypeRef =
   | { t: 'lib-any'; id: Ident; params?: TypeRef[] }
   | { t: 'lib-array'; len: number; type: TypeRef }
   | { t: 'lib-b-tree-set-with-cmp'; type: TypeRef; compareFn: string }
+  | { t: 'result'; ok: TypeRef; err: TypeRef }
   | { t: 'param'; index: number }
   | { t: 'null' }
 
@@ -162,6 +163,7 @@ export type LibType =
   | 'Signature'
   | 'Hash'
   | 'PublicKey'
+  | 'BlockSignature'
 
 export class Resolver {
   #schema: Schema
@@ -239,8 +241,6 @@ export class Resolver {
       match({ ref, refStr, schema })
         .returnType<TypeRefWithEmit>()
         .with({ refStr: '()' }, () => ({ t: 'null' }))
-        // redundant unused type
-        .with({ ref: { id: 'MerkleTree', items: [P._] } }, () => ({ t: 'null' }))
         .with({ refStr: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
         .with(
           {
@@ -256,6 +256,7 @@ export class Resolver {
                 'AssetDefinitionId',
                 'Compact',
                 'Algorithm',
+                'BlockSignature',
               ).select(),
             },
           },
@@ -266,20 +267,6 @@ export class Resolver {
           ({ int }) => ({
             t: 'lib',
             id: upcase(int),
-          }),
-        )
-        .with(
-          { refStr: 'BlockSignature', schema: { Tuple: [P.select('index').and('u64'), P.select('signature')] } },
-          ({ index, signature }) => ({
-            t: 'local',
-            id: 'BlockSignature',
-            emit: () => ({
-              t: 'struct',
-              fields: [
-                { name: 'peer_topology_index', type: this.resolve(index) },
-                { name: 'signature', type: this.resolve(signature) },
-              ],
-            }),
           }),
         )
         .with(
@@ -520,6 +507,35 @@ export class Resolver {
           () => ({ t: 'lib', id: 'Signature' }),
         )
         .with({ ref: { id: 'HashOf', items: [P._] }, schema: 'Hash' }, () => ({ t: 'lib', id: 'Hash' }))
+        .with(
+          {
+            ref: { id: 'MerkleProof', items: [P._] },
+            schema: {
+              Struct: [P._, P._],
+            },
+          },
+          ({ schema }) => ({
+            t: 'local',
+            id: 'MerkleProof',
+            emit: (): EmitCode => ({ t: 'struct', fields: this.mapFields(schema.Struct) }),
+          }),
+        )
+        // NOTE: MerkleTree is typed incorrectly in the schema
+        // https://github.com/hyperledger-iroha/iroha/issues/5520
+        .with(
+          {
+            ref: { id: 'MerkleTree', items: [P._] },
+            schema: { Vec: P._ },
+          },
+          () => ({
+            t: 'local',
+            id: 'MerkleTree',
+            emit: (): EmitCode => ({
+              t: 'alias',
+              to: { t: 'lib', id: 'Vec', params: [{ t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'Hash' }] }] },
+            }),
+          }),
+        )
         .with({ refStr: P.union('Hash', 'PublicKey', 'Signature').select() }, (id) => ({
           t: 'lib',
           id,
@@ -672,14 +688,31 @@ export class Resolver {
             }
           },
         )
+        // results
+        .with(
+          { schema: { Result: { ok: P.select('ok'), err: P.select('err') } } },
+          (selected) => ({ t: 'result', ok: this.resolve(selected.ok), err: this.resolve(selected.err) }),
+        )
         // lightweight aliases
         .with({ ref: { id: P.select('id'), items: [] }, schema: P.string.select('target') }, ({ id, target }) => ({
           t: 'local',
           id,
-          emit: (): EmitCode => ({
-            t: 'alias',
-            to: this.resolve(target),
-          }),
+          emit: (): EmitCode => {
+            const resolved = this.resolve(target)
+            if (resolved.t === 'result') {
+              return {
+                t: 'enum',
+                variants: [
+                  { tag: 'Ok', discriminant: 0, type: resolved.ok },
+                  { tag: 'Err', discriminant: 1, type: resolved.err },
+                ],
+              }
+            }
+            return {
+              t: 'alias',
+              to: this.resolve(target),
+            }
+          },
         }))
         // null types - useless?
         .with({ schema: null }, () => ({ t: 'null' }))
@@ -1069,6 +1102,7 @@ function renderRef(ref: TypeRef): RefRender {
       type: 'null',
       codec: 'lib.nullCodec',
     }))
+    .with({ t: 'result' }, () => unreachable('results must always be unwrapped in aliases'))
     .exhaustive()
 }
 

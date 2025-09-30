@@ -382,7 +382,7 @@ export class KeyPair implements HasAlgorithm {
   }
 }
 
-export class Signature implements HasPayload {
+export class Signature implements HasPayload, Ord<Signature> {
   public static [SYMBOL_CODEC]: GenCodec<Signature> = getCodec(BytesVec).wrap<Signature>({
     toBase: (higher) => higher.payload.array(),
     fromBase: (lower) => Signature.fromRaw(Bytes.array(lower)),
@@ -435,5 +435,9 @@ export class Signature implements HasPayload {
 
   public toJSON(): string {
     return this.payload.hex()
+  }
+
+  public compare(other: Signature): number {
+    return ordCompare(this.payload.hex(), other.payload.hex())
   }
 }

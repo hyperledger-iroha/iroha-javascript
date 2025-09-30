@@ -17,7 +17,7 @@ export type QueryCompatibleSelectors = {
   FindPeers: 'peer-id' | 'peer-id-public-key'
   FindActiveTriggerIds: 'trigger-id' | 'trigger-id-name'
   FindTriggers: 'trigger' | 'trigger-id' | 'trigger-id-name' | 'trigger-action' | 'trigger-action-metadata' | 'trigger-action-metadata-key'
-  FindTransactions: 'committed-transaction' | 'committed-transaction-block-hash' | 'committed-transaction-value' | 'committed-transaction-value-hash' | 'committed-transaction-value-authority' | 'committed-transaction-value-authority-domain' | 'committed-transaction-value-authority-domain-name' | 'committed-transaction-value-authority-signatory' | 'committed-transaction-error'
+  FindTransactions: 'committed-transaction' | 'committed-transaction-block-hash' | 'committed-transaction-transaction-entrypoint-hash' | 'committed-transaction-transaction-entrypoint' | 'committed-transaction-transaction-entrypoint-authority' | 'committed-transaction-transaction-entrypoint-authority-domain' | 'committed-transaction-transaction-entrypoint-authority-domain-name' | 'committed-transaction-transaction-entrypoint-authority-signatory' | 'committed-transaction-transaction-result-hash' | 'committed-transaction-transaction-result'
   FindBlocks: 'signed-block' | 'signed-block-header' | 'signed-block-header-hash'
   FindBlockHeaders: 'block-header' | 'block-header-hash'
 }
@@ -78,13 +78,14 @@ export type SelectorIdToOutput = {
   'trigger-action-metadata-key': lib.Json
   'committed-transaction': lib.CommittedTransaction
   'committed-transaction-block-hash': lib.Hash
-  'committed-transaction-value': lib.SignedTransaction
-  'committed-transaction-value-hash': lib.Hash
-  'committed-transaction-value-authority': lib.AccountId
-  'committed-transaction-value-authority-domain': lib.DomainId
-  'committed-transaction-value-authority-domain-name': lib.Name
-  'committed-transaction-value-authority-signatory': lib.PublicKey
-  'committed-transaction-error': lib.Option<lib.TransactionRejectionReason>
+  'committed-transaction-transaction-entrypoint-hash': lib.Hash
+  'committed-transaction-transaction-entrypoint': lib.TransactionEntrypoint
+  'committed-transaction-transaction-entrypoint-authority': lib.AccountId
+  'committed-transaction-transaction-entrypoint-authority-domain': lib.DomainId
+  'committed-transaction-transaction-entrypoint-authority-domain-name': lib.Name
+  'committed-transaction-transaction-entrypoint-authority-signatory': lib.PublicKey
+  'committed-transaction-transaction-result-hash': lib.Hash
+  'committed-transaction-transaction-result': lib.TransactionResult
   'signed-block': lib.SignedBlock
   'signed-block-header': lib.BlockHeader
   'signed-block-header-hash': lib.Hash
@@ -296,26 +297,29 @@ export type QuerySelectors = {
     blockHash: {
       __selector: 'committed-transaction-block-hash',
     }
-    value: {
-      __selector: 'committed-transaction-value',
-      hash: {
-        __selector: 'committed-transaction-value-hash',
-      }
+    transactionEntrypointHash: {
+      __selector: 'committed-transaction-transaction-entrypoint-hash',
+    }
+    transactionEntrypoint: {
+      __selector: 'committed-transaction-transaction-entrypoint',
       authority: {
-        __selector: 'committed-transaction-value-authority',
+        __selector: 'committed-transaction-transaction-entrypoint-authority',
         domain: {
-          __selector: 'committed-transaction-value-authority-domain',
+          __selector: 'committed-transaction-transaction-entrypoint-authority-domain',
           name: {
-            __selector: 'committed-transaction-value-authority-domain-name',
+            __selector: 'committed-transaction-transaction-entrypoint-authority-domain-name',
           }
         }
         signatory: {
-          __selector: 'committed-transaction-value-authority-signatory',
+          __selector: 'committed-transaction-transaction-entrypoint-authority-signatory',
         }
       }
     }
-    error: {
-      __selector: 'committed-transaction-error',
+    transactionResultHash: {
+      __selector: 'committed-transaction-transaction-result-hash',
+    }
+    transactionResult: {
+      __selector: 'committed-transaction-transaction-result',
     }
   }
   FindBlocks: {
@@ -566,10 +570,11 @@ export type QueryPredicates = {
     blockHash: {
       equals: (value: lib.Hash) => lib.CommittedTransactionProjectionPredicate
     }
-    value: {
-      hash: {
-        equals: (value: lib.Hash) => lib.CommittedTransactionProjectionPredicate
-      }
+    transactionEntrypointHash: {
+      equals: (value: lib.Hash) => lib.CommittedTransactionProjectionPredicate
+    }
+    transactionEntrypoint: {
+      isExternal: () => lib.CommittedTransactionProjectionPredicate
       authority: {
         equals: (value: lib.AccountId) => lib.CommittedTransactionProjectionPredicate
         domain: {
@@ -586,8 +591,12 @@ export type QueryPredicates = {
         }
       }
     }
-    error: {
-      isSome: () => lib.CommittedTransactionProjectionPredicate
+    transactionResultHash: {
+      equals: (value: lib.Hash) => lib.CommittedTransactionProjectionPredicate
+    }
+    transactionResult: {
+      isOk: () => lib.CommittedTransactionProjectionPredicate
+      containsDataTrigger: (value: lib.TriggerId) => lib.CommittedTransactionProjectionPredicate
     }
   }
   FindBlocks: {
@@ -684,13 +693,13 @@ export class FindAPI {
   }
 
   /** Convenience method for \`FindBlocks\` query, a variant of {@linkcode types.QueryBox} enum. */
-  public blocks(params?: core.QueryBuilderParams): client.QueryBuilder<'FindBlocks'> {
-    return new client.QueryBuilder(this._executor, 'FindBlocks', params)
+  public blocks(payload: types.FindBlocks, params?: core.QueryBuilderParams): client.QueryBuilder<'FindBlocks'> {
+    return new client.QueryBuilder(this._executor, 'FindBlocks', payload, params)
   }
 
   /** Convenience method for \`FindBlockHeaders\` query, a variant of {@linkcode types.QueryBox} enum. */
-  public blockHeaders(params?: core.QueryBuilderParams): client.QueryBuilder<'FindBlockHeaders'> {
-    return new client.QueryBuilder(this._executor, 'FindBlockHeaders', params)
+  public blockHeaders(payload: types.FindBlockHeaders, params?: core.QueryBuilderParams): client.QueryBuilder<'FindBlockHeaders'> {
+    return new client.QueryBuilder(this._executor, 'FindBlockHeaders', payload, params)
   }
 
   /** Convenience method for \`FindExecutorDataModel\` query, a variant of {@linkcode types.SingularQueryBox} enum. */
