@@ -241,8 +241,6 @@ export class Resolver {
       match({ ref, refStr, schema })
         .returnType<TypeRefWithEmit>()
         .with({ refStr: '()' }, () => ({ t: 'null' }))
-        // redundant unused type
-        .with({ ref: { id: 'MerkleTree', items: [P._] } }, () => ({ t: 'null' }))
         .with({ refStr: 'bool' }, () => ({ t: 'lib', id: 'Bool' }))
         .with(
           {
@@ -520,6 +518,22 @@ export class Resolver {
             t: 'local',
             id: 'MerkleProof',
             emit: (): EmitCode => ({ t: 'struct', fields: this.mapFields(schema.Struct) }),
+          }),
+        )
+        // NOTE: MerkleTree is typed incorrectly in the schema
+        // https://github.com/hyperledger-iroha/iroha/issues/5520
+        .with(
+          {
+            ref: { id: 'MerkleTree', items: [P._] },
+            schema: { Vec: P._ },
+          },
+          () => ({
+            t: 'local',
+            id: 'MerkleTree',
+            emit: (): EmitCode => ({
+              t: 'alias',
+              to: { t: 'lib', id: 'Vec', params: [{ t: 'lib', id: 'Option', params: [{ t: 'lib', id: 'Hash' }] }] },
+            }),
           }),
         )
         .with({ refStr: P.union('Hash', 'PublicKey', 'Signature').select() }, (id) => ({
