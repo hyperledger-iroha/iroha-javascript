@@ -357,7 +357,10 @@ describe('Queries', () => {
     const { client } = await usePeer()
     await submitTestData(client)
 
-    const someBlock = (await client.find.blocks({ order: dm.Order.Ascending }).executeAll()).at(1)!
+    const someBlock = (await client.find.blocks({ order: dm.Order.Ascending }, {
+      // exclude genesis block with heavy wasm for debugging purposes
+      offset: 1,
+    }).executeAll()).at(1)!
 
     const found = await client.find
       .blocks({ order: dm.Order.Ascending }).filterWith((block) =>
@@ -540,13 +543,13 @@ describe('Block Stream API', () => {
   test('Committing 3 blocks one after another', async () => {
     const { client } = await usePeer()
 
-    const stream = await client.blocks({
+    const { stream, ee, stop } = await client.blocks({
       fromBlockHeight: new dm.NonZero(2),
     })
-    const streamClosedPromise = stream.ee.once('close')
+    const streamClosedPromise = ee.once('close')
 
     for (const domainName of ['looking_glass', 'breakdown', 'island']) {
-      const blockPromise = stream.ee.once('block')
+      const blockPromise = stream.next()
 
       await client
         .transaction(
@@ -568,7 +571,7 @@ describe('Block Stream API', () => {
       ])
     }
 
-    await stream.stop()
+    await stop()
   })
 })
 
