@@ -6,7 +6,7 @@ on:
     branches: [main]
 env:
   IROHA_GIT: https://github.com/hyperledger-iroha/iroha.git
-  IROHA_REV: v2.0.0-rc.2.0
+  IROHA_REV: 884f870a
   DENO_VERSION: v2.5.2
 jobs:
   prep-crypto-wasm:
