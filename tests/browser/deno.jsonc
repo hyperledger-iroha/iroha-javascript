@@ -28,9 +28,7 @@
       "dependencies": ["app:dev", "serve-peer", "cy-open"]
     },
     "test": {
-      // FIXME: "vite-plugin-wasm" doesn't work in production, so I have to use `vite dev` in tests
-      // https://github.com/Menci/vite-plugin-wasm/issues/57
-      // "dependencies": ["app:build"],
+      "dependencies": ["app:build"],
       "command": "deno task test:run"
     },
     "test:run": {

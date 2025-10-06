@@ -3,14 +3,14 @@ import { delay, retry } from '@std/async'
 import { PORT_PEER_API, PORT_PEER_P2P, PORT_PEER_SERVER, PORT_VITE } from './meta.ts'
 import { assert } from '@std/assert'
 
-async function spawnLinked(
-  cmd: Deno.Command,
-  check: () => Promise<void>,
-): Promise<{
-  kill: () => Promise<void>
-  // isRunning: () => boolean
+async function spawnLinked(opts: {
+  name: string
+  cmd: Deno.Command
+  check: () => Promise<void>
+}): Promise<{
+  kill: (signal?: Deno.Signal) => Promise<void>
 }> {
-  const child = cmd.spawn()
+  const child = opts.cmd.spawn()
   child.ref()
 
   for (const signal of (['SIGINT', 'SIGTERM', 'SIGQUIT'] satisfies Deno.Signal[])) {
@@ -26,17 +26,16 @@ async function spawnLinked(
   })
 
   await delay(1000)
-  await retry(check)
+  await retry(opts.check)
   assert(running, 'process must not exit until killed')
 
-  // window.addEventListener('')
-
   return {
-    kill: async () => {
-      child.kill()
-      await child.output()
+    kill: async (signal = 'SIGTERM') => {
+      $.logStep(`Killing child: ${opts.name} (${signal})`)
+      child.kill(signal)
+      const output = await child.output()
+      $.logStep(`Child exited: ${opts.name} (code: ${output.code})`)
     },
-    // isRunning: () => running,
   }
 }
 
@@ -65,22 +64,26 @@ await retry(async () => {
 $.logStep('Running peer server and vite preview in parallel')
 const tasks = await Promise.all([
   spawnLinked(
-    new Deno.Command('pnpm', {
-      // TODO: replace with `vite build` & `vite preview` once resolved
-      // https://github.com/Menci/vite-plugin-wasm/issues/57
-      args: ['vite', 'dev', '--port', String(PORT_VITE), '--strictPort'],
-      stderr: 'inherit',
-      'stdout': 'inherit',
-    }),
-    () => assertPortBusy(PORT_VITE),
+    {
+      name: 'vite serve',
+      cmd: new Deno.Command('node_modules/.bin/vite', {
+        args: ['serve', '--port', String(PORT_VITE), '--strictPort'],
+        stderr: 'inherit',
+        stdout: 'inherit',
+      }),
+      check: () => assertPortBusy(PORT_VITE),
+    },
   ),
   spawnLinked(
-    new Deno.Command('deno', {
-      args: ['task', 'serve-peer'],
-      stderr: 'inherit',
-      'stdout': 'inherit',
-    }),
-    () => assertPortBusy(PORT_PEER_SERVER),
+    {
+      name: 'serve-peer',
+      cmd: new Deno.Command('deno', {
+        args: ['task', 'serve-peer'],
+        stderr: 'inherit',
+        stdout: 'inherit',
+      }),
+      check: () => assertPortBusy(PORT_PEER_SERVER),
+    },
   ),
 ])
 $.logStep('Started Vite and Peer server')
@@ -88,7 +91,7 @@ $.logStep('Started Vite and Peer server')
 try {
   $.logStep('Running Cypress')
   await $`pnpm cypress run`
-  $.logStep('Finished Cypress withot errors')
+  $.logStep('Finished Cypress without errors')
 } finally {
   await Promise.all(tasks.map((x) => x.kill()))
   $.logStep('Terminated Vite & Peer server')

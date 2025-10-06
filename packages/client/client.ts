@@ -202,6 +202,7 @@ export class TransactionHandle {
         }
       })
       stream.ee.on('close', () => {
+        // FIXME: do not throw on `POST /transaction` rejection
         confirmation.reject(new Error('Events stream was unexpectedly closed'))
       })
       params.verifyAbort?.addEventListener('abort', () => {
