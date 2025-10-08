@@ -1,3 +1,17 @@
+### 2025.10.08
+
+#### @iroha/client 0.5.0-alpha (prerelease)
+
+- feat!: support post-`2.0.0-rc.2.0` Iroha (#263)
+
+#### @iroha/client-web-socket-node 0.5.0-alpha (prerelease)
+
+- bump version to be compabible with `@iroha/client@^0.4.0`
+
+#### @iroha/core 0.5.0-alpha (prerelease)
+
+- feat!: support post-`2.0.0-rc.2.0` Iroha (#263)
+
 ### 2025.05.09
 
 #### @iroha/client 0.4.0 (minor)
