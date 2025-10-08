@@ -10,7 +10,6 @@ import * as types from '@iroha/core/data-model'
 import type { PrivateKey } from '@iroha/core/crypto'
 import { assert } from '@std/assert'
 import type { MainAPI } from './api.ts'
-import type { QuerySelectors } from '../core/data-model/prototypes.generated.ts'
 
 export class QueryExecutor {
   private readonly api: MainAPI
@@ -58,7 +57,7 @@ export class QueryBuilder<Q extends QueryKind, Output = DefaultQueryOutput<Q>> e
   }
 
   public override selectWith<const ProtoTuple>(
-    fn: (prototype: QuerySelectors[Q]) => ProtoTuple,
+    fn: (prototype: types.QuerySelectors[Q]) => ProtoTuple,
   ): QueryBuilder<Q, SelectedTuple<ProtoTuple>> {
     super.selectWith(fn)
     return this as QueryBuilder<Q, SelectedTuple<ProtoTuple>>
