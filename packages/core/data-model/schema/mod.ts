@@ -16,6 +16,7 @@ export type SchemaTypeDefinition =
   | MapDefinition
   | VecDefinition
   | OptionDefinition
+  | ResultDefinition
   | NamedStructDefinition
   | EnumDefinition
   | ArrayDefinition
@@ -49,6 +50,13 @@ export interface ArrayDefinition {
 
 export interface OptionDefinition {
   Option: TypePath
+}
+
+export interface ResultDefinition {
+  Result: {
+    ok: TypePath
+    err: TypePath
+  }
 }
 
 export interface NamedStructDefinition {

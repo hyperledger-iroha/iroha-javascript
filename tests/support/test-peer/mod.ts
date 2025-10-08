@@ -4,8 +4,6 @@ import { fs } from 'zx'
 import { PEER_CONFIG_BASE } from '@iroha/test-configuration'
 import * as TOML from '@std/toml'
 import { format as formatDuration } from '@std/fmt/duration'
-import * as dm from '@iroha/core/data-model'
-import { getCodec } from '@iroha/core'
 import { temporaryDirectory } from 'tempy'
 import { HttpTransport, MainAPI } from '@iroha/client'
 import { mergeDeep } from 'remeda'
@@ -72,6 +70,8 @@ export interface StartPeerReturn {
   isAlive: () => boolean
 }
 
+export type GenesisSpec = unknown
+
 /**
  * Start network with a single peer.
  *
@@ -85,7 +85,7 @@ export async function startPeer(params: {
     /** aka public key */
     id: string
   }[]
-  genesis?: dm.SignedBlock
+  genesis: GenesisSpec
 }): Promise<StartPeerReturn> {
   const PORT = params.ports.api
   const PORT_P2P = params.ports.p2p
@@ -95,15 +95,13 @@ export async function startPeer(params: {
   const TMP_DIR = temporaryDirectory()
   debug('Peer temporary directory: %o | See configs, logs, artifacts there', TMP_DIR)
 
-  let configGenesisPart = {}
-  if (params?.genesis) {
-    await fs.writeFile(path.join(TMP_DIR, 'genesis.scale'), getCodec(dm.SignedBlock).encode(params.genesis))
-    configGenesisPart = {
-      genesis: {
-        file: './genesis.scale',
-      },
-    }
+  const configGenesisPart = {
+    genesis: {
+      file: './genesis.json',
+    },
   }
+
+  await fs.writeFile(path.join(TMP_DIR, 'genesis.json'), JSON.stringify(params.genesis))
 
   await fs.writeFile(
     path.join(TMP_DIR, 'config.toml'),

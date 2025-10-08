@@ -76,5 +76,6 @@
 export * from './primitives.ts'
 export * from './compound.ts'
 export * from './types.generated.ts'
+export * from './prototypes.generated.ts'
 export { Hash, KeyPair, PrivateKey, PublicKey, Signature } from '../crypto/mod.ts'
 export type { Variant, VariantUnit } from '../util.ts'

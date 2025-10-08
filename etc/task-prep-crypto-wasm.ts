@@ -1,9 +1,9 @@
-import { parseArgs } from 'jsr:@std/cli'
-import * as path from 'jsr:@std/path'
-import $ from 'jsr:@david/dax'
+import { parseArgs } from '@std/cli'
+import * as path from '@std/path'
+import $ from '@david/dax'
 import * as colors from '@std/fmt/colors'
 import { pathRel, resolveFromRoot } from './util.ts'
-import { copy, emptyDir } from 'jsr:@std/fs'
+import { copy, emptyDir } from '@std/fs'
 import { assert } from '@std/assert/assert'
 import { assertEquals } from '@std/assert/equals'
 
@@ -34,7 +34,7 @@ async function checkBuildReady() {
     assertEquals(files, GENERATED_FILES)
     return true
   } catch (err) {
-    $.logWarn('Error whiule checking build artifacts:', err)
+    $.logWarn('Error while checking build artifacts:', err)
     return false
   }
 }

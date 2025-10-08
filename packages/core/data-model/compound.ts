@@ -505,3 +505,28 @@ export class NftId {
     return this.toString()
   }
 }
+
+export class BlockSignature implements Ord<BlockSignature> {
+  public static [SYMBOL_CODEC]: GenCodec<BlockSignature> = structCodec(['index', 'signature'], {
+    index: getCodec(U64),
+    signature: getCodec(crypto.Signature),
+  }).wrap<BlockSignature>({ toBase: (x) => x, fromBase: (x) => new BlockSignature(x.index, x.signature) })
+
+  public readonly index: bigint
+  public readonly signature: crypto.Signature
+
+  public constructor(index: bigint, signature: crypto.Signature) {
+    this.index = index
+    this.signature = signature
+  }
+
+  public compare(other: BlockSignature): number {
+    const idx = ordCompare(this.index, other.index)
+    if (idx !== 0) return idx
+
+    const signature = this.signature.compare(other.signature)
+    if (signature !== 0) return signature
+
+    return 0
+  }
+}

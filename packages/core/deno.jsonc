@@ -4,6 +4,7 @@
   "exports": {
     ".": "./mod.ts",
     "./codec": "./codec.ts",
+    "./codec-debug": "./codec-debug.ts",
     "./data-model": "./data-model/mod.ts",
     "./data-model/schema": "./data-model/schema/mod.ts",
     "./data-model/schema-json": "./data-model/schema/json.ts",

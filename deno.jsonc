@@ -1,7 +1,7 @@
 {
   "license": "Apache 2.0",
   "nodeModulesDir": "auto",
-  "exclude": ["**/docs"],
+  "exclude": ["**/docs", "./tmp"],
   "workspace": [
     "./packages/core",
     "./packages/client",
@@ -35,7 +35,7 @@
       "dependencies": ["prep:ok"]
     },
     "test:deno": {
-      "command": "deno test -R --doc",
+      "command": "deno test -RE --doc",
       "dependencies": ["prep:ok"]
     },
     "test:integration:node": {
@@ -82,17 +82,23 @@
     }
   },
   "imports": {
+    "@david/dax": "jsr:@david/dax@^0.43.2",
     "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.3",
     "@std/assert": "jsr:@std/assert@^1.0.11",
     "@std/async": "jsr:@std/async@^1.0.10",
-    "@std/encoding": "jsr:@std/encoding@^1.0.7",
+    "@std/cli": "jsr:@std/cli@^1.0.22",
+    "@std/crypto": "jsr:@std/crypto@^1.0.5",
+    "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/expect": "jsr:@std/expect@^1.0.13",
     "@std/fmt": "jsr:@std/fmt@^1.0.5",
+    "@std/fs": "jsr:@std/fs@^1.0.19",
+    "@std/path": "jsr:@std/path@^1.1.2",
     "@std/testing": "jsr:@std/testing@^1.0.9",
+    "@std/text": "jsr:@std/text@^1.0.16",
     "@std/toml": "jsr:@std/toml@^1.0.2",
     "change-case": "npm:change-case@^5.4.4",
     "dprint-node": "npm:dprint-node@^1.0.8",
-    "fast-equals": "npm:fast-equals@^5.2.2",
+    "fast-equals": "npm:fast-equals@^5.3.2",
     "get-port": "npm:get-port@^7.1.0",
     "immutable": "npm:immutable@^5.0.3",
     "jake": "npm:jake@^10.9.2",

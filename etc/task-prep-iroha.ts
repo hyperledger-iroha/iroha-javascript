@@ -1,10 +1,10 @@
-import { parseArgs } from 'jsr:@std/cli/parse-args'
+import { parseArgs } from '@std/cli/parse-args'
 import { pathRel, resolveFromRoot } from './util.ts'
-import * as path from 'jsr:@std/path'
-import * as colors from 'jsr:@std/fmt/colors'
-import $ from 'jsr:@david/dax'
+import * as path from '@std/path'
+import * as colors from '@std/fmt/colors'
+import $ from '@david/dax'
 import { assert, assertEquals } from '@std/assert'
-import { copy, emptyDir, ensureDir } from 'jsr:@std/fs'
+import { copy, emptyDir, ensureDir } from '@std/fs'
 
 const IROHA_REPO_DIR = resolveFromRoot('.iroha')
 const PREP_OUTPUT_DIR = resolveFromRoot('prep/iroha')

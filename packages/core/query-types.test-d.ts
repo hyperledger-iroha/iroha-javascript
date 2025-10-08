@@ -39,7 +39,7 @@ type test_find_account_and_id = Expect<
   >
 >
 
-const selectBlocksDefault = new QueryBuilder('FindBlocks')
+const selectBlocksDefault = new QueryBuilder('FindBlocks', { order: types.Order.Ascending })
 type test_default_output_for_blocks = Expect<Equal<BuilderOutput<typeof selectBlocksDefault>, types.SignedBlock>>
 
 type singular_queries_in_output = keyof SingularQueryOutputMap

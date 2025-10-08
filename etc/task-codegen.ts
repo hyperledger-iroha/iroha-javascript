@@ -1,7 +1,7 @@
 import SCHEMA from '@iroha/core/data-model/schema-json'
 import { generateClientFindAPI, generateDataModel, generatePrototypes, Resolver } from './codegen.ts'
 import * as colors from '@std/fmt/colors'
-import { parseArgs } from 'jsr:@std/cli/parse-args'
+import { parseArgs } from '@std/cli/parse-args'
 import { assertEquals } from '@std/assert/equals'
 import { fail } from '@std/assert/fail'
 
