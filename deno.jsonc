@@ -1,6 +1,7 @@
 {
   "license": "Apache 2.0",
   "nodeModulesDir": "auto",
+  "lock": { "frozen": true },
   "exclude": ["**/docs", "./tmp"],
   "workspace": [
     "./packages/core",
