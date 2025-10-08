@@ -71,6 +71,7 @@
     "npm:ts-pattern@^5.6.2": "5.6.2",
     "npm:type-fest@^4.33.0": "4.33.0",
     "npm:vite@^6.1.0": "6.3.6_sass@1.93.2_picomatch@4.0.3_@types+node@24.2.0",
+    "npm:vitest@3.2.4": "3.2.4_vite@6.3.6__sass@1.93.2__picomatch@4.0.3_sass@1.93.2_@types+node@24.2.0",
     "npm:vitest@^3.0.5": "3.2.4_vite@6.3.6__sass@1.93.2__picomatch@4.0.3_sass@1.93.2_@types+node@24.2.0",
     "npm:vue@^3.2.47": "3.5.22",
     "npm:ws@^8.18.0": "8.18.0",
