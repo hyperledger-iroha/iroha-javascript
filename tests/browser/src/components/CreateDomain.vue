@@ -13,7 +13,7 @@ const { state, run: registerDomain } = useTask(() =>
         dm.InstructionBox.Register.Domain({ id: new dm.Name(domainName.value), logo: null, metadata: [] }),
       ]),
     )
-    .submit({ verify: true }),
+    .submit({ verify: true })
 )
 </script>
 
@@ -25,6 +25,6 @@ const { state, run: registerDomain } = useTask(() =>
       <button @click="registerDomain()">Register domain{{ state.pending ? '...' : '' }}</button>
     </p>
 
-  {{  state  }}
+    {{ state }}
   </div>
 </template>

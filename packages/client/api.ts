@@ -167,10 +167,12 @@ export class MainAPI {
   }
 
   public async query(query: dm.SignedQuery): Promise<dm.QueryResponse> {
+    const bytes = getCodec(dm.SignedQuery).encode(query)
     return this.http
       .getFetch()(urlJoinPath(this.http.toriiBaseURL, ENDPOINT_QUERY), {
         method: 'POST',
-        body: [getCodec(dm.SignedQuery).encode(query)],
+        // FIXME: see `transaction` method, same issue
+        body: bytes as unknown as BodyInit,
       })
       .then(handleQueryResponse)
   }

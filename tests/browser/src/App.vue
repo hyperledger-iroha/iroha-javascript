@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import CreateDomain from './components/CreateDomain.vue'
-import EventListener from './components/EventListener.vue'
+import Listener from './components/Listener.vue'
 import StatusChecker from './components/StatusChecker.vue'
+import QueryDomains from './components/QueryDomains.vue'
 </script>
 
 <template>
@@ -9,7 +10,9 @@ import StatusChecker from './components/StatusChecker.vue'
   <hr>
   <CreateDomain />
   <hr>
-  <EventListener />
+  <QueryDomains />
+  <hr>
+  <Listener />
 </template>
 
 <style lang="scss">

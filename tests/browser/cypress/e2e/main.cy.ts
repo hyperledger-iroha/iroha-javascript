@@ -9,7 +9,9 @@ it('Register new domain and wait until commitment', () => {
   // wait for the genesis block
   cy.get('h3').contains('Status').closest('div').contains('Blocks: 2')
 
-  cy.get('button').contains('Listen').click().contains('Stop')
+  cy.get('button').contains('Listen').click()
+  cy.get('li.active-events').contains('Events: true')
+  cy.get('li.active-blocks').contains('Blocks: true')
 
   cy.get('input').type('bob')
   cy.get('button').contains('Register domain').click()
@@ -21,10 +23,26 @@ it('Register new domain and wait until commitment', () => {
   const EXPECTED_EVENTS = 8
 
   // And all events are caught
-  cy.get('ul.events-list')
+  cy.get('ul.events')
     .children('li')
     .should('have.length', EXPECTED_EVENTS)
     .last()
-    .contains('Block')
+    .contains('Block (height=4)')
     .contains('Applied')
+
+  // And all blocks too
+  cy.get('ul.blocks')
+    .children('li')
+    .should('have.length', 4)
+    .first().contains('1')
+    .parent()
+    .last().contains('4')
+
+  cy.get('button').contains('Query domains').click()
+
+  // our registered domain appears
+  cy.get('ul.domains')
+    .children('li')
+    .should('have.length', 3)
+    .first().contains('bob')
 })
