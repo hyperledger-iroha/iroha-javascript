@@ -1,3 +1,9 @@
+### 2025.10.15
+
+#### @iroha/client 0.5.0-alpha-1 (prerelease)
+
+- fix(client): pass bytes to `POST /query` properly (#265)
+
 ### 2025.10.08
 
 #### @iroha/client 0.5.0-alpha (prerelease)
